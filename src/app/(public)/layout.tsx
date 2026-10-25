@@ -5,9 +5,13 @@ import { FontLoader } from '@/components/font-loader'
 import { prisma } from '@/lib/prisma'
 import { SessionProvider } from '@/components/session-provider'
 import { PublicAnnouncementPopup } from '@/components/public/public-announcement-popup'
-import { cacheLife } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 
 async function getThemeConfig() {
+  'use cache'
+  cacheTag('site_configs')
+  cacheLife('seconds')
+
   let fontBody = 'DM Sans';
   let fontDisplay = 'Playfair Display';
   let primaryColor = '#1a1a2e';
@@ -49,7 +53,8 @@ async function FontLoaderWrapper() {
 
 async function getNavbarConfig() {
   'use cache'
-  cacheLife('hours')
+  cacheTag('site_configs')
+  cacheLife('seconds')
 
   try {
     const config = await prisma.site_configs.findUnique({

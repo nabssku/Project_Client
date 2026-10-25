@@ -55,6 +55,12 @@ Navbar menggunakan `usePathname()` untuk mendeteksi rute dan mengatur styling se
    - `src/app/(public)/villas/[slug]/page.tsx`: Ditambahkan `export const instant = false;`, `'use cache'` di `generateMetadata()`, dan `await connection()` dari `next/server` sebelum `auth()`.
 3. **Pembersihan next.config.ts**:
    - Menghapus opsi deprecated `dynamicIO: true` yang digantikan oleh `cacheComponents: true`.
+4. **Perbaikan Cache Stale Vercel (Cache Components & Edge Invalidation)**:
+   - Sebelumnya, data `site_configs` di-cache dengan profil `cacheLife('hours')` (1 jam - 1 hari) tanpa tag cache eksplisit, sehingga Vercel Edge CDN terus menyajikan cache lama meski database telah diperbarui.
+   - Diperbaiki dengan mengaitkan `cacheTag('site_configs')` dan profil revalidasi cepat `cacheLife('seconds')` / `cacheLife('minutes')`.
+   - Menambahkan pemanggilan `revalidateTag('site_configs', { expire: 0 })` pada endpoint pembaruan (`/api/config/site`, `/api/cms/hero`, `/api/config/payment`).
+   - Membuat endpoint on-demand `/api/config/revalidate` dan tombol 1-klik "Bersihkan Cache Vercel" di `/dashboard/settings` dan `/dashboard/cms/hero`.
+   - Menambahkan client-side background sync di `FontLoader` (`fetch('/api/config/site')` dengan `no-store`) agar perubahan warna & font langsung aktif seketika tanpa perlu deploy ulang.
 
 ---
 

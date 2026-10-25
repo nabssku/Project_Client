@@ -56,8 +56,58 @@ export function FontLoader({
   primaryColor = "#1a1a2e",
   secondaryColor = "#C8A44E",
 }: ThemeLoaderProps) {
-  const primaryDark = adjustHex(primaryColor, -16);
-  const accentLight = adjustHex(secondaryColor, 14);
+  const [theme, setTheme] = React.useState({
+    bodyFont,
+    displayFont,
+    primaryColor,
+    secondaryColor,
+  });
+
+  // Keep in sync if props change
+  useEffect(() => {
+    setTheme({ bodyFont, displayFont, primaryColor, secondaryColor });
+  }, [bodyFont, displayFont, primaryColor, secondaryColor]);
+
+  // Client-side cache-buster: fetch fresh configs to bypass any stale CDN/browser cache
+  useEffect(() => {
+    let mounted = true;
+    fetch(`/api/config/site?_t=${Date.now()}`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!mounted || !data?.configs) return;
+        const cfg = data.configs;
+        setTheme((prev) => {
+          const nextBody = cfg.font_body || prev.bodyFont;
+          const nextDisplay = cfg.font_display || prev.displayFont;
+          const nextPrimary = cfg.primary_color || prev.primaryColor;
+          const nextSecondary = cfg.secondary_color || prev.secondaryColor;
+          if (
+            nextBody !== prev.bodyFont ||
+            nextDisplay !== prev.displayFont ||
+            nextPrimary !== prev.primaryColor ||
+            nextSecondary !== prev.secondaryColor
+          ) {
+            return {
+              bodyFont: nextBody,
+              displayFont: nextDisplay,
+              primaryColor: nextPrimary,
+              secondaryColor: nextSecondary,
+            };
+          }
+          return prev;
+        });
+      })
+      .catch(() => {
+        // Silently ignore if offline
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const primaryDark = adjustHex(theme.primaryColor, -16);
+  const accentLight = adjustHex(theme.secondaryColor, 14);
 
   useEffect(() => {
     // 1. Remove existing font links
@@ -67,11 +117,15 @@ export function FontLoader({
     // 2. Build Google Fonts URL
     const fontParams: string[] = [];
 
-    const bodyQuery = FONT_MAP[bodyFont] || `family=${encodeURIComponent(bodyFont)}:ital,wght@0,400;0,500;0,600;0,700;1,400`;
+    const bodyQuery =
+      FONT_MAP[theme.bodyFont] ||
+      `family=${encodeURIComponent(theme.bodyFont)}:ital,wght@0,400;0,500;0,600;0,700;1,400`;
     fontParams.push(bodyQuery);
 
-    if (displayFont !== bodyFont) {
-      const displayQuery = FONT_MAP[displayFont] || `family=${encodeURIComponent(displayFont)}:ital,wght@0,400;0,600;0,700;1,400`;
+    if (theme.displayFont !== theme.bodyFont) {
+      const displayQuery =
+        FONT_MAP[theme.displayFont] ||
+        `family=${encodeURIComponent(theme.displayFont)}:ital,wght@0,400;0,600;0,700;1,400`;
       fontParams.push(displayQuery);
     }
 
@@ -86,37 +140,44 @@ export function FontLoader({
     // 3. Update CSS variables globally on document root
     const root = document.documentElement;
 
-    root.style.setProperty("--font-sans", bodyFont);
-    root.style.setProperty("--font-display", displayFont);
+    root.style.setProperty("--font-sans", theme.bodyFont);
+    root.style.setProperty("--font-display", theme.displayFont);
 
-    root.style.setProperty("--primary", primaryColor);
-    root.style.setProperty("--color-primary", primaryColor);
+    root.style.setProperty("--primary", theme.primaryColor);
+    root.style.setProperty("--color-primary", theme.primaryColor);
     root.style.setProperty("--primary-dark", primaryDark);
     root.style.setProperty("--color-primary-dark", primaryDark);
 
-    root.style.setProperty("--accent", secondaryColor);
-    root.style.setProperty("--color-accent", secondaryColor);
+    root.style.setProperty("--accent", theme.secondaryColor);
+    root.style.setProperty("--color-accent", theme.secondaryColor);
     root.style.setProperty("--accent-light", accentLight);
     root.style.setProperty("--color-accent-light", accentLight);
-    root.style.setProperty("--ring", secondaryColor);
-    root.style.setProperty("--color-ring", secondaryColor);
-  }, [bodyFont, displayFont, primaryColor, secondaryColor, primaryDark, accentLight]);
+    root.style.setProperty("--ring", theme.secondaryColor);
+    root.style.setProperty("--color-ring", theme.secondaryColor);
+  }, [
+    theme.bodyFont,
+    theme.displayFont,
+    theme.primaryColor,
+    theme.secondaryColor,
+    primaryDark,
+    accentLight,
+  ]);
 
   // Server-rendered inline style to prevent flash of default theme
   const inlineStyles = `
     :root {
-      --primary: ${primaryColor} !important;
+      --primary: ${theme.primaryColor} !important;
       --primary-dark: ${primaryDark} !important;
-      --color-primary: ${primaryColor} !important;
+      --color-primary: ${theme.primaryColor} !important;
       --color-primary-dark: ${primaryDark} !important;
-      --accent: ${secondaryColor} !important;
+      --accent: ${theme.secondaryColor} !important;
       --accent-light: ${accentLight} !important;
-      --color-accent: ${secondaryColor} !important;
+      --color-accent: ${theme.secondaryColor} !important;
       --color-accent-light: ${accentLight} !important;
-      --ring: ${secondaryColor} !important;
-      --color-ring: ${secondaryColor} !important;
-      --font-sans: "${bodyFont}", system-ui, -apple-system, sans-serif !important;
-      --font-display: "${displayFont}", Georgia, serif !important;
+      --ring: ${theme.secondaryColor} !important;
+      --color-ring: ${theme.secondaryColor} !important;
+      --font-sans: "${theme.bodyFont}", system-ui, -apple-system, sans-serif !important;
+      --font-display: "${theme.displayFont}", Georgia, serif !important;
     }
     body {
       font-family: var(--font-sans) !important;

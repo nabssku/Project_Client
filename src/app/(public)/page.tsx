@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cacheLife, cacheTag } from "next/cache";
 import { Hero } from "@/components/public/hero";
 import { VillaGrid } from "@/components/public/villa-grid";
 import { HowItWorks } from "@/components/public/how-it-works";
@@ -10,6 +11,10 @@ import DynamicFont from "@/components/DynamicFont";
 export const instant = false;
 
 async function HomeContent() {
+  'use cache';
+  cacheTag('site_configs', 'villas', 'testimonials');
+  cacheLife('seconds');
+
   const [villas, testimonials, configs] = await Promise.all([
     prisma.villas.findMany({
       take: 6,

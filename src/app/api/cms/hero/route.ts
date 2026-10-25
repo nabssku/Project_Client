@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/auth-guard";
 
@@ -103,15 +103,19 @@ export async function PUT(request: Request) {
       console.warn("Failed to create activity log for cms hero update:", logErr);
     }
 
-    // Revalidate public layouts and homepages
+    // Revalidate public layouts, tags, and homepages
     try {
+      revalidateTag("site_configs", { expire: 0 });
+      revalidateTag("site_configs", "max");
       revalidatePath("/", "layout");
       revalidatePath("/", "page");
       revalidatePath("/villas", "layout");
       revalidatePath("/villas", "page");
       revalidatePath("/artikel", "layout");
       revalidatePath("/promo", "layout");
+      revalidatePath("/booking", "layout");
       revalidatePath("/dashboard/cms/hero", "page");
+      revalidatePath("/dashboard/settings");
     } catch (e) {
       console.warn("Revalidation error:", e);
     }

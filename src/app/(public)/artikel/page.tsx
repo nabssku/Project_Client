@@ -2,10 +2,15 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Calendar, Clock, ArrowRight, Tag, BookOpen } from "lucide-react";
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
+  'use cache';
+  cacheTag('site_configs');
+  cacheLife('minutes');
+
   const siteConfig = await prisma.site_configs.findUnique({
     where: { key: "site_name" },
   });

@@ -25,6 +25,7 @@ import {
   Search,
   Sparkles,
   Lock,
+  RefreshCw,
 } from "lucide-react";
 import { type BankAccount, DEFAULT_BANK_ACCOUNTS } from "@/lib/payment-config";
 
@@ -323,6 +324,28 @@ export function SettingsClient({
   const [siteSuccess, setSiteSuccess] = useState("");
   const [siteError, setSiteError] = useState("");
 
+  const [purgingCache, setPurgingCache] = useState(false);
+  const [purgeSuccess, setPurgeSuccess] = useState("");
+
+  const handlePurgeCache = async () => {
+    setPurgingCache(true);
+    setPurgeSuccess("");
+    try {
+      const res = await fetch("/api/config/revalidate", { method: "POST" });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPurgeSuccess(data.message || "Cache Vercel & Website berhasil dibersihkan!");
+        setTimeout(() => setPurgeSuccess(""), 5000);
+      } else {
+        alert(data.error || "Gagal menyegarkan cache");
+      }
+    } catch {
+      alert("Terjadi kesalahan jaringan saat menyegarkan cache.");
+    } finally {
+      setPurgingCache(false);
+    }
+  };
+
   // Payment Banks State
   const [banks, setBanks] = useState<BankAccount[]>(initialBanks);
   const [savingPayment, setSavingPayment] = useState(false);
@@ -500,8 +523,19 @@ export function SettingsClient({
           </p>
         </div>
 
-        {/* Role Badge Indicator */}
-        <div className="flex items-center gap-2">
+        {/* Actions & Role Badge Indicator */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePurgeCache}
+            disabled={purgingCache}
+            title="Bersihkan cache ISR/PPR di server dan Vercel agar perubahan database langsung tampil"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 text-xs font-semibold transition-all cursor-pointer disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${purgingCache ? "animate-spin text-accent" : ""}`} />
+            <span>{purgingCache ? "Membersihkan Cache..." : "Bersihkan Cache Vercel"}</span>
+          </button>
+
           {isAdmin ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -515,6 +549,13 @@ export function SettingsClient({
           )}
         </div>
       </div>
+
+      {purgeSuccess && (
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs animate-in fade-in">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+          <span className="font-medium">{purgeSuccess}</span>
+        </div>
+      )}
 
       {/* Main Tabs */}
       <div className="flex items-center gap-2 border-b border-gray-200 pb-3">

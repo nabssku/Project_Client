@@ -12,6 +12,7 @@ import {
   User,
 } from "lucide-react";
 import type { Metadata } from "next";
+import { cacheLife, cacheTag } from "next/cache";
 import { ArticleRichRenderer } from "@/components/cms/article-rich-renderer";
 
 export const instant = false;
@@ -25,6 +26,10 @@ interface ArticleDetailPageProps {
 export async function generateMetadata({
   params,
 }: ArticleDetailPageProps): Promise<Metadata> {
+  'use cache';
+  cacheTag('site_configs', 'articles');
+  cacheLife('minutes');
+
   const { slug } = await params;
   const [article, siteConfig] = await Promise.all([
     prisma.articles.findUnique({ where: { slug } }),

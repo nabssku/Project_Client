@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 export async function GET() {
   try {
@@ -11,10 +11,17 @@ export async function GET() {
       configsMap[c.key] = c.value;
     });
 
-    return NextResponse.json({
-      success: true,
-      configs: configsMap,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        configs: configsMap,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        },
+      }
+    );
   } catch (error: any) {
     console.error("GET site configs error:", error);
     return NextResponse.json(
@@ -91,15 +98,23 @@ export async function PUT(request: Request) {
       console.warn("Failed to record activity log for site config update:", logErr);
     }
 
-    // Revalidate paths across website
+    // Revalidate paths & tags across website
     try {
+      revalidateTag("site_configs", { expire: 0 });
+      revalidateTag("site_configs", "max");
       revalidatePath("/", "layout");
+      revalidatePath("/", "page");
+      revalidatePath("/villas", "layout");
+      revalidatePath("/villas", "page");
+      revalidatePath("/artikel", "layout");
+      revalidatePath("/promo", "layout");
+      revalidatePath("/booking", "layout");
       revalidatePath("/dashboard/settings");
-      revalidatePath("/villas");
+      revalidatePath("/dashboard/cms/hero");
       revalidatePath("/login");
       revalidatePath("/register");
     } catch (e) {
-      // ignore
+      console.warn("Revalidate error on site configs update:", e);
     }
 
     return NextResponse.json({

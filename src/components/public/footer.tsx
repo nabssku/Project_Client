@@ -3,11 +3,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { Starfield } from "@/components/public/starfield";
 import { CurrentYear } from "@/components/current-year";
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 
 async function getFooterConfigs() {
   'use cache';
-  cacheLife('hours');
+  cacheTag('site_configs');
+  cacheLife('seconds');
 
   try {
     const configs = await prisma.site_configs.findMany({

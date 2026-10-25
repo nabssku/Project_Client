@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   getPaymentTransferBanks,
   type BankAccount,
@@ -105,14 +105,16 @@ export async function PUT(request: Request) {
       console.warn("Failed to record activity log for payment config:", logErr);
     }
 
-    // Revalidate paths
+    // Revalidate paths and cache tags
     try {
+      revalidateTag("site_configs", { expire: 0 });
+      revalidateTag("site_configs", "max");
       revalidatePath("/booking");
       revalidatePath("/booking/[code]", "page");
       revalidatePath("/dashboard/settings");
       revalidatePath("/dashboard/bookings");
     } catch (e) {
-      // ignore
+      console.warn("Revalidate error on payment config update:", e);
     }
 
     return NextResponse.json({

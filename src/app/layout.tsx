@@ -3,7 +3,7 @@ import { DM_Sans, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { prisma } from "@/lib/prisma";
 import { TimeThemeProvider } from "@/components/public/time-theme-provider";
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -19,7 +19,8 @@ const playfair = Playfair_Display({
 
 export async function generateMetadata(): Promise<Metadata> {
   'use cache';
-  cacheLife('hours');
+  cacheTag('site_configs');
+  cacheLife('minutes');
 
   try {
     const configs = await prisma.site_configs.findMany({
