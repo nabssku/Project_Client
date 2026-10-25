@@ -7,3 +7,8 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## Project Knowledge & Custom Rules
+Detail arsitektur, aturan khusus Next.js 16 (Cache Components / Prerendering), logika kustom Navbar, riwayat perbaikan bug, dan spesifikasi PRD tersimpan di:
+- [project_knowledge.md](file:///.agents/rules/project_knowledge.md)
+- [PRD-villa-booking.md](file:///Users/fithrichaerunisa/.gemini/antigravity-cli/brain/ca9e3134-ecbc-4f23-b620-8c265e92d0e6/PRD-villa-booking.md)

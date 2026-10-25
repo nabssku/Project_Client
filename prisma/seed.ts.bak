@@ -1,0 +1,211 @@
+import { PrismaClient, Role } from "@prisma/client";
+import { hash } from "bcryptjs";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  // Create admin user
+  const adminPassword = await hash("admin123", 12);
+  const admin = await prisma.user.upsert({
+    where: { email: "admin@villabooking.com" },
+    update: {},
+    create: {
+      email: "admin@villabooking.com",
+      passwordHash: adminPassword,
+      name: "Admin",
+      role: Role.ADMIN,
+      avatar: null,
+      isActive: true,
+    },
+  });
+  console.log("Created admin:", admin.email);
+
+  // Create manajer user
+  const manajerPassword = await hash("manajer123", 12);
+  const manajer = await prisma.user.upsert({
+    where: { email: "manajer@villabooking.com" },
+    update: {},
+    create: {
+      email: "manajer@villabooking.com",
+      passwordHash: manajerPassword,
+      name: "Manajer Villa",
+      role: Role.MANAJER,
+      avatar: null,
+      isActive: true,
+    },
+  });
+  console.log("Created manajer:", manajer.email);
+
+  // Create sample villas
+  const villas = [
+    {
+      name: "Flor Villa",
+      slug: "flor-villa",
+      description:
+        "Villa mewah dengan private pool dan pemandangan gunung yang indah. Cocok untuk keluarga atau gathering kecil.",
+      pricePerNight: 1500000,
+      capacity: 10,
+      bedrooms: 2,
+      bathrooms: 2,
+      location: "Puncak, Bogor",
+      amenities: ["Private Pool", "WiFi", "AC", "BBQ Area", "Parking", "Kitchen"],
+      images: [],
+      isFeatured: true,
+    },
+    {
+      name: "Sehamparan Villa",
+      slug: "sehamparan-villa",
+      description:
+        "Villa luas dengan halaman hijau yang asri. Kapasitas besar untuk acara keluarga atau gathering kantor.",
+      pricePerNight: 1200000,
+      capacity: 20,
+      bedrooms: 2,
+      bathrooms: 2,
+      location: "Cisarua, Bogor",
+      amenities: ["Garden", "WiFi", "AC", "BBQ Area", "Parking", "Kitchen", "Karaoke"],
+      images: [],
+      isFeatured: true,
+    },
+    {
+      name: "The Joanne Villa",
+      slug: "the-joanne-villa",
+      description:
+        "Villa premium dengan desain modern minimalis. Dilengkapi fasilitas lengkap untuk kenyamanan maksimal.",
+      pricePerNight: 2300000,
+      capacity: 10,
+      bedrooms: 3,
+      bathrooms: 4,
+      location: "Puncak, Bogor",
+      amenities: ["Private Pool", "WiFi", "AC", "BBQ Area", "Parking", "Kitchen", "Billiard"],
+      images: [],
+      isFeatured: true,
+    },
+    {
+      name: "The Imari Villa",
+      slug: "the-imari-villa",
+      description:
+        "Villa eksklusif dengan arsitektur Jepang modern. Suasana tenang dan nyaman untuk relaksasi.",
+      pricePerNight: 1900000,
+      capacity: 20,
+      bedrooms: 3,
+      bathrooms: 4,
+      location: "Megamendung, Bogor",
+      amenities: ["Private Pool", "WiFi", "AC", "Garden", "Parking", "Kitchen", "Hot Tub"],
+      images: [],
+      isFeatured: false,
+    },
+    {
+      name: "Alora Villa",
+      slug: "alora-villa",
+      description:
+        "Villa besar dengan 6 kamar tidur. Ideal untuk gathering keluarga besar atau acara kantor.",
+      pricePerNight: 1900000,
+      capacity: 25,
+      bedrooms: 6,
+      bathrooms: 3,
+      location: "Cisarua, Bogor",
+      amenities: ["Pool", "WiFi", "AC", "BBQ Area", "Parking", "Kitchen", "Meeting Room"],
+      images: [],
+      isFeatured: false,
+    },
+  ];
+
+  for (const villa of villas) {
+    const { ...createData } = villa;
+    const created = await prisma.villa.upsert({
+      where: { slug: villa.slug },
+      update: createData,
+      create: createData,
+    });
+    console.log("Created villa:", created.name);
+  }
+
+  // Create site configs
+  const configs = [
+    { key: "site_name", value: "Nginapsini", type: "string" },
+    { key: "site_description", value: "Pengelola villa terdepan di Puncak, Bogor yang menawarkan akomodasi berkualitas dengan harga terjangkau dan fasilitas modern.", type: "string" },
+    { key: "site_tagline", value: "Pengalaman menginap lengkap untuk momen yang lebih berkesan", type: "string" },
+    { key: "hero_title", value: "Villa & Resort Booking Puncak Bogor", type: "string" },
+    { key: "hero_subtitle", value: "Pengalaman menginap lengkap untuk momen yang lebih berkesan.", type: "string" },
+    { key: "hero_image", value: "", type: "string" },
+    { key: "hero_video", value: "", type: "string" },
+    { key: "stats_properties", value: "50+", type: "string" },
+    { key: "stats_guests", value: "10K+", type: "string" },
+    { key: "stats_rating", value: "4.8", type: "string" },
+    { key: "contact_phone_1", value: "(+62) 811-1141-052", type: "string" },
+    { key: "contact_phone_2", value: "(+62) 8521-9949-626", type: "string" },
+    { key: "contact_email", value: "Nginapsini.id@gmail.com", type: "string" },
+    { key: "contact_address", value: "Jl. Alternatif Puncak\nCisarua – Bogor 16750", type: "string" },
+    { key: "cta_title", value: "Siap Untuk Liburan?", type: "string" },
+    { key: "cta_subtitle", value: "Hubungi kami dan dapatkan penawaran terbaik untuk villa impian Anda", type: "string" },
+    { key: "primary_color", value: "#2563eb", type: "string" },
+    { key: "secondary_color", value: "#10b981", type: "string" },
+    { key: "company_name", value: "PT LANDTARA AKSES INDO", type: "string" },
+    { key: "social_facebook", value: "https://www.facebook.com/NginapsiniOfficialpage", type: "string" },
+    { key: "social_instagram", value: "https://www.instagram.com/nginapsini", type: "string" },
+    { key: "social_youtube", value: "", type: "string" },
+    { key: "social_tiktok", value: "https://www.tiktok.com/@nginapsini", type: "string" },
+    { key: "font_body", value: "DM Sans", type: "string" },
+    { key: "font_display", value: "Playfair Display", type: "string" },
+  ];
+
+  for (const config of configs) {
+    await prisma.siteConfig.upsert({
+      where: { key: config.key },
+      update: { value: config.value, type: config.type },
+      create: {
+        key: config.key,
+        value: config.value,
+        type: config.type,
+      },
+    });
+  }
+  console.log("Created site configs");
+
+  // Create sample testimonials
+  const testimonials = [
+    {
+      name: "Budi Santoso",
+      content: "Tempatnya enak banget banyak space buat seru seruan. Staff ramah dan responsif. Pasti balik lagi!",
+      rating: 5,
+      isFeatured: true,
+    },
+    {
+      name: "Sari Mulyani",
+      content: "Villa-nya bersih, pemandangannya luar biasa. Anak-anak senang banget main di kolam renang. Recommended banget untuk keluarga!",
+      rating: 5,
+      isFeatured: true,
+    },
+    {
+      name: "Andi Pratama",
+      content: "Perfect buat gathering kantor. Tempatnya luas, fasilitasnya lengkap, harga sangat terjangkau.",
+      rating: 5,
+      isFeatured: true,
+    },
+  ];
+
+  for (const testimonial of testimonials) {
+    await prisma.testimonial.create({
+      data: {
+        name: testimonial.name,
+        content: testimonial.content,
+        rating: testimonial.rating,
+        isFeatured: testimonial.isFeatured,
+        avatar: null,
+        villaId: null,
+      },
+    });
+  }
+  console.log("Created testimonials");
+
+  console.log("Seed completed!");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

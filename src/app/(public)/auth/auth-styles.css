@@ -1,0 +1,246 @@
+/* Auth Pages Styling */
+
+/* Video container untuk full screen coverage */
+.auth-video-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.auth-video-container iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* 16:9 aspect ratio calculation */
+  width: 177.77777778vh; /* 100 * 16/9 */
+  height: 56.25vw; /* 100 * 9/16 */
+  min-height: 100%;
+  min-width: 100%;
+  border: 0;
+  pointer-events: none;
+}
+
+/* Dark overlay pada video */
+.auth-video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(18, 18, 31, 0.8);
+  z-index: 1;
+}
+
+/* Content di atas video */
+.auth-video-content {
+  position: relative;
+  z-index: 10;
+}
+
+/* Smooth transitions untuk form inputs */
+.auth-input {
+  transition: all 0.3s ease;
+}
+
+.auth-input:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(200, 164, 78, 0.15);
+}
+
+/* Button hover effects */
+.auth-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.auth-button::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.auth-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.fade-in-delay-1 {
+  animation: fadeIn 0.6s ease-out 0.1s both;
+}
+
+.fade-in-delay-2 {
+  animation: fadeIn 0.6s ease-out 0.2s both;
+}
+
+.fade-in-delay-3 {
+  animation: fadeIn 0.6s ease-out 0.3s both;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .auth-video-container {
+    display: none;
+  }
+}
+
+/* Error message animation */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-5px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(5px);
+  }
+}
+
+.error-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Success message animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.success-message {
+  animation: slideInRight 0.5s ease-out;
+}
+
+/* Google button custom styles */
+.google-button {
+  transition: all 0.3s ease;
+}
+
+.google-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.google-button:active {
+  transform: translateY(0);
+}
+
+/* Password strength indicator */
+.password-strength {
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.password-strength-bar {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.password-strength-weak {
+  width: 33%;
+  background: #ef4444;
+}
+
+.password-strength-medium {
+  width: 66%;
+  background: #f59e0b;
+}
+
+.password-strength-strong {
+  width: 100%;
+  background: #10b981;
+}
+
+/* Checkbox custom styling */
+.custom-checkbox {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.custom-checkbox:checked {
+  background: #C8A44E;
+  border-color: #C8A44E;
+}
+
+.custom-checkbox:checked::after {
+  content: "✓";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Focus visible for accessibility */
+.auth-input:focus-visible,
+.auth-button:focus-visible {
+  outline: 2px solid #C8A44E;
+  outline-offset: 2px;
+}
+
+/* Disabled state */
+.auth-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.auth-input:disabled {
+  cursor: not-allowed;
+  background: #f5f5f5;
+}

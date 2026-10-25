@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  MANAJER
+  MARKETING
+  MAINTENANCE
+  GUEST
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CHECKED_IN
+  COMPLETED
+  CANCELLED
+}
+
+enum VillaStatus {
+  AVAILABLE
+  CLEANING
+  MAINTENANCE
+  UNAVAILABLE
+}
+
+model users {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  name          String
+  role          Role      @default(GUEST)
+  avatar        String?
+  isActive      Boolean   @default(true)
+  permissions   String[]  @default([])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  bookings          bookings[]       @relation("UserBookings")
+  assignedBookings  bookings[]       @relation("AssignedTo")
+  maintenanceTasks  maintenance_tasks[]
+  activityLogs      activity_logs[]
+  articles          articles[]
+}
+
+model villas {
+  id            String      @id @default(cuid())
+  name          String
+  slug          String      @unique
+  description   String      @db.Text
+  pricePerNight Int
+  priceWeekend  Int?
+  capacity      Int
+  bedrooms      Int
+  bathrooms     Int
+  location      String
+  amenities     String[]
+  images        String[]
+  rules         String[]    @default([])
+  checkInTime   String      @default("14:00")
+  checkOutTime  String      @default("12:00")
+  mapEmbed      String?     @db.Text
+  isFeatured    Boolean     @default(false)
+  status        VillaStatus @default(AVAILABLE)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  bookings          bookings[]
+  customPrices      villa_custom_prices[]
+  testimonials      testimonials[]
+  maintenanceTasks  maintenance_tasks[]
+}
+
+model villa_custom_prices {
+  id        String   @id @default(cuid())
+  villaId   String
+  startDate DateTime
+  endDate   DateTime
+  price     Int
+  reason    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  villa     villas   @relation(fields: [villaId], references: [id], onDelete: Cascade)
+
+  @@index([villaId, startDate, endDate])
+}
+
+model bookings {
+  id                     String        @id @default(cuid())
+  code                   String        @unique
+  villaId                String
+  guestName              String
+  guestPhone             String
+  guestEmail             String
+  guestCity              String?
+  companionType          String?
+  guestsCount            Int           @default(1)
+  checkIn                DateTime
+  checkOut               DateTime
+  totalPrice             Int
+  discountAmount         Int           @default(0)
+  promoCode              String?
+  status                 BookingStatus @default(PENDING)
+  notes                  String?       @db.Text
+  paymentMethod          String        @default("QRIS")
+  paymentProofUrl        String?       @db.Text
+  paymentProofUploadedAt DateTime?
+  userId                 String?
+  assignedToId           String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  villa                  villas        @relation(fields: [villaId], references: [id])
+  user                   users?        @relation("UserBookings", fields: [userId], references: [id])
+  assignedTo             users?        @relation("AssignedTo", fields: [assignedToId], references: [id])
+  testimonial            testimonials?
+}
+
+model site_configs {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  type      String   @default("string")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model testimonials {
+  id                 String    @id @default(cuid())
+  name               String
+  avatar             String?
+  content            String    @db.Text
+  villaId            String?
+  bookingId          String?   @unique
+  rating             Int       @default(5)
+  cleanlinessRating  Int?      @default(5)
+  serviceRating      Int?      @default(5)
+  facilityRating     Int?      @default(5)
+  isFeatured         Boolean   @default(false)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  villa              villas?   @relation(fields: [villaId], references: [id])
+  booking            bookings? @relation(fields: [bookingId], references: [id])
+}
+
+model promos {
+  id              String    @id @default(cuid())
+  title           String
+  description     String    @db.Text
+  discountPercent Int
+  code            String    @unique
+  validFrom       DateTime
+  validUntil      DateTime
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model maintenance_tasks {
+  id          String   @id @default(cuid())
+  villaId     String
+  assignedToId String?
+  title       String
+  description String?  @db.Text
+  isCompleted Boolean  @default(false)
+  dueDate     DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  villa      villas  @relation(fields: [villaId], references: [id])
+  assignedTo users?  @relation(fields: [assignedToId], references: [id])
+}
+
+model activity_logs {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  user      users?    @relation(fields: [userId], references: [id])
+}
+
+model articles {
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  excerpt         String?   @db.Text
+  content         String    @db.Text
+  coverImage      String?
+  category        String    @default("Panduan Wisata")
+  tags            String[]  @default([])
+  metaTitle       String?
+  metaDescription String?   @db.Text
+  isPublished     Boolean   @default(true)
+  publishedAt     DateTime? @default(now())
+  authorId        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  author          users?    @relation(fields: [authorId], references: [id])
+}
+
+model popups {
+  id          String    @id @default(cuid())
+  title       String
+  subtitle    String?   @db.Text
+  imageUrl    String?
+  badge       String?
+  actionLabel String?
+  actionUrl   String?
+  isActive    Boolean   @default(true)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

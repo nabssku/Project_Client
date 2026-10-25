@@ -1,0 +1,140 @@
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+import { uploadBufferToR2 } from "@/lib/r2";
+
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const bookingCode = formData.get("bookingCode") as string | null;
+
+    if (!file) {
+      return NextResponse.json({ error: "File bukti pembayaran tidak ditemukan" }, { status: 400 });
+    }
+
+    if (!bookingCode) {
+      return NextResponse.json({ error: "Kode booking diperlukan" }, { status: 400 });
+    }
+
+    // Check if booking exists
+    const booking = await prisma.bookings.findFirst({
+      where: {
+        OR: [
+          { code: { equals: bookingCode.trim(), mode: "insensitive" } },
+          { id: bookingCode.trim() },
+        ],
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: "Booking tidak ditemukan" }, { status: 404 });
+    }
+
+    // Validate mime type
+    const validTypes = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    if (!validTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Format file tidak didukung. Harap unggah foto JPG, PNG, WebP, atau dokumen PDF." },
+        { status: 400 }
+      );
+    }
+
+    // Max size: 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "Ukuran file terlalu besar. Maksimum 10 MB." },
+        { status: 400 }
+      );
+    }
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Determine file extension
+    let ext = "jpg";
+    if (file.type === "image/png") ext = "png";
+    else if (file.type === "image/webp") ext = "webp";
+    else if (file.type === "application/pdf") ext = "pdf";
+
+    const timestamp = Date.now();
+    const sanitizedCode = booking.code.replace(/[^a-zA-Z0-9_-]/g, "");
+    const key = `proofs/${sanitizedCode}_${timestamp}.${ext}`;
+
+    const publicUrl = await uploadBufferToR2(buffer, key, file.type);
+
+    // Update booking with payment proof URL and timestamp
+    const updated = await prisma.bookings.update({
+      where: { id: booking.id },
+      data: {
+        paymentProofUrl: publicUrl,
+        paymentProofUploadedAt: new Date(),
+      },
+      include: {
+        villa: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            location: true,
+            images: true,
+            checkInTime: true,
+            checkOutTime: true,
+          },
+        },
+      },
+    });
+
+    // Kirim notifikasi bukti bayar via Resend beserta PDF invoice
+    try {
+      const siteConfig = await prisma.site_configs.findUnique({
+        where: { key: "site_name" },
+      });
+      const siteName = siteConfig?.value || "Singgahsana";
+
+      const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
+      sendBookingConfirmationEmail({
+        booking: {
+          id: updated.id,
+          code: updated.code,
+          guestName: updated.guestName,
+          guestEmail: updated.guestEmail,
+          guestPhone: updated.guestPhone,
+          guestCity: updated.guestCity,
+          companionType: updated.companionType,
+          checkIn: updated.checkIn,
+          checkOut: updated.checkOut,
+          guestsCount: updated.guestsCount,
+          totalPrice: updated.totalPrice,
+          discountAmount: updated.discountAmount,
+          promoCode: updated.promoCode,
+          status: updated.status,
+          paymentMethod: updated.paymentMethod,
+          notes: updated.notes,
+          createdAt: updated.createdAt,
+          villa: {
+            name: updated.villa.name,
+            location: updated.villa.location,
+            checkInTime: updated.villa.checkInTime,
+            checkOutTime: updated.villa.checkOutTime,
+          },
+        },
+        siteName,
+      }).catch((e) => console.error("Background Resend email error on payment proof upload:", e));
+    } catch (err) {
+      console.warn("Could not trigger booking email on proof upload:", err);
+    }
+
+    return NextResponse.json({
+      success: true,
+      url: publicUrl,
+      booking: updated,
+      message: "Bukti pembayaran berhasil diunggah! Tim Singgahsana akan segera memverifikasi pesanan Anda.",
+    });
+  } catch (error: any) {
+    console.error("Payment proof upload error:", error);
+    return NextResponse.json(
+      { error: error.message || "Gagal mengunggah bukti pembayaran" },
+      { status: 500 }
+    );
+  }
+}
