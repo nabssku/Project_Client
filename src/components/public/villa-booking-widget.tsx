@@ -6,8 +6,15 @@ import { format } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useVillaBooking } from "./villa-booking-context";
 import { formatIDR } from "@/lib/pricing";
+import { cn } from "@/lib/utils";
 
-export function VillaBookingWidget() {
+export function VillaBookingWidget({
+  id,
+  className,
+}: {
+  id?: string;
+  className?: string;
+} = {}) {
   const {
     villa,
     checkIn,
@@ -72,7 +79,13 @@ export function VillaBookingWidget() {
   )}`;
 
   return (
-    <div className="bg-white border border-gray-100 rounded-3xl p-5 sm:p-8 shadow-xl shadow-primary/5">
+    <div
+      id={id}
+      className={cn(
+        "bg-white border border-gray-100 rounded-3xl p-5 sm:p-8 shadow-xl shadow-primary/5",
+        className
+      )}
+    >
       {/* Price Header */}
       <div className="mb-6">
         <p className="text-gray-500 text-sm mb-1">

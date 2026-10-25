@@ -13,6 +13,7 @@ import { extractMapEmbedSrc } from "@/lib/maps";
 import { VillaBookingProvider } from "@/components/public/villa-booking-context";
 import { VillaBookingWidget } from "@/components/public/villa-booking-widget";
 import { VillaAvailabilityCalendar } from "@/components/public/villa-availability-calendar";
+import { VillaMobileBookingBar } from "@/components/public/villa-mobile-booking-bar";
 
 async function getVilla(slug: string) {
   'use cache'
@@ -141,7 +142,7 @@ export default async function VillaDetailPage({
   const ownerPhone = "628111141052";
 
   return (
-    <main className="min-h-screen bg-warm-white pb-24">
+    <main className="min-h-screen bg-warm-white pb-32 lg:pb-24">
       {/* Gallery Section */}
       <div className="pt-24 max-w-7xl mx-auto px-6 lg:px-8">
         <VillaGallery images={villa.images} villaName={villa.name} />
@@ -406,6 +407,11 @@ export default async function VillaDetailPage({
                 <VillaAvailabilityCalendar />
               </div>
 
+              {/* Mobile Booking Widget Card (Visible only on mobile screens < lg) */}
+              <div id="booking-widget" className="lg:hidden reveal my-8">
+                <VillaBookingWidget id="mobile-booking-card" />
+              </div>
+
               {/* Location */}
               <div className="reveal">
                 <h2 className="font-display text-2xl font-bold text-primary mb-4">
@@ -644,30 +650,11 @@ export default async function VillaDetailPage({
               </div>
             </div>
           </div>
+
+          {/* Mobile Floating Sticky Booking Bar */}
+          <VillaMobileBookingBar />
         </VillaBookingProvider>
       </div>
-
-      {/* Mobile Floating Button */}
-      <a
-        href="#availability-calendar"
-        className="lg:hidden fixed bottom-5 right-5 z-40 flex items-center gap-2 bg-accent text-white px-5 py-3.5 rounded-full font-semibold shadow-lg shadow-accent/30 hover:bg-accent-light active:scale-95 transition-all"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth="2"
-          stroke="currentColor"
-          className="w-5 h-5"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
-          />
-        </svg>
-        <span className="text-sm">Cek Ketersediaan</span>
-      </a>
     </main>
   );
 }
