@@ -1241,7 +1241,7 @@ export function BookingPaymentClient({
                       : "text-gray-500 hover:text-gray-800"
                   }`}
                 >
-                  📱 m-Banking
+                  m-Banking
                 </button>
                 <button
                   type="button"
@@ -1252,7 +1252,7 @@ export function BookingPaymentClient({
                       : "text-gray-500 hover:text-gray-800"
                   }`}
                 >
-                  ⚡ BI-FAST
+                  BI-FAST
                 </button>
                 <button
                   type="button"
@@ -1263,7 +1263,7 @@ export function BookingPaymentClient({
                       : "text-gray-500 hover:text-gray-800"
                   }`}
                 >
-                  🏧 Mesin ATM
+                  Mesin ATM
                 </button>
               </div>
             </div>
