@@ -99,7 +99,7 @@ export function ManagerBookingsClient({
   initialBookings,
   villas,
   userRole,
-  siteName = "Singgahsana",
+  siteName = "Villa",
   siteLogo = "/logo.png",
 }: ManagerBookingsClientProps) {
   const [bookings, setBookings] = useState<BookingItem[]>(initialBookings);
@@ -191,7 +191,7 @@ export function ManagerBookingsClient({
   };
 
   const copyBookingSummary = (b: BookingItem) => {
-    const summary = `*Reservasi Singgahsana Villa*
+    const summary = `*Reservasi ${siteName}*
 Kode Booking: ${b.code}
 Villa: ${b.villa.name}
 Nama Tamu: ${b.guestName}
@@ -1070,7 +1070,7 @@ Status: ${b.status}`;
                                   {/* Kirim WhatsApp */}
                                   <a
                                     href={`https://wa.me/${b.guestPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                                      `Halo ${b.guestName}, kami dari manajemen Singgahsana Villa mengonfirmasi reservasi ${b.code} di ${b.villa.name}.`
+                                      `Halo ${b.guestName}, kami dari manajemen ${siteName} mengonfirmasi reservasi ${b.code} di ${b.villa.name}.`
                                     )}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
@@ -1409,7 +1409,7 @@ Status: ${b.status}`;
 
                   <a
                     href={`https://wa.me/${selectedProofBooking.guestPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
-                      `Halo ${selectedProofBooking.guestName}, terkait bukti transfer reservasi ${selectedProofBooking.code} untuk ${selectedProofBooking.villa.name} di Singgahsana Villa.`
+                      `Halo ${selectedProofBooking.guestName}, terkait bukti transfer reservasi ${selectedProofBooking.code} untuk ${selectedProofBooking.villa.name} di ${siteName}.`
                     )}`}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -1698,7 +1698,7 @@ Status: ${b.status}`;
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  Pesanan telah tersimpan di sistem Singgahsana dan tanggal villa telah otomatis diblokir.
+                  Pesanan telah tersimpan di sistem {siteName} dan tanggal villa telah otomatis diblokir.
                 </p>
                 <div className="flex justify-center gap-3 pt-2">
                   <button

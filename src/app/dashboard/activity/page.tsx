@@ -41,7 +41,7 @@ export default async function DashboardActivityPage() {
     }),
   ]);
 
-  const siteName = siteConfig?.value || "Singgahsana";
+  const siteName = siteConfig?.value || "Villa";
 
   // Serialisasi data untuk Client Component
   const serializedLogs = logs.map((log) => ({

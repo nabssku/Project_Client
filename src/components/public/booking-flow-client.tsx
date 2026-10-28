@@ -68,7 +68,7 @@ interface BookingFlowClientProps {
 }
 
 export function BookingFlowClient({
-  siteName = "Singgahsana",
+  siteName = "Villa",
   villa,
   initialCheckIn,
   initialCheckOut,

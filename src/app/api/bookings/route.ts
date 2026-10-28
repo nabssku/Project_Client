@@ -391,7 +391,7 @@ export async function POST(request: Request) {
         where: { key: { in: ["site_name", "site_logo", "contact_phone_1"] } },
       });
       const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
-      const siteName = configMap.site_name || "Singgahsana";
+      const siteName = configMap.site_name || "Villa";
       const siteLogo = configMap.site_logo || null;
       const contactPhone = configMap.contact_phone_1 || "(+62) 811-1141-888";
 

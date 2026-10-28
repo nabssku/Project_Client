@@ -712,7 +712,7 @@ export function VillaForm({ initialData }: VillaFormProps) {
             Galeri Foto
           </h2>
           <p className="text-xs text-slate-400">
-            Setiap foto yang diunggah akan otomatis ditempeli watermark logo Singgahsana di tengah
+            Setiap foto yang diunggah akan otomatis ditempeli watermark logo resmi di tengah
           </p>
         </div>
 

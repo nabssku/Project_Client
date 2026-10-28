@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Singgahsana-style colors */
+  /* Villa theme colors */
   --primary: #1a1a2e;
   --primary-dark: #12121f;
   --primary-foreground: #ffffff;

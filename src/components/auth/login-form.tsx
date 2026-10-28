@@ -15,7 +15,7 @@ export function LoginForm({ config }: LoginFormProps) {
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const urlError = searchParams.get("error");
 
-  const siteName = config.site_name || "Singgahsana";
+  const siteName = config.site_name || "Villa";
   const siteLogo = config.site_logo || null;
   const initialLetter = siteName.charAt(0).toUpperCase();
 

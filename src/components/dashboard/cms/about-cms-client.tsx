@@ -614,7 +614,7 @@ export function AboutCmsClient({ initialConfigs, canEdit }: AboutCmsClientProps)
                   type="text"
                   value={configs.about_title || ""}
                   onChange={(e) => updateConfig("about_title", e.target.value)}
-                  placeholder="Contoh: Tentang Singgahsana"
+                  placeholder="Contoh: Tentang Kami"
                   className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
                 />
               </div>
@@ -851,7 +851,7 @@ export function AboutCmsClient({ initialConfigs, canEdit }: AboutCmsClientProps)
               </label>
               <div className="p-5 rounded-2xl border border-gray-200 bg-white shadow-xs space-y-1.5">
                 <div className="flex items-center gap-2 text-xs text-[#202124]">
-                  <span className="font-medium">singgahsana.com</span>
+                  <span className="font-medium">website-anda.com</span>
                   <span className="text-gray-400">› about</span>
                 </div>
                 <h4 className="text-lg font-medium text-[#1a0dab] hover:underline cursor-pointer leading-snug">

@@ -18,7 +18,7 @@ interface DashboardLayoutClientProps {
 
 export function DashboardLayoutClient({
   user,
-  siteName = "Singgahsana",
+  siteName = "Villa",
   siteLogo,
   children,
 }: DashboardLayoutClientProps) {

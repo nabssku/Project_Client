@@ -72,7 +72,7 @@ const settingsItems: NavItem[] = [
 
 export function DashboardSidebar({
   user,
-  siteName = "singgahsana",
+  siteName = "villa",
   siteLogo,
   mobileOpen = false,
   onCloseMobile,

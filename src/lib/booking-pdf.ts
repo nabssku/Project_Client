@@ -94,7 +94,7 @@ export async function resolveImageToDataUri(url: string): Promise<string | null>
  */
 export function buildBookingPDFDocument(
   booking: BookingPDFData,
-  siteName: string = "Singgahsana",
+  siteName: string = "Villa",
   siteLogoDataUri?: string | null,
   contactPhone?: string | null,
   contactEmail?: string | null
@@ -559,7 +559,7 @@ export function buildBookingPDFDocument(
  */
 export async function downloadBookingPDF(
   booking: BookingPDFData,
-  siteName: string = "Singgahsana",
+  siteName: string = "Villa",
   siteLogo?: string | null,
   contactPhone?: string | null,
   contactEmail?: string | null
@@ -584,7 +584,7 @@ export async function downloadBookingPDF(
  */
 export async function generateBookingPDFBuffer(
   booking: BookingPDFData,
-  siteName: string = "Singgahsana",
+  siteName: string = "Villa",
   siteLogo?: string | null,
   contactPhone?: string | null,
   contactEmail?: string | null

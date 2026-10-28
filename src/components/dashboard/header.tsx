@@ -18,7 +18,7 @@ interface HeaderProps {
 
 export function DashboardHeader({
   user,
-  siteName = "Singgahsana",
+  siteName = "Villa",
   siteLogo,
   onMenuToggle,
 }: HeaderProps) {

@@ -14,7 +14,7 @@ interface NavbarProps {
 
 export function Navbar({
   contactPhone = "628111141888",
-  siteName = "Singgahsana",
+  siteName = "Villa",
   siteLogo,
 }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);

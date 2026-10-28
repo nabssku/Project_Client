@@ -63,7 +63,7 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
 
   const guests = parseInt(params.guests || "2", 10) || 2;
 
-  let siteName = "Singgahsana";
+  let siteName = "Villa";
   try {
     const config = await prisma.site_configs.findUnique({
       where: { key: "site_name" },

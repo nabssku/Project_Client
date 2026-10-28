@@ -20,10 +20,23 @@ async function getVillas() {
   }
 }
 
-export const metadata = {
-  title: "Villa & Resort - Singgahsana",
-  description: "Temukan dan booking villa & resort terbaik di Puncak dan Bogor",
-};
+export async function generateMetadata() {
+  try {
+    const siteConfig = await prisma.site_configs.findFirst({
+      where: { key: "site_name" },
+    });
+    const siteName = siteConfig?.value || "Villa";
+    return {
+      title: `Katalog Villa & Resort — ${siteName}`,
+      description: `Temukan dan booking villa & resort terbaik di ${siteName}`,
+    };
+  } catch {
+    return {
+      title: "Katalog Villa & Resort",
+      description: "Temukan dan booking villa & resort terbaik",
+    };
+  }
+}
 
 export default async function VillasPage() {
   const villas = await getVillas();

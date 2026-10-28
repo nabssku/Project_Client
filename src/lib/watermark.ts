@@ -8,7 +8,7 @@ interface WatermarkOptions {
 /**
  * Generates an SVG watermark buffer scaled to the image width.
  */
-function createWatermarkSvg(width: number, height: number, text: string = "Singgahsana", opacity: number = 0.3) {
+function createWatermarkSvg(width: number, height: number, text: string = "Villa", opacity: number = 0.3) {
   // Target watermark width is ~35% of image width (bounded between 240px and 700px)
   const watermarkWidth = Math.min(Math.max(Math.round(width * 0.35), 240), 700);
   const watermarkHeight = Math.round(watermarkWidth * 0.32);
@@ -81,7 +81,7 @@ export async function applyCenterWatermark(
   const watermarkSvg = createWatermarkSvg(
     effectiveWidth,
     effectiveHeight,
-    options?.text || "Singgahsana",
+    options?.text || "Villa",
     options?.opacity || 0.32
   );
 

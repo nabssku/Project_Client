@@ -134,7 +134,7 @@ export function AboutRichRenderer({ content, className = "" }: AboutRichRenderer
                 <div className="relative overflow-hidden rounded-2xl border border-gray-200/80 shadow-md bg-black aspect-video w-full group">
                   <iframe
                     src={getYouTubeEmbedUrl(videoId)}
-                    title="Video Profil Singgahsana"
+                    title="Video Profil Villa"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                     allowFullScreen
                     className="absolute inset-0 w-full h-full border-0"

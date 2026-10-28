@@ -54,8 +54,13 @@ export async function generateMetadata({
     };
   }
 
+  const siteConfig = await prisma.site_configs.findFirst({
+    where: { key: "site_name" },
+  });
+  const siteName = siteConfig?.value || "Villa";
+
   return {
-    title: `${villa.name} — ${villa.location} | Singgahsana`,
+    title: `${villa.name} — ${villa.location} | ${siteName}`,
     description: villa.description.substring(0, 160),
     openGraph: {
       title: `${villa.name} — ${villa.location}`,

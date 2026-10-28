@@ -20,14 +20,14 @@ async function getNavbarConfig() {
     const map = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
     return {
       contactPhone: map.contact_phone_1 || '628111141888',
-      siteName: map.site_name || 'Singgahsana',
+      siteName: map.site_name || 'Villa',
       siteLogo: map.site_logo || null,
     };
   } catch (e) {
     console.error("Failed to load navbar config:", e);
     return {
       contactPhone: '628111141888',
-      siteName: 'Singgahsana',
+      siteName: 'Villa',
       siteLogo: null,
     };
   }

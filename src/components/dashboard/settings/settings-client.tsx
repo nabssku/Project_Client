@@ -70,7 +70,7 @@ const CONFIG_FIELDS: ConfigFieldDef[] = [
   {
     key: "site_name",
     label: "Nama Situs / Brand",
-    placeholder: "Singgahsana",
+    placeholder: "Nama Villa / Brand",
     description: "Nama brand yang tampil di navbar, footer, dan meta title.",
     category: "identity",
   },
@@ -85,7 +85,7 @@ const CONFIG_FIELDS: ConfigFieldDef[] = [
   {
     key: "company_name",
     label: "Nama Legal Perusahaan",
-    placeholder: "PT Singgahsana Hospitality Indonesia",
+    placeholder: "PT Villa Hospitality",
     description: "Nama badan usaha untuk footer dan dokumen resmi.",
     category: "identity",
   },
@@ -107,7 +107,7 @@ const CONFIG_FIELDS: ConfigFieldDef[] = [
   {
     key: "watermark_text",
     label: "Teks Watermark Foto Villa",
-    placeholder: "singgahsana",
+    placeholder: "villa",
     description: "Teks watermark transparan saat upload galeri villa.",
     category: "identity",
   },
@@ -182,7 +182,7 @@ const CONFIG_FIELDS: ConfigFieldDef[] = [
   {
     key: "contact_email",
     label: "Email Kontak Resmi",
-    placeholder: "singgahsana.id@gmail.com",
+    placeholder: "admin@example.com",
     description: "Alamat email publik untuk pertanyaan tamu.",
     category: "contact",
   },
@@ -199,25 +199,25 @@ const CONFIG_FIELDS: ConfigFieldDef[] = [
   {
     key: "social_instagram",
     label: "Link Instagram",
-    placeholder: "https://www.instagram.com/singgahsana",
+    placeholder: "https://www.instagram.com/username",
     category: "social",
   },
   {
     key: "social_facebook",
     label: "Link Facebook",
-    placeholder: "https://www.facebook.com/singgahsana",
+    placeholder: "https://www.facebook.com/username",
     category: "social",
   },
   {
     key: "social_tiktok",
     label: "Link TikTok",
-    placeholder: "https://www.tiktok.com/@singgahsana",
+    placeholder: "https://www.tiktok.com/@username",
     category: "social",
   },
   {
     key: "social_youtube",
     label: "Link YouTube",
-    placeholder: "https://www.youtube.com/@singgahsana",
+    placeholder: "https://www.youtube.com/@username",
     category: "social",
   },
 
@@ -367,7 +367,7 @@ export function SettingsClient({
   const [newBankName, setNewBankName] = useState("Bank BCA");
   const [newAccountNumber, setNewAccountNumber] = useState("");
   const [newAccountHolder, setNewAccountHolder] = useState(
-    "PT Singgahsana Hospitality Indonesia"
+    "PT Villa Hospitality"
   );
   const [newInstructions, setNewInstructions] = useState(
     "Transfer sesuai nominal total tagihan hingga digit terakhir"
@@ -1022,7 +1022,7 @@ export function SettingsClient({
                           e.target.value
                         )
                       }
-                      placeholder="PT Singgahsana Hospitality Indonesia"
+                      placeholder="PT Villa Hospitality"
                       className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                   </div>
@@ -1123,7 +1123,7 @@ export function SettingsClient({
                     required
                     value={newAccountHolder}
                     onChange={(e) => setNewAccountHolder(e.target.value)}
-                    placeholder="Contoh: PT Singgahsana Villa"
+                    placeholder="Contoh: PT Villa Hospitality"
                     className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-accent"
                   />
                 </div>

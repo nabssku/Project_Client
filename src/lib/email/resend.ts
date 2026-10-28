@@ -240,7 +240,7 @@ export async function sendBookingConfirmationEmail(
   emailId?: string;
   simulated?: boolean;
 }> {
-  const { booking, siteName = "Singgahsana", appBaseUrl = process.env.AUTH_URL || "http://localhost:3000" } = options;
+  const { booking, siteName = "Villa", appBaseUrl = process.env.AUTH_URL || "http://localhost:3000" } = options;
 
   try {
     // 1. Generate PDF Attachment Buffer with dynamic brand logo

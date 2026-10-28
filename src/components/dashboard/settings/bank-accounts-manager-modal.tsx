@@ -50,7 +50,7 @@ export function BankAccountsManagerModal({
   const [newBankName, setNewBankName] = useState("Bank BCA");
   const [newAccountNumber, setNewAccountNumber] = useState("");
   const [newAccountHolder, setNewAccountHolder] = useState(
-    "PT Singgahsana Hospitality Indonesia"
+    "PT Villa Hospitality"
   );
   const [newInstructions, setNewInstructions] = useState(
     "Transfer sesuai nominal total tagihan hingga digit terakhir"
@@ -321,7 +321,7 @@ export function BankAccountsManagerModal({
                               e.target.value
                             )
                           }
-                          placeholder="PT Singgahsana Hospitality Indonesia"
+                          placeholder="Contoh: PT Villa Hospitality"
                           className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-800 focus:outline-none focus:ring-1 focus:ring-accent"
                         />
                       </div>
@@ -423,7 +423,7 @@ export function BankAccountsManagerModal({
                         required
                         value={newAccountHolder}
                         onChange={(e) => setNewAccountHolder(e.target.value)}
-                        placeholder="Contoh: PT Singgahsana Villa"
+                        placeholder="Contoh: PT Villa Hospitality"
                         className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-accent"
                       />
                     </div>

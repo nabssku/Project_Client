@@ -58,11 +58,11 @@ export async function getSiteContactConfig(): Promise<SiteContactConfig> {
     const phone2 = map.contact_phone_2 || "(+62) 8521-9949-626";
 
     return {
-      siteName: map.site_name || "Singgahsana",
+      siteName: map.site_name || "Villa",
       siteLogo: map.site_logo || null,
       contactPhone1: phone1,
       contactPhone2: phone2,
-      contactEmail: map.contact_email || "support@singgahsana.com",
+      contactEmail: map.contact_email || "support@example.com",
       contactAddress: map.contact_address || "Puncak, Bogor",
       waNumber1: cleanWhatsAppNumber(phone1),
       waNumber2: cleanWhatsAppNumber(phone2),
@@ -70,11 +70,11 @@ export async function getSiteContactConfig(): Promise<SiteContactConfig> {
   } catch (error) {
     console.error("Failed to fetch site contact config:", error);
     return {
-      siteName: "Singgahsana",
+      siteName: "Villa",
       siteLogo: null,
       contactPhone1: "(+62) 811-1141-888",
       contactPhone2: "(+62) 8521-9949-626",
-      contactEmail: "support@singgahsana.com",
+      contactEmail: "support@example.com",
       contactAddress: "Puncak, Bogor",
       waNumber1: "628111141888",
       waNumber2: "6285219949626",

@@ -11,7 +11,7 @@ interface RegisterFormProps {
 
 export function RegisterForm({ config }: RegisterFormProps) {
   const router = useRouter();
-  const siteName = config.site_name || "Singgahsana";
+  const siteName = config.site_name || "Villa";
   const siteLogo = config.site_logo || null;
   const initialLetter = siteName.charAt(0).toUpperCase();
 

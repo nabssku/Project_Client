@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     const inputBuffer = Buffer.from(bytes);
 
     // Read watermark text from database (check 'watermark_text' first, then 'site_name')
-    let watermarkText = "singgahsana";
+    let watermarkText = "Villa";
     try {
       const configs = await prisma.site_configs.findMany({
         where: {
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       });
       const customWm = configs.find((c) => c.key === "watermark_text")?.value;
       const siteName = configs.find((c) => c.key === "site_name")?.value;
-      watermarkText = customWm || siteName || "singgahsana";
+      watermarkText = customWm || siteName || "Villa";
     } catch (e) {
       console.error("Failed to load watermark text from DB:", e);
     }

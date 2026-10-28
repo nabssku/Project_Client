@@ -37,7 +37,7 @@ export default async function DashboardReportsPage() {
     }),
   ]);
 
-  let siteName = "Singgahsana";
+  let siteName = "Villa";
   let siteLogo: string | null = null;
   siteConfigsList?.forEach((c) => {
     if (c.key === "site_name" && c.value) siteName = c.value;

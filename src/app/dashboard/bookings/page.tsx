@@ -42,7 +42,7 @@ export default async function DashboardBookingsPage() {
     orderBy: { name: "asc" },
   });
 
-  let siteName = "Singgahsana";
+  let siteName = "Villa";
   let siteLogo: string | null = null;
   try {
     const configs = await prisma.site_configs.findMany({

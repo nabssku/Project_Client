@@ -192,7 +192,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       }),
     ]);
 
-    let siteName = "Singgahsana";
+    let siteName = "Villa";
     let siteLogo: string | null = null;
     let contactPhone = "628111141888";
 

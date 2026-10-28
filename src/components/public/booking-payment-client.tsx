@@ -95,7 +95,7 @@ interface BookingData {
 export function BookingPaymentClient({
   initialBooking,
   bankAccounts = DEFAULT_BANK_ACCOUNTS,
-  siteName = "Singgahsana",
+  siteName = "Villa",
   siteLogo = "/logo.png",
   contactPhone,
 }: {

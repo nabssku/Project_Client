@@ -47,11 +47,12 @@ export async function generateMetadata(): Promise<Metadata> {
   cacheLife("minutes");
 
   const configs = await getAboutConfigs();
-  const title = configs.about_meta_title || `${configs.about_title || "Tentang Kami"} | ${configs.site_name || "Singgahsana"}`;
+  const siteName = configs.site_name || "Villa";
+  const title = configs.about_meta_title || `${configs.about_title || "Tentang Kami"} | ${siteName}`;
   const description =
     configs.about_meta_description ||
     configs.about_subtitle ||
-    "Pelajari filosofi, dedikasi pelayanan, dan komitmen kenyamanan villa peristirahatan terbaik bersama Singgahsana.";
+    `Pelajari filosofi, dedikasi pelayanan, dan komitmen kenyamanan villa peristirahatan terbaik bersama ${siteName}.`;
 
   return {
     title,
@@ -66,8 +67,10 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AboutPublicPage() {
   const configs = await getAboutConfigs();
+  const siteName = configs.site_name || "Villa";
 
   const phone = (configs.contact_phone_1 || "628111141888").replace(/\D/g, "").replace(/^0/, "62");
+  const waText = `Halo Admin ${siteName}, saya tertarik untuk mengetahui informasi ketersediaan villa. Bisa dibantu?`;
 
   const stats = [
     {
@@ -103,7 +106,7 @@ export default async function AboutPublicPage() {
           </div>
 
           <h1 className="font-display text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-primary tracking-tight leading-tight mb-5">
-            {configs.about_title || "Tentang Singgahsana"}
+            {configs.about_title || `Tentang ${siteName}`}
           </h1>
 
           <p className="text-base sm:text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto">
@@ -118,7 +121,7 @@ export default async function AboutPublicPage() {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={configs.about_hero_image}
-              alt={configs.about_title || "Tentang Singgahsana"}
+              alt={configs.about_title || `Tentang ${siteName}`}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
@@ -183,7 +186,7 @@ export default async function AboutPublicPage() {
             </Link>
 
             <a
-              href={`https://wa.me/${phone}?text=Halo%20Singgahsana,%20saya%20tertarik%20untuk%20mengetahui%20ketersediaan%20villa`}
+              href={`https://wa.me/${phone}?text=${encodeURIComponent(waText)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full text-sm font-semibold bg-white/10 border border-white/20 text-white hover:bg-white/20 transition-all"

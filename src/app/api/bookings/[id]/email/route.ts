@@ -39,7 +39,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     // Ambil nama situs & logo dari database
-    let siteName = "Singgahsana";
+    let siteName = "Villa";
     let siteLogo: string | null = null;
     let contactPhone: string | null = null;
     try {
