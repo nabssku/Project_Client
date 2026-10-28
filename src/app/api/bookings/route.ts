@@ -249,7 +249,7 @@ export async function POST(request: Request) {
     // 3. Handle Account Creation or User Association
     let userId: string | null = session?.user?.id || null;
 
-    if (data.createAccount && !userId && data.password && data.password.length >= 8) {
+    if (data.createAccount && !userId && data.password && data.password.length >= 6) {
       const existingUser = await prisma.users.findUnique({
         where: { email: data.guestEmail.toLowerCase().trim() },
       });

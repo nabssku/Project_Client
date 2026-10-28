@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { format, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { calculateStayBreakdown, formatIDR } from "@/lib/pricing";
@@ -259,8 +260,21 @@ export function BookingFlowClient({
         throw new Error(data.error || "Gagal memproses booking. Silakan coba kembali.");
       }
 
-      // Redirect to booking payment instruction page
-      router.push(`/booking/${bookingCode}`);
+      // Otomatis login menggunakan akun yang baru dibuat
+      if (createAccount && password) {
+        try {
+          await signIn("credentials", {
+            email: guestEmail.trim().toLowerCase(),
+            password,
+            redirect: false,
+          });
+        } catch (authErr) {
+          console.warn("Auto-login error after booking creation:", authErr);
+        }
+      }
+
+      // Redirect ke halaman instruksi pembayaran & rekening transfer
+      window.location.href = `/booking/${bookingCode}`;
     } catch (err: any) {
       setFormError(err.message || "Terjadi kesalahan saat memproses pesanan Anda.");
       setSubmitting(false);
