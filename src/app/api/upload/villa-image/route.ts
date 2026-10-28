@@ -11,9 +11,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user.role !== "ADMIN") {
+    const allowedRoles = ["ADMIN", "MANAJER"];
+    if (!allowedRoles.includes(session.user.role)) {
       return NextResponse.json(
-        { error: "Forbidden: Hanya role ADMIN yang dapat mengunggah foto villa" },
+        { error: "Forbidden: Hanya role ADMIN atau MANAJER yang dapat mengunggah foto villa" },
         { status: 403 }
       );
     }
@@ -61,12 +62,23 @@ export async function POST(request: Request) {
     }
 
     // Apply center watermark and convert to WebP
-    const { buffer: processedBuffer, width, height } = await applyCenterWatermark(inputBuffer, {
-      text: watermarkText,
-      opacity: 0.32,
-    });
+    let processedBuffer: Buffer = inputBuffer;
+    let width = 1200;
+    let height = 800;
 
-    // Upload to Cloudflare R2
+    try {
+      const result = await applyCenterWatermark(inputBuffer, {
+        text: watermarkText,
+        opacity: 0.32,
+      });
+      processedBuffer = result.buffer;
+      width = result.width;
+      height = result.height;
+    } catch (wmErr) {
+      console.error("Watermark processing failed, using raw buffer:", wmErr);
+    }
+
+    // Upload to Cloudflare R2 (falls back safely to local storage if R2 is unconfigured or unavailable)
     const key = generateKey("villas", file.name);
     const publicUrl = await uploadBufferToR2(processedBuffer, key, "image/webp");
 

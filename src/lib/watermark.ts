@@ -1,5 +1,15 @@
 import sharp from "sharp";
 
+// Configure sharp for constrained environments (e.g. Hostinger, VPS, Docker):
+// 1. Limit concurrency to 1 thread to prevent "Resource temporarily unavailable (os error 11)" on 64-core host servers
+// 2. Disable cache to prevent high RAM consumption and OOM crashes
+try {
+  sharp.concurrency(1);
+  sharp.cache(false);
+} catch (e) {
+  console.warn("Could not set sharp concurrency:", e);
+}
+
 interface WatermarkOptions {
   text?: string;
   opacity?: number;
@@ -59,49 +69,73 @@ export async function applyCenterWatermark(
   imageBuffer: Buffer,
   options?: WatermarkOptions
 ): Promise<{ buffer: Buffer; width: number; height: number; format: string }> {
-  const image = sharp(imageBuffer);
-  const metadata = await image.metadata();
+  try {
+    const image = sharp(imageBuffer, { failOn: "none" });
+    const metadata = await image.metadata();
 
-  const originalWidth = metadata.width || 1200;
-  const originalHeight = metadata.height || 800;
+    const originalWidth = metadata.width || 1200;
+    const originalHeight = metadata.height || 800;
 
-  // Resize if too large (max 1920px wide/tall) to keep optimal quality & speed
-  let pipeline = image;
-  if (originalWidth > 1920 || originalHeight > 1920) {
-    pipeline = pipeline.resize({
-      width: originalWidth > originalHeight ? 1920 : undefined,
-      height: originalHeight >= originalWidth ? 1920 : undefined,
-      withoutEnlargement: true,
-    });
+    // Resize if too large (max 1920px wide/tall) to keep optimal quality & speed
+    let pipeline = image.rotate();
+    if (originalWidth > 1920 || originalHeight > 1920) {
+      pipeline = pipeline.resize({
+        width: originalWidth > originalHeight ? 1920 : undefined,
+        height: originalHeight >= originalWidth ? 1920 : undefined,
+        withoutEnlargement: true,
+      });
+    }
+
+    // Generate SVG watermark buffer
+    const effectiveWidth = Math.min(originalWidth, 1920);
+    const effectiveHeight = Math.min(originalHeight, 1920);
+    const watermarkSvg = createWatermarkSvg(
+      effectiveWidth,
+      effectiveHeight,
+      options?.text || "Villa",
+      options?.opacity || 0.32
+    );
+
+    // Composite watermark in the center
+    const outputBuffer = await pipeline
+      .composite([
+        {
+          input: watermarkSvg,
+          gravity: "center",
+        },
+      ])
+      .webp({ quality: 85 })
+      .toBuffer();
+
+    return {
+      buffer: outputBuffer,
+      width: effectiveWidth,
+      height: effectiveHeight,
+      format: "webp",
+    };
+  } catch (error) {
+    console.error("Watermarking error in sharp, attempting safe WebP conversion:", error);
+    try {
+      // Safe fallback: simple conversion to WebP without watermark composite
+      const safeBuffer = await sharp(imageBuffer, { failOn: "none" })
+        .rotate()
+        .resize({ width: 1920, height: 1920, fit: "inside", withoutEnlargement: true })
+        .webp({ quality: 85 })
+        .toBuffer();
+      return {
+        buffer: safeBuffer,
+        width: 1200,
+        height: 800,
+        format: "webp",
+      };
+    } catch {
+      // Ultimate fallback: return original buffer to prevent 500/503 crash
+      return {
+        buffer: imageBuffer,
+        width: 1200,
+        height: 800,
+        format: "jpeg",
+      };
+    }
   }
-
-  // Generate SVG watermark buffer
-  const effectiveWidth = Math.min(originalWidth, 1920);
-  const effectiveHeight = Math.min(originalHeight, 1920);
-  const watermarkSvg = createWatermarkSvg(
-    effectiveWidth,
-    effectiveHeight,
-    options?.text || "Villa",
-    options?.opacity || 0.32
-  );
-
-  // Composite watermark in the center
-  const outputBuffer = await pipeline
-    .composite([
-      {
-        input: watermarkSvg,
-        gravity: "center",
-      },
-    ])
-    .webp({ quality: 85 })
-    .toBuffer();
-
-  const finalMetadata = await sharp(outputBuffer).metadata();
-
-  return {
-    buffer: outputBuffer,
-    width: finalMetadata.width || effectiveWidth,
-    height: finalMetadata.height || effectiveHeight,
-    format: "webp",
-  };
 }

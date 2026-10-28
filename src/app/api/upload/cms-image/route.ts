@@ -3,6 +3,13 @@ import { requireApiPermission } from "@/lib/auth-guard";
 import { uploadBufferToR2, generateKey } from "@/lib/r2";
 import sharp from "sharp";
 
+try {
+  sharp.concurrency(1);
+  sharp.cache(false);
+} catch (e) {
+  console.warn("Could not set sharp concurrency in cms-image:", e);
+}
+
 export async function POST(request: Request) {
   try {
     const authCms = await requireApiPermission("cms:update");
