@@ -366,7 +366,7 @@ export function VillaAddonManager({
           <div className="flex items-center justify-between">
             <p className="text-xs font-bold text-primary flex items-center gap-1.5">
               <Plus className="w-4 h-4 text-accent" />
-              {editingId ? "Edit Add-on" : "Tambah Add-on Baru"}
+              {editingId ? "Edit Add-on" : "Tambah Add-on Baru (Opsional)"}
             </p>
             {editingId && (
               <button
@@ -383,11 +383,10 @@ export function VillaAddonManager({
             {/* Nama Addon */}
             <div className="sm:col-span-6">
               <label className="text-[11px] font-semibold text-slate-600 block mb-1">
-                Nama Fasilitas / Item *
+                Nama Fasilitas / Item
               </label>
               <input
                 type="text"
-                required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={(e) => {
@@ -404,11 +403,10 @@ export function VillaAddonManager({
             {/* Harga */}
             <div className="sm:col-span-3">
               <label className="text-[11px] font-semibold text-slate-600 block mb-1">
-                Harga (IDR) *
+                Harga (IDR)
               </label>
               <input
                 type="number"
-                required
                 min="0"
                 step="5000"
                 value={price}
@@ -428,11 +426,10 @@ export function VillaAddonManager({
             <div className="sm:col-span-3 grid grid-cols-2 gap-2">
               <div>
                 <label className="text-[11px] font-semibold text-slate-600 block mb-1">
-                  Maks Pcs *
+                  Maks Pcs
                 </label>
                 <input
                   type="number"
-                  required
                   min="1"
                   max="100"
                   value={maxQty}
