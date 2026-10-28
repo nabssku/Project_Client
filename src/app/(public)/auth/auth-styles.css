@@ -212,8 +212,8 @@
 }
 
 .custom-checkbox:checked {
-  background: #C8A44E;
-  border-color: #C8A44E;
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 .custom-checkbox:checked::after {
@@ -230,7 +230,7 @@
 /* Focus visible for accessibility */
 .auth-input:focus-visible,
 .auth-button:focus-visible {
-  outline: 2px solid #C8A44E;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 

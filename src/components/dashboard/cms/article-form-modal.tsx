@@ -347,11 +347,11 @@ export function ArticleFormModal({
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8e6df] bg-[#f8f7f4]">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-lg bg-[#C8A44E]/15 text-[#C8A44E]">
+            <span className="p-2 rounded-lg bg-accent/15 text-accent">
               <FileText className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-[#1a1a2e]">
+              <h2 className="text-lg font-bold text-primary">
                 {isEditing ? "Edit Artikel & Optimasi SEO" : "Tulis Artikel Baru"}
               </h2>
               <p className="text-xs text-gray-500">
@@ -374,7 +374,7 @@ export function ArticleFormModal({
             onClick={() => setActiveTab("content")}
             className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
               activeTab === "content"
-                ? "border-[#C8A44E] text-[#1a1a2e]"
+                ? "border-accent text-primary"
                 : "border-transparent text-gray-400 hover:text-gray-600"
             }`}
           >
@@ -386,7 +386,7 @@ export function ArticleFormModal({
             onClick={() => setActiveTab("seo")}
             className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
               activeTab === "seo"
-                ? "border-[#C8A44E] text-[#1a1a2e]"
+                ? "border-accent text-primary"
                 : "border-transparent text-gray-400 hover:text-gray-600"
             }`}
           >
@@ -398,7 +398,7 @@ export function ArticleFormModal({
             onClick={() => setActiveTab("publish")}
             className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all cursor-pointer ${
               activeTab === "publish"
-                ? "border-[#C8A44E] text-[#1a1a2e]"
+                ? "border-accent text-primary"
                 : "border-transparent text-gray-400 hover:text-gray-600"
             }`}
           >
@@ -423,7 +423,7 @@ export function ArticleFormModal({
               <div className="space-y-5">
                 {/* Judul Artikel */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Judul Artikel <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -431,7 +431,7 @@ export function ArticleFormModal({
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="Contoh: 7 Tips Memilih Villa Nyaman untuk Liburan Keluarga di Bandung"
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     required
                   />
                 </div>
@@ -441,14 +441,14 @@ export function ArticleFormModal({
                   {/* Kategori Dinamis */}
                   <div>
                     <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider">
+                      <label className="text-xs font-semibold text-primary uppercase tracking-wider">
                         Kategori Artikel
                       </label>
                       {!isCustomCategoryMode ? (
                         <button
                           type="button"
                           onClick={() => setIsCustomCategoryMode(true)}
-                          className="text-[11px] font-semibold text-[#C8A44E] hover:underline flex items-center gap-1 cursor-pointer"
+                          className="text-[11px] font-semibold text-accent hover:underline flex items-center gap-1 cursor-pointer"
                         >
                           <Plus className="w-3 h-3" />
                           Kategori Baru
@@ -474,14 +474,14 @@ export function ArticleFormModal({
                             setCategory(e.target.value);
                           }
                         }}
-                        className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                        className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                       >
                         {categoriesList.map((c) => (
                           <option key={c} value={c}>
                             {c}
                           </option>
                         ))}
-                        <option value="__add_new__" className="text-[#C8A44E] font-semibold">
+                        <option value="__add_new__" className="text-accent font-semibold">
                           + Tambah Kategori Baru...
                         </option>
                       </select>
@@ -498,13 +498,13 @@ export function ArticleFormModal({
                             }
                           }}
                           placeholder="Ketik kategori baru..."
-                          className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#C8A44E] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30"
+                          className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-accent bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30"
                           autoFocus
                         />
                         <button
                           type="button"
                           onClick={handleAddCustomCategory}
-                          className="px-3.5 py-2.5 rounded-lg bg-[#C8A44E] text-white text-xs font-semibold hover:bg-[#b8933e] cursor-pointer shrink-0"
+                          className="px-3.5 py-2.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-[#b8933e] cursor-pointer shrink-0"
                         >
                           Terapkan
                         </button>
@@ -514,7 +514,7 @@ export function ArticleFormModal({
 
                   {/* Slug URL */}
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Slug URL (Otomatis)
                     </label>
                     <div className="flex items-center rounded-lg border border-[#e8e6df] bg-gray-50 px-3 py-2">
@@ -534,7 +534,7 @@ export function ArticleFormModal({
                 <div className="rounded-xl border border-[#e8e6df] p-4 bg-[#fcfbf9] space-y-3">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <label className="text-xs font-bold text-[#1a1a2e] uppercase tracking-wider block">
+                      <label className="text-xs font-bold text-primary uppercase tracking-wider block">
                         Gambar Sampul (Cover Image)
                       </label>
                       <span className="text-[11px] text-gray-500">
@@ -549,7 +549,7 @@ export function ArticleFormModal({
                         onClick={() => setCoverMode("upload")}
                         className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
                           coverMode === "upload"
-                            ? "bg-[#1a1a2e] text-white shadow-2xs"
+                            ? "bg-primary text-white shadow-2xs"
                             : "text-gray-600 hover:text-gray-900"
                         }`}
                       >
@@ -561,7 +561,7 @@ export function ArticleFormModal({
                         onClick={() => setCoverMode("url")}
                         className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
                           coverMode === "url"
-                            ? "bg-[#1a1a2e] text-white shadow-2xs"
+                            ? "bg-primary text-white shadow-2xs"
                             : "text-gray-600 hover:text-gray-900"
                         }`}
                       >
@@ -586,11 +586,11 @@ export function ArticleFormModal({
                       />
                       <div
                         onClick={() => coverFileInputRef.current?.click()}
-                        className="border-2 border-dashed border-[#e8e6df] hover:border-[#C8A44E] bg-white rounded-xl p-6 text-center cursor-pointer transition-colors group"
+                        className="border-2 border-dashed border-[#e8e6df] hover:border-accent bg-white rounded-xl p-6 text-center cursor-pointer transition-colors group"
                       >
                         {uploadingCover ? (
                           <div className="flex flex-col items-center justify-center py-2">
-                            <Loader2 className="w-7 h-7 text-[#C8A44E] animate-spin mb-2" />
+                            <Loader2 className="w-7 h-7 text-accent animate-spin mb-2" />
                             <span className="text-xs font-semibold text-gray-700">
                               Mengompresi &amp; Mengunggah Gambar...
                             </span>
@@ -600,7 +600,7 @@ export function ArticleFormModal({
                           </div>
                         ) : (
                           <div className="flex flex-col items-center justify-center">
-                            <div className="w-10 h-10 rounded-full bg-amber-50 group-hover:bg-amber-100/70 text-[#C8A44E] flex items-center justify-center mb-2 transition-colors">
+                            <div className="w-10 h-10 rounded-full bg-amber-50 group-hover:bg-amber-100/70 text-accent flex items-center justify-center mb-2 transition-colors">
                               <Upload className="w-5 h-5" />
                             </div>
                             <span className="text-xs font-semibold text-gray-800">
@@ -623,7 +623,7 @@ export function ArticleFormModal({
                         value={coverImage}
                         onChange={(e) => setCoverImage(e.target.value)}
                         placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                        className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                       />
                     </div>
                   )}
@@ -642,7 +642,7 @@ export function ArticleFormModal({
                           />
                         </div>
                         <div className="overflow-hidden">
-                          <span className="text-xs font-semibold text-[#1a1a2e] block truncate">
+                          <span className="text-xs font-semibold text-primary block truncate">
                             Gambar Sampul Terpasang
                           </span>
                           <span className="text-[11px] font-mono text-gray-400 truncate block max-w-sm">
@@ -679,7 +679,7 @@ export function ArticleFormModal({
 
                 {/* Excerpt / Ringkasan */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Ringkasan Singkat (Excerpt)
                   </label>
                   <textarea
@@ -687,14 +687,14 @@ export function ArticleFormModal({
                     value={excerpt}
                     onChange={(e) => setExcerpt(e.target.value)}
                     placeholder="Tulis 1-2 kalimat pengantar menarik yang muncul di kartu katalog artikel..."
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                 </div>
 
                 {/* Rich Text Editor for Konten Lengkap */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-primary uppercase tracking-wider">
                       Konten Lengkap Artikel <span className="text-red-500">*</span>
                     </label>
 
@@ -705,7 +705,7 @@ export function ArticleFormModal({
                         onClick={() => setEditorView("write")}
                         className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
                           editorView === "write"
-                            ? "bg-white text-[#1a1a2e] shadow-2xs font-semibold"
+                            ? "bg-white text-primary shadow-2xs font-semibold"
                             : "text-gray-500 hover:text-gray-900"
                         }`}
                       >
@@ -717,7 +717,7 @@ export function ArticleFormModal({
                         onClick={() => setEditorView("preview")}
                         className={`px-3 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
                           editorView === "preview"
-                            ? "bg-white text-[#C8A44E] shadow-2xs font-semibold"
+                            ? "bg-white text-accent shadow-2xs font-semibold"
                             : "text-gray-500 hover:text-gray-900"
                         }`}
                       >
@@ -728,7 +728,7 @@ export function ArticleFormModal({
                   </div>
 
                   {/* Editor Container */}
-                  <div className="rounded-xl border border-[#e8e6df] overflow-hidden focus-within:border-[#C8A44E] focus-within:ring-2 focus-within:ring-[#C8A44E]/20 transition-all">
+                  <div className="rounded-xl border border-[#e8e6df] overflow-hidden focus-within:border-accent focus-within:ring-2 focus-within:ring-[#C8A44E]/20 transition-all">
                     {/* Formatting Toolbar */}
                     <div className="bg-[#f8f7f4] border-b border-[#e8e6df] px-3 py-2 flex flex-wrap items-center gap-1 text-gray-700">
                       <button
@@ -821,7 +821,7 @@ export function ArticleFormModal({
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium bg-white border border-[#e8e6df] text-gray-700 hover:bg-gray-50 hover:text-black transition-colors cursor-pointer shadow-2xs"
                         title="Sisipkan Tautan URL"
                       >
-                        <Link2 className="w-3.5 h-3.5 text-[#C8A44E]" />
+                        <Link2 className="w-3.5 h-3.5 text-accent" />
                         Link
                       </button>
 
@@ -880,7 +880,7 @@ export function ArticleFormModal({
                 <div className="p-5 rounded-xl bg-gray-50 border border-[#e8e6df] space-y-3">
                   <div className="flex items-center justify-between text-xs font-semibold text-gray-700">
                     <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-4 h-4 text-[#C8A44E]" />
+                      <Sparkles className="w-4 h-4 text-accent" />
                       Pratinjau Hasil Pencarian Google (Search Result)
                     </span>
                     <span className="text-[11px] font-mono text-gray-400">Google SERP Snippet</span>
@@ -889,7 +889,7 @@ export function ArticleFormModal({
                   {/* Google Card Simulation */}
                   <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm font-sans text-left space-y-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <div className="w-5 h-5 rounded-full bg-[#1a1a2e] flex items-center justify-center text-[10px] text-white font-bold shrink-0">
+                      <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold shrink-0">
                         {siteName ? siteName[0].toUpperCase() : "V"}
                       </div>
                       <div className="text-xs text-gray-700 truncate">
@@ -915,7 +915,7 @@ export function ArticleFormModal({
                 {/* Meta Title */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-primary uppercase tracking-wider">
                       Meta Title (Judul Google)
                     </label>
                     <span
@@ -935,14 +935,14 @@ export function ArticleFormModal({
                     value={metaTitle}
                     onChange={(e) => setMetaTitle(e.target.value)}
                     placeholder={title || "Judul artikel yang dioptimasi untuk mesin pencari"}
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                 </div>
 
                 {/* Meta Description */}
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider">
+                    <label className="text-xs font-semibold text-primary uppercase tracking-wider">
                       Meta Description (Deskripsi Google Snippet)
                     </label>
                     <span
@@ -965,13 +965,13 @@ export function ArticleFormModal({
                       excerpt ||
                       "Deskripsi singkat dan memikat yang muncul di bawah judul pada pencarian Google..."
                     }
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                 </div>
 
                 {/* Tags */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Kata Kunci / Tags (Pisahkan dengan koma)
                   </label>
                   <input
@@ -979,7 +979,7 @@ export function ArticleFormModal({
                     value={tagsInput}
                     onChange={(e) => setTagsInput(e.target.value)}
                     placeholder="liburan bandung, villa keluarga, tips villa, private pool"
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                 </div>
               </div>
@@ -991,12 +991,12 @@ export function ArticleFormModal({
                 <div className="p-5 rounded-xl border border-[#e8e6df] bg-white space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-sm font-bold text-[#1a1a2e]">
+                      <div className="text-sm font-bold text-primary">
                         Status Publikasi Artikel
                       </div>
                       <div className="text-xs text-gray-500 mt-0.5">
                         Artikel yang dipublikasikan akan langsung dapat diakses publik di{" "}
-                        <code className="text-[#C8A44E]">/artikel/{computedSlug || "..."}</code>
+                        <code className="text-accent">/artikel/{computedSlug || "..."}</code>
                       </div>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
@@ -1061,7 +1061,7 @@ export function ArticleFormModal({
               <button
                 type="submit"
                 disabled={saving}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#C8A44E] hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-accent hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 {saving ? (
                   <>
@@ -1086,8 +1086,8 @@ export function ArticleFormModal({
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-xl max-w-md w-full p-5 shadow-2xl border border-gray-200 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-sm text-[#1a1a2e] flex items-center gap-1.5">
-                <Link2 className="w-4 h-4 text-[#C8A44E]" />
+              <h3 className="font-bold text-sm text-primary flex items-center gap-1.5">
+                <Link2 className="w-4 h-4 text-accent" />
                 Sisipkan Tautan Hyperlink
               </h3>
               <button
@@ -1138,7 +1138,7 @@ export function ArticleFormModal({
                 type="button"
                 onClick={handleInsertLink}
                 disabled={!linkUrl.trim()}
-                className="px-4 py-1.5 rounded-lg bg-[#C8A44E] text-white text-xs font-semibold hover:bg-[#b8933e] disabled:opacity-50 cursor-pointer"
+                className="px-4 py-1.5 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-[#b8933e] disabled:opacity-50 cursor-pointer"
               >
                 Sisipkan Tautan
               </button>
@@ -1152,7 +1152,7 @@ export function ArticleFormModal({
         <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-xl max-w-lg w-full p-5 shadow-2xl border border-gray-200 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-sm text-[#1a1a2e] flex items-center gap-1.5">
+              <h3 className="font-bold text-sm text-primary flex items-center gap-1.5">
                 <ImagePlus className="w-4 h-4 text-emerald-600" />
                 Sisipkan Gambar ke Konten Artikel
               </h3>
@@ -1171,7 +1171,7 @@ export function ArticleFormModal({
                 onClick={() => setImageModalTab("upload")}
                 className={`flex-1 py-1.5 text-center rounded-md transition-all cursor-pointer ${
                   imageModalTab === "upload"
-                    ? "bg-white text-[#1a1a2e] shadow-2xs font-semibold"
+                    ? "bg-white text-primary shadow-2xs font-semibold"
                     : "text-gray-500 hover:text-gray-900"
                 }`}
               >
@@ -1182,7 +1182,7 @@ export function ArticleFormModal({
                 onClick={() => setImageModalTab("url")}
                 className={`flex-1 py-1.5 text-center rounded-md transition-all cursor-pointer ${
                   imageModalTab === "url"
-                    ? "bg-white text-[#1a1a2e] shadow-2xs font-semibold"
+                    ? "bg-white text-primary shadow-2xs font-semibold"
                     : "text-gray-500 hover:text-gray-900"
                 }`}
               >

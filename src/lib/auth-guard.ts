@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { connection, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getUserPermissions, type Permission } from "@/lib/rbac";
+import { getUserPermissions, hasUserPermission, type Permission } from "@/lib/rbac";
 import type { Role } from "@prisma/client";
 
 export interface AuthenticatedUser {
@@ -29,17 +29,33 @@ export async function requirePagePermission(
     redirect("/login");
   }
 
-  const user = await prisma.users.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      isActive: true,
-      permissions: true,
-    },
-  });
+  let user = null;
+  try {
+    user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        permissions: true,
+      },
+    });
+  } catch (err: any) {
+    console.error("Warning: DB query error in requirePagePermission:", err?.message || err);
+    // Jika koneksi Neon timeout/sleep sementara, gunakan kredensial valid dari JWT session
+    if (session.user.role) {
+      user = {
+        id: session.user.id,
+        name: session.user.name || "Pengguna",
+        email: session.user.email || "",
+        role: session.user.role as Role,
+        isActive: true,
+        permissions: [] as string[],
+      };
+    }
+  }
 
   if (!user || !user.isActive) {
     redirect("/login?error=deactivated");
@@ -47,7 +63,7 @@ export async function requirePagePermission(
 
   const effectivePermissions = getUserPermissions(user);
 
-  if (!effectivePermissions.includes(permission)) {
+  if (!hasUserPermission(user, permission)) {
     redirect(`/dashboard?denied=${encodeURIComponent(permission)}`);
   }
 
@@ -83,17 +99,33 @@ export async function requireApiPermission(
     };
   }
 
-  const user = await prisma.users.findUnique({
-    where: { id: session.user.id },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      role: true,
-      isActive: true,
-      permissions: true,
-    },
-  });
+  let user = null;
+  try {
+    user = await prisma.users.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        permissions: true,
+      },
+    });
+  } catch (err: any) {
+    console.error("Warning: DB query error in requirePagePermission:", err?.message || err);
+    // Jika koneksi Neon timeout/sleep sementara, gunakan kredensial valid dari JWT session
+    if (session.user.role) {
+      user = {
+        id: session.user.id,
+        name: session.user.name || "Pengguna",
+        email: session.user.email || "",
+        role: session.user.role as Role,
+        isActive: true,
+        permissions: [] as string[],
+      };
+    }
+  }
 
   if (!user || !user.isActive) {
     return {
@@ -107,7 +139,7 @@ export async function requireApiPermission(
 
   const effectivePermissions = getUserPermissions(user);
 
-  if (!effectivePermissions.includes(permission)) {
+  if (!hasUserPermission(user, permission)) {
     return {
       success: false,
       response: NextResponse.json(

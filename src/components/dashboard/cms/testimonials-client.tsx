@@ -147,10 +147,10 @@ export function TestimonialsClient({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#e8e6df] pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-[#C8A44E]/10 text-[#C8A44E]">
+            <span className="p-1.5 rounded-lg bg-accent/10 text-accent">
               <MessageSquare className="w-5 h-5" />
             </span>
-            <h1 className="text-2xl font-bold text-[#1a1a2e]">Kurasi Testimoni Tamu</h1>
+            <h1 className="text-2xl font-bold text-primary">Kurasi Testimoni Tamu</h1>
           </div>
           <p className="text-sm text-gray-500 mt-1">
             Kelola ulasan pengalaman tamu dan sematkan testimoni terbaik ke beranda publik.
@@ -162,7 +162,7 @@ export function TestimonialsClient({
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1a1a2e] px-3 py-2 rounded-lg border border-[#e8e6df] bg-white hover:bg-gray-50 transition-colors shadow-2xs"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-primary px-3 py-2 rounded-lg border border-[#e8e6df] bg-white hover:bg-gray-50 transition-colors shadow-2xs"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             Cek Testimoni Beranda
@@ -174,7 +174,7 @@ export function TestimonialsClient({
                 setEditingItem(null);
                 setIsModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#C8A44E] hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               Tambah Testimoni
@@ -188,7 +188,7 @@ export function TestimonialsClient({
         <div className="p-4 rounded-xl bg-white border border-[#e8e6df] shadow-2xs flex items-center justify-between">
           <div>
             <div className="text-xs text-gray-400 uppercase font-semibold">Total Ulasan</div>
-            <div className="text-2xl font-bold text-[#1a1a2e] mt-1">{testimonials.length}</div>
+            <div className="text-2xl font-bold text-primary mt-1">{testimonials.length}</div>
           </div>
           <div className="p-2.5 rounded-xl bg-gray-50 text-gray-500 border border-gray-100">
             <MessageSquare className="w-5 h-5" />
@@ -197,10 +197,10 @@ export function TestimonialsClient({
 
         <div className="p-4 rounded-xl bg-white border border-[#e8e6df] shadow-2xs flex items-center justify-between">
           <div>
-            <div className="text-xs text-[#C8A44E] uppercase font-semibold">Featured di Beranda</div>
-            <div className="text-2xl font-bold text-[#C8A44E] mt-1">{featuredCount}</div>
+            <div className="text-xs text-accent uppercase font-semibold">Featured di Beranda</div>
+            <div className="text-2xl font-bold text-accent mt-1">{featuredCount}</div>
           </div>
-          <div className="p-2.5 rounded-xl bg-[#C8A44E]/10 text-[#C8A44E] border border-[#C8A44E]/20">
+          <div className="p-2.5 rounded-xl bg-accent/10 text-accent border border-accent/20">
             <Sparkles className="w-5 h-5" />
           </div>
         </div>
@@ -246,7 +246,7 @@ export function TestimonialsClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari berdasarkan nama tamu atau kutipan ulasan..."
-            className="w-full text-sm pl-9 pr-4 py-2 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+            className="w-full text-sm pl-9 pr-4 py-2 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
           />
         </div>
 
@@ -270,7 +270,7 @@ export function TestimonialsClient({
             onClick={() => setFeaturedFilter("ALL")}
             className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
               featuredFilter === "ALL"
-                ? "bg-white text-[#1a1a2e] shadow-2xs font-semibold"
+                ? "bg-white text-primary shadow-2xs font-semibold"
                 : "text-gray-500 hover:text-gray-900"
             }`}
           >
@@ -280,7 +280,7 @@ export function TestimonialsClient({
             onClick={() => setFeaturedFilter("FEATURED")}
             className={`px-3 py-1.5 rounded-md transition-all cursor-pointer ${
               featuredFilter === "FEATURED"
-                ? "bg-white text-[#C8A44E] shadow-2xs font-semibold"
+                ? "bg-white text-accent shadow-2xs font-semibold"
                 : "text-gray-500 hover:text-gray-900"
             }`}
           >
@@ -305,7 +305,7 @@ export function TestimonialsClient({
           <div className="w-14 h-14 rounded-full bg-[#f8f7f4] border border-[#e8e6df] flex items-center justify-center mx-auto text-gray-400 mb-3">
             <MessageSquare className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-[#1a1a2e]">Belum Ada Testimoni</h3>
+          <h3 className="text-base font-bold text-primary">Belum Ada Testimoni</h3>
           <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1 mb-5">
             {search || featuredFilter !== "ALL"
               ? "Tidak ada testimoni yang cocok dengan kriteria pencarian."
@@ -317,7 +317,7 @@ export function TestimonialsClient({
                 setEditingItem(null);
                 setIsModalOpen(true);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#C8A44E] text-white text-xs font-semibold hover:bg-[#b8933e] transition-all cursor-pointer shadow-xs"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-xs font-semibold hover:bg-[#b8933e] transition-all cursor-pointer shadow-xs"
             >
               <Plus className="w-3.5 h-3.5" />
               Tambah Testimoni Sekarang
@@ -331,7 +331,7 @@ export function TestimonialsClient({
               key={item.id}
               className={`bg-white rounded-2xl border overflow-hidden shadow-2xs transition-all flex flex-col justify-between hover:shadow-md ${
                 item.isFeatured
-                  ? "border-[#C8A44E]/60 ring-1 ring-[#C8A44E]/20"
+                  ? "border-accent/60 ring-1 ring-[#C8A44E]/20"
                   : "border-[#e8e6df]"
               }`}
             >
@@ -352,7 +352,7 @@ export function TestimonialsClient({
                   </div>
 
                   {item.isFeatured && (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#C8A44E]/15 text-[#C8A44E]">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent/15 text-accent">
                       Featured
                     </span>
                   )}
@@ -387,7 +387,7 @@ export function TestimonialsClient({
                 {/* Villa tag & Verified badge */}
                 <div className="pt-1 flex flex-wrap items-center gap-1.5">
                   <span className="inline-flex items-center gap-1 text-[11px] text-gray-600 bg-gray-50 px-2 py-0.5 rounded-md border border-gray-100">
-                    <Building2 className="w-3 h-3 text-[#C8A44E]" />
+                    <Building2 className="w-3 h-3 text-accent" />
                     {item.villa?.name ? item.villa.name : "Pengalaman Umum"}
                   </span>
 
@@ -411,12 +411,12 @@ export function TestimonialsClient({
                       className="w-8 h-8 rounded-full object-cover border border-gray-200"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-[#1a1a2e] text-white flex items-center justify-center font-bold text-xs">
+                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xs">
                       {item.name[0]}
                     </div>
                   )}
                   <div>
-                    <div className="text-xs font-bold text-[#1a1a2e]">{item.name}</div>
+                    <div className="text-xs font-bold text-primary">{item.name}</div>
                     <div className="text-[10px] text-gray-400">Tamu Terverifikasi</div>
                   </div>
                 </div>
@@ -429,8 +429,8 @@ export function TestimonialsClient({
                         disabled={togglingId === item.id}
                         className={`p-1.5 rounded-md text-xs font-medium border transition-colors cursor-pointer ${
                           item.isFeatured
-                            ? "bg-[#C8A44E] text-white border-[#C8A44E]"
-                            : "bg-white text-gray-600 border-[#e8e6df] hover:border-[#C8A44E]"
+                            ? "bg-accent text-white border-accent"
+                            : "bg-white text-gray-600 border-[#e8e6df] hover:border-accent"
                         }`}
                         title={item.isFeatured ? "Hapus dari Featured" : "Sematkan ke Beranda"}
                       >
@@ -446,7 +446,7 @@ export function TestimonialsClient({
                           setEditingItem(item);
                           setIsModalOpen(true);
                         }}
-                        className="p-1.5 rounded-md text-gray-500 hover:text-[#1a1a2e] hover:bg-gray-200/60 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-md text-gray-500 hover:text-primary hover:bg-gray-200/60 transition-colors cursor-pointer"
                         title="Edit testimoni"
                       >
                         <Edit3 className="w-3.5 h-3.5" />

@@ -23,7 +23,8 @@ export function HowItWorks() {
     <section
       className="relative overflow-hidden py-24"
       style={{
-        background: "linear-gradient(135deg, #f5edd8 0%, #ede0c4 40%, #e8d5a8 100%)",
+        background:
+          "linear-gradient(135deg, color-mix(in srgb, var(--accent) 6%, #ffffff) 0%, color-mix(in srgb, var(--accent) 12%, #ffffff) 50%, color-mix(in srgb, var(--accent) 18%, #ffffff) 100%)",
       }}
     >
       {/* Subtle texture overlay */}
@@ -31,14 +32,14 @@ export function HowItWorks() {
         className="pointer-events-none absolute inset-0 opacity-30"
         style={{
           backgroundImage:
-            "radial-gradient(circle at 20% 50%, rgba(200,164,78,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(200,164,78,0.10) 0%, transparent 50%)",
+            "radial-gradient(circle at 20% 50%, color-mix(in srgb, var(--accent) 15%, transparent) 0%, transparent 60%), radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--accent) 10%, transparent) 0%, transparent 50%)",
         }}
       />
 
       <div className="relative mx-auto max-w-5xl px-6 lg:px-8">
         {/* Header */}
         <div className="mb-16 text-center">
-          <p className="mb-3 text-xs uppercase tracking-[0.25em] text-accent">
+          <p className="mb-3 text-xs uppercase tracking-[0.25em] text-accent font-semibold">
             Proses Mudah
           </p>
           <h2 className="font-display text-3xl font-medium text-primary-dark lg:text-4xl">
@@ -53,7 +54,7 @@ export function HowItWorks() {
             className="absolute left-1/6 right-1/6 top-8 hidden h-px md:block"
             style={{
               background:
-                "linear-gradient(90deg, transparent 0%, rgba(200,164,78,0.4) 20%, rgba(200,164,78,0.4) 80%, transparent 100%)",
+                "linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--accent) 40%, transparent) 20%, color-mix(in srgb, var(--accent) 40%, transparent) 80%, transparent 100%)",
             }}
           />
 
@@ -64,7 +65,7 @@ export function HowItWorks() {
                 {/* Step number */}
                 <span
                   className="mb-4 font-display text-6xl font-medium leading-none"
-                  style={{ color: "rgba(200,164,78,0.18)" }}
+                  style={{ color: "color-mix(in srgb, var(--accent) 25%, transparent)" }}
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
@@ -74,7 +75,7 @@ export function HowItWorks() {
                   className="relative z-10 mb-5 flex h-16 w-16 items-center justify-center rounded-full"
                   style={{
                     background: "linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%)",
-                    boxShadow: "0 4px 20px rgba(200,164,78,0.30)",
+                    boxShadow: "0 4px 20px color-mix(in srgb, var(--accent) 30%, transparent)",
                   }}
                 >
                   <Icon className="h-7 w-7 text-white" strokeWidth={1.5} />
@@ -87,7 +88,7 @@ export function HowItWorks() {
                 >
                   {step.title}
                 </h3>
-                <p className="max-w-45 text-sm leading-relaxed" style={{ color: "#6b5c3e" }}>
+                <p className="max-w-45 text-sm leading-relaxed text-gray-600">
                   {step.description}
                 </p>
               </div>

@@ -138,11 +138,11 @@ export function PromoModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8e6df] bg-[#f8f7f4]">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-lg bg-[#C8A44E]/15 text-[#C8A44E]">
+            <span className="p-2 rounded-lg bg-accent/15 text-accent">
               <Ticket className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-[#1a1a2e]">
+              <h2 className="text-lg font-bold text-primary">
                 {isEditing ? "Edit Kode Promo" : "Buat Kode Promo Baru"}
               </h2>
               <p className="text-xs text-gray-500">
@@ -169,7 +169,7 @@ export function PromoModal({
         <form onSubmit={handleSubmit}>
           <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
             <div>
-              <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                 Judul Promo <span className="text-red-500">*</span>
               </label>
               <input
@@ -177,14 +177,14 @@ export function PromoModal({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Contoh: Diskon Staycation Weekend 20%"
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                 required
               />
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                   Kode Kupon Voucher <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -192,13 +192,13 @@ export function PromoModal({
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase().replace(/\s+/g, ""))}
                   placeholder="WEEKEND20"
-                  className="w-full text-sm font-mono font-bold uppercase tracking-wider px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                  className="w-full text-sm font-mono font-bold uppercase tracking-wider px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                   Persentase Diskon (%) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
@@ -208,7 +208,7 @@ export function PromoModal({
                     max={100}
                     value={discountPercent}
                     onChange={(e) => setDiscountPercent(Number(e.target.value))}
-                    className="w-full text-sm font-bold px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm font-bold px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     required
                   />
                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-sm font-bold text-gray-400">
@@ -220,7 +220,7 @@ export function PromoModal({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                   Mulai Berlaku <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -233,7 +233,7 @@ export function PromoModal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                   Berlaku Sampai <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -247,7 +247,7 @@ export function PromoModal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                 Deskripsi &amp; Syarat Ketentuan <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -255,14 +255,14 @@ export function PromoModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Diskon khusus untuk reservasi semua tipe villa periode liburan..."
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                 required
               />
             </div>
 
             <div className="p-3.5 rounded-xl border border-[#e8e6df] bg-[#f8f7f4] flex items-center justify-between">
               <div>
-                <div className="text-xs font-bold text-[#1a1a2e]">Status Aktif Promo</div>
+                <div className="text-xs font-bold text-primary">Status Aktif Promo</div>
                 <div className="text-[11px] text-gray-500">
                   Tamu hanya dapat menggunakan kode ini jika status aktif dan dalam masa berlaku.
                 </div>
@@ -293,7 +293,7 @@ export function PromoModal({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#C8A44E] hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-accent hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {saving ? (
                 <>

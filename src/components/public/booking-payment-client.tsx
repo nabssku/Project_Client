@@ -29,9 +29,11 @@ import {
   FileDown,
   Download,
   Mail,
+  XCircle,
 } from "lucide-react";
 import { type BankAccount, DEFAULT_BANK_ACCOUNTS } from "@/lib/payment-config";
 import { downloadBookingPDF } from "@/lib/booking-pdf";
+import { normalizeMediaUrl } from "@/lib/media";
 
 interface BookingData {
   id: string;
@@ -52,7 +54,16 @@ interface BookingData {
   paymentProofUrl?: string | null;
   paymentProofUploadedAt?: string | Date | null;
   notes?: string | null;
+  rejectionReason?: string | null;
   createdAt: string | Date;
+  addons?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    qty: number;
+    subtotal: number;
+    unit: string;
+  }>;
   villa: {
     id: string;
     name: string;
@@ -77,9 +88,13 @@ interface BookingData {
 export function BookingPaymentClient({
   initialBooking,
   bankAccounts = DEFAULT_BANK_ACCOUNTS,
+  siteName = "Singgahsana",
+  siteLogo = "/logo.png",
 }: {
   initialBooking: BookingData;
   bankAccounts?: BankAccount[];
+  siteName?: string;
+  siteLogo?: string | null;
 }) {
   const [booking, setBooking] = useState<BookingData>(initialBooking);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -125,34 +140,46 @@ export function BookingPaymentClient({
 
   // PDF Download Handler
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const handleDownloadPDF = () => {
+  const handleDownloadPDF = async () => {
     try {
       setDownloadingPdf(true);
-      downloadBookingPDF({
-        id: booking.id,
-        code: booking.code,
-        guestName: booking.guestName,
-        guestEmail: booking.guestEmail,
-        guestPhone: booking.guestPhone,
-        guestCity: booking.guestCity,
-        companionType: booking.companionType,
-        checkIn: booking.checkIn,
-        checkOut: booking.checkOut,
-        guestsCount: booking.guestsCount,
-        totalPrice: booking.totalPrice,
-        discountAmount: booking.discountAmount,
-        promoCode: booking.promoCode,
-        status: booking.status,
-        paymentMethod: booking.paymentMethod,
-        notes: booking.notes,
-        createdAt: booking.createdAt,
-        villa: {
-          name: booking.villa.name,
-          location: booking.villa.location,
-          checkInTime: booking.villa.checkInTime,
-          checkOutTime: booking.villa.checkOutTime,
+      await downloadBookingPDF(
+        {
+          id: booking.id,
+          code: booking.code,
+          guestName: booking.guestName,
+          guestEmail: booking.guestEmail,
+          guestPhone: booking.guestPhone,
+          guestCity: booking.guestCity,
+          companionType: booking.companionType,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          guestsCount: booking.guestsCount,
+          totalPrice: booking.totalPrice,
+          discountAmount: booking.discountAmount,
+          promoCode: booking.promoCode,
+          status: booking.status,
+          paymentMethod: booking.paymentMethod,
+          notes: booking.notes,
+          rejectionReason: booking.rejectionReason,
+          createdAt: booking.createdAt,
+          addons: booking.addons?.map((a) => ({
+            name: a.name,
+            price: a.price,
+            qty: a.qty,
+            subtotal: a.subtotal,
+            unit: a.unit,
+          })),
+          villa: {
+            name: booking.villa.name,
+            location: booking.villa.location,
+            checkInTime: booking.villa.checkInTime,
+            checkOutTime: booking.villa.checkOutTime,
+          },
         },
-      });
+        siteName,
+        siteLogo
+      );
     } catch (err) {
       console.error("Gagal mengunduh PDF:", err);
       alert("Gagal mengunduh dokumen PDF.");
@@ -269,7 +296,7 @@ export function BookingPaymentClient({
 
   // WhatsApp verification message
   const waPhone = "628111141052";
-  const waText = `Halo Admin Singgahsana, saya telah melakukan pembayaran untuk Booking Code: *${booking.code}* atas nama *${booking.guestName}* (${booking.villa.name}). Mohon dibantu verifikasi. Terima kasih!`;
+  const waText = `Halo Admin ${siteName}, saya telah melakukan pembayaran untuk Booking Code: *${booking.code}* atas nama *${booking.guestName}* (${booking.villa.name}). Mohon dibantu verifikasi. Terima kasih!`;
   const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 
   const checkInDate = typeof booking.checkIn === "string" ? parseISO(booking.checkIn) : new Date(booking.checkIn);
@@ -280,8 +307,12 @@ export function BookingPaymentClient({
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Status Header Banner */}
         <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm text-center mb-6">
-          {booking.status === "COMPLETED" ? (
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 text-[#C8A44E] mb-4 shadow-xs">
+          {booking.status === "CANCELLED" ? (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-rose-100 text-rose-600 mb-4 shadow-xs animate-bounce">
+              <XCircle className="w-8 h-8" />
+            </div>
+          ) : booking.status === "COMPLETED" ? (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 text-accent mb-4 shadow-xs">
               <Sparkles className="w-8 h-8" />
             </div>
           ) : booking.status === "CONFIRMED" ? (
@@ -299,7 +330,9 @@ export function BookingPaymentClient({
           )}
 
           <h1 className="text-2xl sm:text-3xl font-bold font-display text-primary">
-            {booking.status === "COMPLETED"
+            {booking.status === "CANCELLED"
+              ? "Bukti Pembayaran Ditolak / Dibatalkan"
+              : booking.status === "COMPLETED"
               ? "Masa Menginap Selesai"
               : booking.status === "CHECKED_IN"
               ? "Sedang Menginap di Villa"
@@ -311,16 +344,35 @@ export function BookingPaymentClient({
           </h1>
 
           <p className="text-sm text-gray-500 max-w-md mx-auto mt-2">
-            {booking.status === "COMPLETED"
+            {booking.status === "CANCELLED"
+              ? "Pembayaran atau pesanan ini ditolak/dibatalkan oleh pengelola villa. Harap periksa alasan penolakan di bawah ini."
+              : booking.status === "COMPLETED"
               ? `Terima kasih telah menginap di ${booking.villa.name}! Kami mengundang Anda untuk memberikan ulasan pengalaman liburan Anda.`
               : booking.status === "CHECKED_IN"
               ? `Selamat menikmati waktu liburan Anda di ${booking.villa.name}!`
               : booking.status === "CONFIRMED"
               ? "Reservasi Anda telah berhasil dikonfirmasi. Sampai jumpa di villa!"
               : booking.paymentProofUrl
-              ? "Terima kasih! Bukti transfer Anda sudah kami terima dan sedang diverifikasi oleh Tim Singgahsana."
+              ? `Terima kasih! Bukti transfer Anda sudah kami terima dan sedang diverifikasi oleh Tim ${siteName}.`
               : "Selesaikan pembayaran Anda untuk mengamankan tanggal menginap di villa."}
           </p>
+
+          {/* Rejection Notice Banner */}
+          {booking.status === "CANCELLED" && (
+            <div className="mt-5 max-w-xl mx-auto p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-200 text-left space-y-2 animate-fade-in shadow-xs">
+              <div className="flex items-center gap-2 text-rose-800 font-bold text-xs sm:text-sm">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>Alasan Penolakan dari Pengelola Villa:</span>
+              </div>
+              <p className="text-xs sm:text-sm text-rose-700 pl-6 font-semibold leading-relaxed bg-white/70 p-3 rounded-xl border border-rose-100">
+                &ldquo;{booking.rejectionReason || "Bukti transfer tidak sesuai, foto tidak jelas, atau nominal kurang. Silakan unggah bukti yang benar."}&rdquo;
+              </p>
+              <div className="pl-6 pt-1 text-[11px] text-rose-600 flex items-center gap-1.5">
+                <span>💡</span>
+                <span><strong>Solusi:</strong> Anda dapat mengunggah ulang bukti pembayaran yang valid pada formulir di bawah ini agar pesanan Anda dapat diproses kembali.</span>
+              </div>
+            </div>
+          )}
 
           {/* Booking Code Card */}
           <div className="mt-6 inline-flex items-center gap-3 bg-cream px-5 py-3 rounded-2xl border border-gray-200">
@@ -352,7 +404,7 @@ export function BookingPaymentClient({
         <div className="bg-gradient-to-r from-[#1a1a2e] to-[#252542] rounded-3xl p-5 sm:p-6 text-white shadow-lg mb-6 border border-white/10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3.5 text-center sm:text-left">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#C8A44E]/20 text-[#C8A44E] border border-[#C8A44E]/30 shadow-xs">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/20 text-accent border border-accent/30 shadow-xs">
                 <FileDown className="h-6 w-6" />
               </div>
               <div>
@@ -370,11 +422,11 @@ export function BookingPaymentClient({
                 type="button"
                 onClick={handleDownloadPDF}
                 disabled={downloadingPdf}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-[#C8A44E] px-4 py-2.5 text-xs font-bold text-[#1a1a2e] shadow-md transition hover:bg-[#d6b25a] active:scale-95 disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-2.5 text-xs font-bold text-primary shadow-md transition hover:bg-accent-light active:scale-95 disabled:opacity-50 cursor-pointer"
                 title="Download Dokumen PDF Resmi"
               >
                 {downloadingPdf ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-[#1a1a2e]" />
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 ) : (
                   <Download className="h-4 w-4" />
                 )}
@@ -389,9 +441,9 @@ export function BookingPaymentClient({
                 title={`Kirim ulang ke ${booking.guestEmail}`}
               >
                 {sendingEmail ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-[#C8A44E]" />
+                  <Loader2 className="h-4 w-4 animate-spin text-accent" />
                 ) : (
-                  <Mail className="h-4 w-4 text-[#C8A44E]" />
+                  <Mail className="h-4 w-4 text-accent" />
                 )}
                 <span>{sendingEmail ? "Mengirim..." : "Kirim ke Email"}</span>
               </button>
@@ -474,7 +526,7 @@ export function BookingPaymentClient({
                   /* Form Review Baru */
                   <form onSubmit={handleReviewSubmit} className="space-y-5">
                     <div className="border-b border-gray-100 pb-4">
-                      <div className="flex items-center gap-2 text-[#C8A44E] mb-1">
+                      <div className="flex items-center gap-2 text-accent mb-1">
                         <Sparkles className="w-5 h-5" />
                         <h2 className="text-base sm:text-lg font-bold font-display text-primary">
                           Bagikan Pengalaman Menginap Anda
@@ -624,7 +676,7 @@ export function BookingPaymentClient({
                               />
                             </button>
                           ))}
-                          <span className="text-sm font-bold text-[#C8A44E] w-6 text-right">
+                          <span className="text-sm font-bold text-accent w-6 text-right">
                             {overallRating}
                           </span>
                         </div>
@@ -633,7 +685,7 @@ export function BookingPaymentClient({
 
                     {/* Text Review */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                         Ulasan Pengalaman Menginap <span className="text-red-500">*</span>
                       </label>
                       <textarea
@@ -642,13 +694,13 @@ export function BookingPaymentClient({
                         value={reviewContent}
                         onChange={(e) => setReviewContent(e.target.value)}
                         placeholder="Ceritakan momen terbaik Anda selama liburan di villa ini (suasana, fasilitas favorit, keramahan staf)..."
-                        className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#e8e6df] bg-white text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                        className="w-full text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-[#e8e6df] bg-white text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent"
                       />
                     </div>
 
                     {/* Reviewer Name */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                      <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                         Nama yang Ditampilkan
                       </label>
                       <input
@@ -656,14 +708,14 @@ export function BookingPaymentClient({
                         value={reviewerName}
                         onChange={(e) => setReviewerName(e.target.value)}
                         placeholder={booking.guestName}
-                        className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30"
+                        className="w-full text-xs sm:text-sm px-3.5 py-2 rounded-xl border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-accent/30"
                       />
                     </div>
 
                     <button
                       type="submit"
                       disabled={reviewSubmitting || !reviewContent.trim()}
-                      className="w-full py-3 rounded-xl bg-[#C8A44E] hover:bg-[#b8933e] text-white text-xs sm:text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+                      className="w-full py-3 rounded-xl bg-accent hover:bg-accent-light text-white text-xs sm:text-sm font-semibold transition-all shadow-sm flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
                       {reviewSubmitting ? (
                         <>
@@ -705,39 +757,16 @@ export function BookingPaymentClient({
                 </button>
               </div>
 
-              {/* QRIS Display */}
-              {booking.paymentMethod === "QRIS" ? (
-                <div className="space-y-4">
-                  <div className="p-5 rounded-2xl border border-gray-100 bg-[#fafafa] flex flex-col items-center text-center">
-                    <span className="text-xs font-bold uppercase tracking-wider text-primary mb-3">
-                      QRIS Nasional Singgahsana
-                    </span>
-                    <div className="relative w-52 h-52 bg-white p-3 rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=SINGGAHSANA-VILLA-RESERVATION"
-                        alt="QRIS Pembayaran"
-                        width={200}
-                        height={200}
-                        className="object-contain"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-3 max-w-xs">
-                      Buka aplikasi m-Banking (BCA, Mandiri, BRI, BNI) atau e-Wallet (GoPay, OVO, ShopeePay, Dana), lalu scan kode QR di atas.
-                    </p>
-                  </div>
+              {/* Bank Transfer Accounts (Dynamically loaded from site_configs) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Pilihan Rekening Resmi {siteName}
+                  </p>
+                  <span className="text-[11px] text-gray-400">
+                    {activeBankAccounts.length} Rekening Aktif
+                  </span>
                 </div>
-              ) : (
-                /* Bank Transfer Accounts (Dynamically loaded from site_configs) */
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                      Pilihan Rekening Resmi Singgahsana
-                    </p>
-                    <span className="text-[11px] text-gray-400">
-                      {activeBankAccounts.length} Rekening Aktif
-                    </span>
-                  </div>
 
                   {activeBankAccounts.map((bank) => {
                     const cleanNumber = bank.accountNumber.replace(/\s+/g, "");
@@ -781,7 +810,6 @@ export function BookingPaymentClient({
                     );
                   })}
                 </div>
-              )}
             </div>
 
             {/* Proof Upload Card */}
@@ -807,31 +835,92 @@ export function BookingPaymentClient({
                 </div>
               )}
 
-              {booking.paymentProofUrl ? (
+              {booking.status === "CANCELLED" ? (
                 <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <FileCheck className="w-6 h-6 text-emerald-600" />
-                      <div>
-                        <span className="text-xs font-bold text-emerald-900 block">
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600">
+                        <XCircle className="w-6 h-6" />
+                      </div>
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-rose-900 block truncate">
+                          Bukti Pembayaran Ditolak
+                        </span>
+                        <span className="text-[11px] text-rose-700 block line-clamp-1">
+                          Alasan: {booking.rejectionReason || "Bukti tidak valid"}
+                        </span>
+                      </div>
+                    </div>
+                    {booking.paymentProofUrl && (
+                      <a
+                        href={normalizeMediaUrl(booking.paymentProofUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 hover:underline shrink-0 bg-white/80 px-2.5 py-1.5 rounded-lg border border-rose-200"
+                      >
+                        <span>Lihat Bukti Ditolak</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="border-2 border-dashed border-rose-300 hover:border-rose-500 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-rose-50/20">
+                      <UploadCloud className="w-8 h-8 text-rose-500 mb-2" />
+                      <span className="text-xs font-bold text-rose-900">
+                        {uploading ? "Sedang Mengunggah Bukti Baru..." : "Unggah Ulang Bukti Pembayaran yang Benar"}
+                      </span>
+                      <span className="text-[11px] text-rose-600 mt-1">
+                        Format JPG, PNG, WebP atau PDF (Maks. 10MB)
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={handleFileUpload}
+                        disabled={uploading}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              ) : booking.paymentProofUrl ? (
+                <div className="space-y-4">
+                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {booking.paymentProofUrl.endsWith(".pdf") ? (
+                        <div className="w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700">
+                          <FileCheck className="w-6 h-6" />
+                        </div>
+                      ) : (
+                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-emerald-100 border border-emerald-200 shrink-0 shadow-2xs">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={normalizeMediaUrl(booking.paymentProofUrl)}
+                            alt="Bukti Transfer"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-emerald-900 block truncate">
                           Bukti Berhasil Diunggah
                         </span>
-                        <span className="text-[11px] text-emerald-700">
+                        <span className="text-[11px] text-emerald-700 block">
                           {booking.paymentProofUploadedAt
                             ? `Diunggah pada ${format(
                                 new Date(booking.paymentProofUploadedAt),
                                 "d MMM yyyy, HH:mm",
                                 { locale: localeId }
                               )} WIB`
-                            : "Siap diperiksa staf Singgahsana"}
+                            : `Siap diperiksa staf ${siteName}`}
                         </span>
                       </div>
                     </div>
                     <a
-                      href={booking.paymentProofUrl}
+                      href={normalizeMediaUrl(booking.paymentProofUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline shrink-0 bg-white/70 px-2.5 py-1.5 rounded-lg border border-emerald-200"
                     >
                       <span>Lihat File</span>
                       <ExternalLink className="w-3.5 h-3.5" />
@@ -963,6 +1052,37 @@ export function BookingPaymentClient({
                   </div>
                 )}
 
+                {/* Add-ons List */}
+                {booking.addons && booking.addons.length > 0 && (
+                  <div className="border-t border-gray-100 pt-2 space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Add-on / Fasilitas Ekstra
+                    </span>
+                    {booking.addons.map((addon) => (
+                      <div key={addon.id} className="flex justify-between text-xs text-gray-700">
+                        <span>
+                          {addon.name} ({addon.qty} {addon.unit})
+                        </span>
+                        <span className="font-semibold tabular-nums text-gray-900">
+                          {formatIDR(addon.subtotal)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Guest Notes if any */}
+                {booking.notes && (
+                  <div className="border-t border-gray-100 pt-2.5 space-y-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                      Catatan / Permintaan Khusus Tamu
+                    </span>
+                    <p className="text-xs text-gray-700 bg-gray-50 p-2.5 rounded-xl border border-gray-200/60 leading-relaxed italic">
+                      &ldquo;{booking.notes}&rdquo;
+                    </p>
+                  </div>
+                )}
+
                 <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-sm">
                   <span className="text-primary">Total Bayar</span>
                   <span className="text-accent">{formatIDR(booking.totalPrice)}</span>
@@ -977,7 +1097,7 @@ export function BookingPaymentClient({
                   className="w-full flex items-center justify-center gap-2 rounded-xl bg-gray-100 hover:bg-gray-200 py-2.5 text-xs font-bold text-gray-800 transition cursor-pointer"
                   title="Unduh Dokumen PDF Transaksi"
                 >
-                  <Download className="w-3.5 h-3.5 text-[#C8A44E]" />
+                  <Download className="w-3.5 h-3.5 text-accent" />
                   <span>{downloadingPdf ? "Menyiapkan..." : "Unduh Invoice & Voucher (PDF)"}</span>
                 </button>
                 <Link

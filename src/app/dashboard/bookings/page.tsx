@@ -1,12 +1,17 @@
 import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ManagerBookingsClient } from "@/components/dashboard/bookings/manager-bookings-client";
 import { requirePagePermission } from "@/lib/auth-guard";
+import { normalizeMediaUrl } from "@/lib/media";
 
 export const instant = false;
 
 export default async function DashboardBookingsPage() {
   const user = await requirePagePermission("booking:read");
+  if (user.role === "GUEST") {
+    redirect("/dashboard");
+  }
 
   // Fetch all bookings
   const bookings = await prisma.bookings.findMany({
@@ -19,6 +24,7 @@ export default async function DashboardBookingsPage() {
           slug: true,
         },
       },
+      addons: true,
     },
   });
 
@@ -36,8 +42,24 @@ export default async function DashboardBookingsPage() {
     orderBy: { name: "asc" },
   });
 
+  let siteName = "Singgahsana";
+  let siteLogo: string | null = null;
+  try {
+    const configs = await prisma.site_configs.findMany({
+      where: { key: { in: ["site_name", "site_logo"] } },
+    });
+    configs.forEach((c) => {
+      if (c.key === "site_name" && c.value) siteName = c.value;
+      if (c.key === "site_logo" && c.value) siteLogo = c.value;
+    });
+  } catch (err) {
+    console.warn("Failed to load site configs for manager bookings page:", err);
+  }
+
   return (
     <ManagerBookingsClient
+      siteName={siteName}
+      siteLogo={siteLogo}
       initialBookings={bookings.map((b) => ({
         id: b.id,
         code: b.code,
@@ -54,12 +76,21 @@ export default async function DashboardBookingsPage() {
         promoCode: b.promoCode,
         status: b.status as any,
         paymentMethod: b.paymentMethod,
-        paymentProofUrl: b.paymentProofUrl,
+        paymentProofUrl: b.paymentProofUrl ? normalizeMediaUrl(b.paymentProofUrl) : null,
         paymentProofUploadedAt: b.paymentProofUploadedAt
           ? b.paymentProofUploadedAt.toISOString()
           : null,
         notes: b.notes,
+        rejectionReason: b.rejectionReason,
         createdAt: b.createdAt.toISOString(),
+        addons: b.addons.map((a) => ({
+          id: a.id,
+          name: a.name,
+          price: a.price,
+          qty: a.qty,
+          subtotal: a.subtotal,
+          unit: a.unit,
+        })),
         villa: {
           id: b.villa.id,
           name: b.villa.name,

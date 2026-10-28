@@ -250,8 +250,8 @@ export function VillaGallery({ images, villaName }: VillaGalleryProps) {
 
                 {/* Dark overlay on the last visible slot if > 7 images */}
                 {isLastVisible ? (
-                  <div className="absolute inset-0 bg-[#12121f]/75 backdrop-blur-2xs flex flex-col items-center justify-center text-center p-2 text-white group-hover:bg-[#12121f]/85 transition-colors">
-                    <Grid className="h-5 w-5 text-[#C8A44E] mb-1" />
+                  <div className="absolute inset-0 bg-primary-dark/75 backdrop-blur-2xs flex flex-col items-center justify-center text-center p-2 text-white group-hover:bg-primary-dark/85 transition-colors">
+                    <Grid className="h-5 w-5 text-accent mb-1" />
                     <span className="text-xs sm:text-sm font-bold font-display leading-tight">
                       +{total - 6} Foto
                     </span>
@@ -281,9 +281,9 @@ export function VillaGallery({ images, villaName }: VillaGalleryProps) {
           <button
             type="button"
             onClick={() => openLightbox(0)}
-            className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-xl bg-white/95 backdrop-blur-md px-4 py-2.5 text-xs sm:text-sm font-semibold text-[#1a1a2e] shadow-lg border border-black/5 hover:bg-white hover:scale-102 transition-all cursor-pointer"
+            className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-xl bg-white/95 backdrop-blur-md px-4 py-2.5 text-xs sm:text-sm font-semibold text-primary shadow-lg border border-black/5 hover:bg-white hover:scale-102 transition-all cursor-pointer"
           >
-            <Grid className="h-4 w-4 text-[#C8A44E]" />
+            <Grid className="h-4 w-4 text-accent" />
             <span>Lihat semua foto ({total} foto)</span>
           </button>
         )}
@@ -305,7 +305,7 @@ export function VillaGallery({ images, villaName }: VillaGalleryProps) {
                 {villaName}
               </h3>
               <span className="text-xs text-white/30">•</span>
-              <span className="text-xs font-mono font-medium text-[#C8A44E] tracking-widest">
+              <span className="text-xs font-mono font-medium text-accent tracking-widest">
                 {String(currentIndex + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
               </span>
             </div>
@@ -382,7 +382,7 @@ export function VillaGallery({ images, villaName }: VillaGalleryProps) {
                     onClick={() => setCurrentIndex(idx)}
                     className={`relative h-11 sm:h-13 aspect-4/3 rounded-lg overflow-hidden shrink-0 transition-all duration-200 cursor-pointer ${
                       currentIndex === idx
-                        ? "ring-2 ring-[#C8A44E] ring-offset-1 ring-offset-black scale-105 opacity-100 shadow-md"
+                        ? "ring-2 ring-accent ring-offset-1 ring-offset-black scale-105 opacity-100 shadow-md"
                         : "opacity-40 hover:opacity-80"
                     }`}
                   >

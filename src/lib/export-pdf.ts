@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { resolveImageToDataUri } from "@/lib/booking-pdf";
 
 export interface ReportBookingItem {
   id: string;
@@ -37,6 +38,7 @@ export interface ReportExportSummary {
 
 export interface ReportExportOptions {
   siteName: string;
+  siteLogo?: string | null;
   periodLabel: string;
   filterVillaName?: string;
   filterStatusLabel?: string;
@@ -50,7 +52,7 @@ export interface ReportExportOptions {
 /**
  * Ekspor Laporan Reservasi & Finansial ke PDF Format Resmi
  */
-export function exportReportsToPDF(
+export async function exportReportsToPDF(
   bookings: ReportBookingItem[],
   summary: ReportExportSummary,
   options: ReportExportOptions
@@ -71,20 +73,39 @@ export function exportReportsToPDF(
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.rect(0, 0, pageWidth, 28, "F");
 
+  let hasLogo = false;
+  let textStartX = 14;
+  if (options.siteLogo) {
+    try {
+      const logoUri = await resolveImageToDataUri(options.siteLogo);
+      if (logoUri) {
+        let format = "PNG";
+        if (logoUri.includes("image/jpeg") || logoUri.includes("image/jpg")) format = "JPEG";
+        else if (logoUri.includes("image/webp")) format = "WEBP";
+        doc.addImage(logoUri, format, 14, 4, 20, 20);
+        hasLogo = true;
+        textStartX = 38;
+      }
+    } catch {
+      hasLogo = false;
+      textStartX = 14;
+    }
+  }
+
   // Nama Bisnis / Logo
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(hasLogo ? 16 : 18);
   doc.setTextColor(255, 255, 255);
-  doc.text(options.siteName.toUpperCase(), 14, 13);
+  doc.text(options.siteName.toUpperCase(), textStartX, 13);
 
   doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-  doc.text(".", 14 + doc.getTextWidth(options.siteName.toUpperCase()), 13);
+  doc.text(".", textStartX + doc.getTextWidth(options.siteName.toUpperCase()), 13);
 
   // Judul Dokumen
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10.5);
   doc.setTextColor(255, 255, 255);
-  doc.text("LAPORAN KEUANGAN & OPERASIONAL RESERVASI", 14, 21);
+  doc.text("LAPORAN KEUANGAN & OPERASIONAL RESERVASI", textStartX, 21);
 
   // Info Cetak di Kanan Atas
   doc.setFont("helvetica", "normal");

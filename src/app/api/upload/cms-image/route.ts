@@ -5,8 +5,13 @@ import sharp from "sharp";
 
 export async function POST(request: Request) {
   try {
-    const authCheck = await requireApiPermission("cms:update");
-    if (!authCheck.success) return authCheck.response;
+    const authCms = await requireApiPermission("cms:update");
+    if (!authCms.success) {
+      const authSettings = await requireApiPermission("settings:update");
+      if (!authSettings.success) {
+        return authCms.response;
+      }
+    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -22,10 +27,11 @@ export async function POST(request: Request) {
       "image/png",
       "image/webp",
       "image/avif",
+      "image/svg+xml",
     ];
     if (!validTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "Format file tidak didukung. Harap gunakan format JPG, PNG, atau WebP." },
+        { error: "Format file tidak didukung. Harap gunakan format JPG, PNG, WebP, atau SVG." },
         { status: 400 }
       );
     }
@@ -40,22 +46,36 @@ export async function POST(request: Request) {
 
     const bytes = await file.arrayBuffer();
     const inputBuffer = Buffer.from(bytes);
-
-    // Optimize image with sharp (high quality WebP, max width 2560px for crystal-clear hero backgrounds)
-    const processedBuffer = await sharp(inputBuffer)
-      .rotate()
-      .resize({
-        width: 2560,
-        withoutEnlargement: true,
-        fit: "inside",
-      })
-      .webp({ quality: 85 })
-      .toBuffer();
-
     const folder = (formData.get("folder") as string) || "cms";
+
+    let processedBuffer: Buffer;
+    let contentType: string;
+    let key: string;
+
+    if (file.type === "image/svg+xml") {
+      // SVG vector preservation
+      processedBuffer = inputBuffer;
+      contentType = "image/svg+xml";
+      const timestamp = Date.now();
+      const sanitized = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").replace(/\.[^/.]+$/, "");
+      key = `${folder}/${timestamp}-${sanitized}.svg`;
+    } else {
+      // Optimize image with sharp (high quality WebP, preserve alpha/transparency)
+      processedBuffer = await sharp(inputBuffer)
+        .rotate()
+        .resize({
+          width: 2560,
+          withoutEnlargement: true,
+          fit: "inside",
+        })
+        .webp({ quality: 85 })
+        .toBuffer();
+      contentType = "image/webp";
+      key = generateKey(folder, file.name);
+    }
+
     // Upload to Cloudflare R2 / Local Storage
-    const key = generateKey(folder, file.name);
-    const publicUrl = await uploadBufferToR2(processedBuffer, key, "image/webp");
+    const publicUrl = await uploadBufferToR2(processedBuffer, key, contentType);
 
     return NextResponse.json({
       success: true,

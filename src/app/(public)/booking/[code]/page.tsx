@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { BookingPaymentClient } from "@/components/public/booking-payment-client";
 import { getPaymentTransferBanks } from "@/lib/payment-config";
+import { normalizeMediaUrl } from "@/lib/media";
 
 export const instant = false;
 
@@ -34,6 +35,7 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
         },
       },
       testimonial: true,
+      addons: true,
     },
   });
 
@@ -43,8 +45,24 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
 
   const bankAccounts = await getPaymentTransferBanks();
 
+  let siteName = "Singgahsana";
+  let siteLogo: string | null = null;
+  try {
+    const configs = await prisma.site_configs.findMany({
+      where: { key: { in: ["site_name", "site_logo"] } },
+    });
+    configs.forEach((c) => {
+      if (c.key === "site_name" && c.value) siteName = c.value;
+      if (c.key === "site_logo" && c.value) siteLogo = c.value;
+    });
+  } catch (err) {
+    console.warn("Failed to load site configs for booking payment page:", err);
+  }
+
   return (
     <BookingPaymentClient
+      siteName={siteName}
+      siteLogo={siteLogo}
       initialBooking={{
         id: booking.id,
         code: booking.code,
@@ -61,11 +79,14 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
         promoCode: booking.promoCode,
         status: booking.status as any,
         paymentMethod: booking.paymentMethod,
-        paymentProofUrl: booking.paymentProofUrl,
+        paymentProofUrl: booking.paymentProofUrl
+          ? normalizeMediaUrl(booking.paymentProofUrl)
+          : null,
         paymentProofUploadedAt: booking.paymentProofUploadedAt
           ? booking.paymentProofUploadedAt.toISOString()
           : null,
         notes: booking.notes,
+        rejectionReason: booking.rejectionReason,
         createdAt: booking.createdAt.toISOString(),
         villa: {
           id: booking.villa.id,
@@ -76,6 +97,14 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
           checkInTime: booking.villa.checkInTime,
           checkOutTime: booking.villa.checkOutTime,
         },
+        addons: booking.addons.map((a) => ({
+          id: a.id,
+          name: a.name,
+          price: a.price,
+          qty: a.qty,
+          subtotal: a.subtotal,
+          unit: a.unit,
+        })),
         testimonial: booking.testimonial
           ? {
               id: booking.testimonial.id,

@@ -60,7 +60,7 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
       {/* Minimal Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#e8e6df]">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e] tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">
             Housekeeping & Maintenance
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -71,7 +71,7 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Tugas Aktif
@@ -89,22 +89,22 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
           <p className="mt-1 text-[11px] text-slate-400">Pekerjaan belum selesai</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Unit Cleaning
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C8A44E]/10 text-[#C8A44E]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
               <Sparkles className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.cleaningCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.cleaningCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Unit butuh housekeeping</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Unit Maintenance
@@ -114,12 +114,12 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.maintenanceCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.maintenanceCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Unit dalam perbaikan</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Unit Siap Huni
@@ -129,7 +129,7 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.availableCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.availableCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Status AVAILABLE bersih</p>
         </div>
@@ -141,12 +141,12 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
         <div className="rounded-2xl border border-[#e8e6df] bg-white shadow-xs lg:col-span-2 overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#e8e6df] p-5">
             <div>
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Daftar Tugas Housekeeping</h2>
+              <h2 className="font-display text-base font-bold text-primary">Daftar Tugas Housekeeping</h2>
               <p className="text-xs text-slate-400">Jadwal pembersihan unit pasca checkout</p>
             </div>
             <Link
               href="/dashboard/maintenance"
-              className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E] inline-flex items-center"
+              className="text-xs font-semibold text-primary hover:text-accent inline-flex items-center"
             >
               Semua Tugas <ArrowUpRight className="h-3 w-3 ml-1" />
             </Link>
@@ -163,7 +163,7 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
                 <div key={task.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#f8f7f4]/50 transition-colors">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#1a1a2e] text-xs sm:text-sm">{task.title}</span>
+                      <span className="font-bold text-primary text-xs sm:text-sm">{task.title}</span>
                       <span
                         className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${
                           task.isCompleted
@@ -174,7 +174,7 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
                         {task.isCompleted ? "SELESAI" : "PENDING"}
                       </span>
                     </div>
-                    <p className="text-xs text-[#C8A44E] font-medium">Unit: {task.villa.name}</p>
+                    <p className="text-xs text-accent font-medium">Unit: {task.villa.name}</p>
                     {task.description && (
                       <p className="text-xs text-slate-500">{task.description}</p>
                     )}
@@ -188,7 +188,7 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
                       className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold ${
                         task.isCompleted
                           ? "bg-slate-100 text-slate-500"
-                          : "bg-[#1a1a2e] text-white hover:bg-[#C8A44E] hover:text-[#12121f] transition-colors cursor-pointer"
+                          : "bg-primary text-white hover:bg-accent hover:text-primary-dark transition-colors cursor-pointer"
                       }`}
                     >
                       {task.isCompleted ? "Selesai" : "Tandai Selesai"}
@@ -204,14 +204,14 @@ export function MaintenanceDashboard({ user, data }: MaintenanceDashboardProps) 
         <div className="space-y-6">
           <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Kesiapan Unit</h2>
+              <h2 className="font-display text-base font-bold text-primary">Kesiapan Unit</h2>
               <span className="text-xs text-slate-400">{data.villasList.length} Unit</span>
             </div>
             <div className="space-y-2.5">
               {data.villasList.map((villa) => (
                 <div key={villa.id} className="p-2.5 rounded-xl bg-[#f8f7f4] border border-[#e8e6df] space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-[#1a1a2e]">{villa.name}</p>
+                    <p className="text-xs font-bold text-primary">{villa.name}</p>
                     <span
                       className={`text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full ${
                         villa.status === "AVAILABLE"

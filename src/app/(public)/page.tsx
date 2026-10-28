@@ -6,7 +6,6 @@ import { HowItWorks } from "@/components/public/how-it-works";
 import { Testimonials } from "@/components/public/testimonials";
 import { CTA } from "@/components/public/cta";
 import { prisma } from "@/lib/prisma";
-import DynamicFont from "@/components/DynamicFont";
 
 export const instant = false;
 
@@ -42,19 +41,8 @@ async function HomeContent() {
     {} as Record<string, string>
   );
 
-  const fontBody: string = config["font_body"] || "DM Sans";
-  const fontDisplay: string = config["font_display"] || "Playfair Display";
-  const primaryColor: string = config["primary_color"] || "#1a1a2e";
-  const secondaryColor: string = config["secondary_color"] || "#C8A44E";
-
   return (
     <>
-      <DynamicFont
-        bodyFont={fontBody}
-        displayFont={fontDisplay}
-        primaryColor={primaryColor}
-        secondaryColor={secondaryColor}
-      />
       <Hero config={config} />
       <section className="container mx-auto px-4 py-16">
         <VillaGrid villas={villas} title="Villa Pilihan" />

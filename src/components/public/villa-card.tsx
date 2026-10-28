@@ -48,7 +48,7 @@ export function VillaCard({ villa }: VillaCardProps) {
             </div>
           )}
           {hasPool && (
-            <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-blue-600 px-2 py-1 text-xs font-medium text-white">
+            <div className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
               <Waves className="h-3 w-3" />
               Private Pool
             </div>
@@ -57,7 +57,7 @@ export function VillaCard({ villa }: VillaCardProps) {
 
         {/* Content */}
         <div className="p-4">
-          <h3 className="mb-2 font-semibold text-slate-900 group-hover:text-blue-600">
+          <h3 className="mb-2 font-display font-semibold text-primary group-hover:text-accent transition-colors">
             {villa.name}
           </h3>
 
@@ -79,7 +79,7 @@ export function VillaCard({ villa }: VillaCardProps) {
 
           {/* Price */}
           <div className="flex items-baseline gap-1">
-            <span className="text-lg font-bold text-blue-600">
+            <span className="text-lg font-bold font-display text-accent">
               {formatPrice(villa.pricePerNight)}
             </span>
             <span className="text-sm text-slate-500">/malam</span>

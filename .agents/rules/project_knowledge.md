@@ -64,6 +64,14 @@ Navbar menggunakan `usePathname()` untuk mendeteksi rute dan mengatur styling se
 
 ---
 
+5. **Sinkronisasi Global Desain Web, Warna & Tipografi (Dashboard & Publik)**:
+   - `FontLoader` dipindahkan ke root layout (`src/app/layout.tsx`) dengan `RootThemeLoader` agar aktif di **seluruh halaman aplikasi** termasuk `/dashboard`, halaman unit villa, beranda, dan halaman publik lainnya.
+   - Aturan CSS global di `src/app/globals.css` memetakan kelas hex arbitrary lama (`#1a1a2e`, `#C8A44E`, `#12121f`, `#d4b366`, serta varian opacity `color-mix`) ke variabel dinamis `--primary`, `--accent`, `--primary-dark`, dan `--accent-light`.
+   - Menambahkan event listener `theme-change` pada `FontLoader` yang di-dispatch saat tombol Simpan Perubahan di CMS Hero ditekan, sehingga font dan warna langsung ter-update seketika di browser tanpa perlu reload halaman.
+   - Mengganti kelas warna hardcoded di komponen dashboard (`sidebar.tsx`, `header.tsx`, `admin-dashboard.tsx`, `marketing-dashboard.tsx`, `manajer-dashboard.tsx`, `maintenance-dashboard.tsx`) dan halaman detail villa menjadi semantic tokens (`primary`, `primary-dark`, `accent`, `accent-light`).
+
+---
+
 ## 4. Keputusan Arsitektur Produk (PRD)
 
 - **Spesifikasi Lengkap**: Tersimpan di file artefak `PRD-villa-booking.md`.
@@ -337,6 +345,221 @@ Sistem CMS lengkap dirancang khusus untuk tim **Marketing** (dan pengguna dengan
    - **Backend API**: CRUD di `/api/cms/promos`, `/api/cms/promos/[id]`, dan toggle `/api/cms/promos/[id]/status`.
    - **Fitur**: Pembuatan voucher unik (% diskon, periode masa berlaku, status aktif), tombol salin kode satu-klik ("Tersalin!"), dan validasi langsung di alur checkout reservasi.
 
+---
 
+## 16. Modul Add-on & Fasilitas Ekstra Per-Villa
 
+Modul pengelolaan fasilitas tambahan per unit villa (seperti Extra Bed, Flooties Flamingo, Paket BBQ Grill, Floating Breakfast Tray, dll.):
+
+1. **Database Models (`prisma/schema.prisma`)**:
+   - `model villa_addons`: Menyimpan katalog add-on per villa (`id`, `villaId`, `name`, `description`, `price`, `maxQty`, `unit`, `isActive`).
+   - `model booking_addons`: Menyimpan snapshot add-on yang dipilih tamu saat reservasi (`id`, `bookingId`, `addonId`, `name`, `price`, `qty`, `subtotal`, `unit`).
+   - Relasi di `model bookings`: Kolom `addonsTotal Int @default(0)` dan relasi `addons booking_addons[]`.
+   - Relasi di `model villas`: Relasi `addons villa_addons[]`.
+
+2. **Manajemen Admin & Manajer (`src/components/dashboard/villas/villa-addon-manager.tsx`)**:
+   - Tombol **"Add-on"** di samping tombol "Tarif" pada kartu grid & baris tabel villa di `/dashboard/villas` (membuka modal kelola).
+   - **Terintegrasi langsung di Halaman Edit Villa (`/dashboard/villas/[id]/edit`)**:
+     - Komponen `VillaAddonManager` mendukung mode `isInline={true}` yang menyatu sebagai Section 5 di form edit villa (`src/components/dashboard/villas/villa-form.tsx`).
+     - Staf dapat langsung menambah, mengubah, mengaktifkan/menonaktifkan, atau menghapus fasilitas ekstra tanpa harus berpindah halaman.
+     - Saat membuat unit villa baru (`/dashboard/villas/create`), form menampilkan banner informatif bahwa add-on dapat dikonfigurasi segera setelah unit tersimpan.
+   - Modal/Panel interaktif dengan pilihan template cepat (Extra Bed, Flooties Flamingo, Paket BBQ, Floating Tray).
+   - Form tambah/edit add-on dengan pengaturan harga satuan, batas maksimal pemesanan (pcs/unit), deskripsi singkat, dan toggle aktif/nonaktif (menggunakan non-form container agar tidak memicu submit pada parent form).
+   - Endpoint:
+     - `GET /api/villas/[id]/addons`: Mengambil add-on villa (semua untuk staf, hanya aktif untuk publik).
+     - `POST /api/villas/[id]/addons`: Membuat add-on baru untuk villa.
+     - `PUT /api/villas/[id]/addons/[addonId]`: Mengupdate nama, harga, maxQty, unit, atau toggle aktif.
+     - `DELETE /api/villas/[id]/addons/[addonId]`: Menghapus add-on.
+
+3. **Alur Reservasi Publik (`src/components/public/booking-flow-client.tsx`)**:
+   - Kartu *"Fasilitas & Layanan Tambahan (Add-on)"* otomatis muncul di formulir checkout jika villa memiliki add-on aktif.
+   - Stepper counter `[-] [qty] [+]` dengan validasi batas maksimal (0 s/d `maxQty`).
+   - Kalkulasi otomatis `addonsTotal` yang dijumlahkan ke `finalTotal` dan dirinci pada panel *Rincian Biaya*.
+   - Saat submit, API `POST /api/bookings` memverifikasi harga add-on langsung ke database dan menyimpannya ke tabel `booking_addons`.
+
+4. **Integrasi Dokumen & Dashboard**:
+   - `/booking/[code]`: Menampilkan rincian add-on yang dipesan dan catatan khusus tamu pada panel rincian reservasi.
+   - `/booking/status`: Menampilkan fasilitas tambahan saat tamu mengecek status pemesanan.
+   - `/dashboard/bookings`: Kolom villa menampilkan daftar add-on beserta kuantitas (pcs), dan kolom tamu menampilkan catatan khusus tamu (`notes`). Pada modal bukti transfer dan modal ubah status, rincian add-on dan catatan tamu tersaji lengkap.
+   - `src/lib/booking-pdf.ts`: Perhitungan matematika diselaraskan (harga sewa villa murni dihitung dari `totalPrice - addonsSum + discountAmount`) sehingga rincian baris add-on, diskon kupon, dan total akhir pada invoice PDF akurat hingga digit terakhir.
+   - `src/lib/email/resend.ts`: Menyertakan item fasilitas ekstra dalam notifikasi email konfirmasi reservasi tamu.
+
+---
+
+## 17. Pengelolaan File Media & Solusi DNS Sinkhole R2 di Indonesia
+
+1. **Akar Masalah Akses Gambar / Bukti Transfer**:
+   - Domain publik bawaan Cloudflare R2 (`*.r2.dev`, contoh: `pub-87731ba27bd94ff6bffe5cd9146f0af4.r2.dev`) diblokir oleh ISP di Indonesia (Telkom IndiHome / Telkomsel / TrustPositif / Nawala) dan dialihkan ke IP sinkhole `139.255.196.196` / `182.23.79.195` (`ECONNREFUSED` pada port 443).
+   - Hal ini menyebabkan foto bukti transfer, gambar villa, dan file upload tidak dapat dibuka di browser tamu/manajer dan memicu Next.js Image Optimization 500 error.
+   - Sebaliknya, endpoint S3 Cloudflare (`*.r2.cloudflarestorage.com`) **100% aman dan tidak diblokir**.
+
+2. **Solusi Media Proxy Internal (`/api/media/[...path]`)**:
+   - Route `src/app/api/media/[...path]/route.ts` bertindak sebagai reverse proxy streaming internal.
+   - Mengambil file langsung dari Cloudflare R2 via SDK `@aws-sdk/client-s3` (`GetObjectCommand` pada `*.r2.cloudflarestorage.com`), lalu men-stream data ke klien dengan header `Cache-Control: public, max-age=31536000, immutable`, `Content-Disposition: inline`, dan MIME type yang sesuai.
+   - Jika file tidak ada di R2, otomatis fallback membaca storage lokal `public/uploads/...`.
+   - Menghilangkan dependensi domain `*.r2.dev`, bebas blokir ISP Indonesia, dan mencegah error CORS saat download bukti transfer.
+
+3. **Helper Normalisasi (`src/lib/media.ts`)**:
+   - Fungsi `normalizeMediaUrl(url)`: Mengubah URL lama `https://pub-*.r2.dev/{key}` menjadi `/api/media/{key}` secara otomatis.
+   - Diimpor aman di Client Component maupun Server Component tanpa menarik dependency Node.js AWS SDK.
+   - Digunakan di `manager-bookings-client.tsx`, `booking-payment-client.tsx`, dan `booking/status/page.tsx`.
+
+---
+
+## 18. Alur Penolakan Bukti Transfer & Catatan Khusus Tamu
+
+1. **Kolom Database (`prisma/schema.prisma`)**:
+   - `notes String? @db.Text`: Menyimpan catatan / permintaan khusus tamu yang diisi saat checkout (misal: request extra bed dipasang, waktu kedatangan, dll).
+   - `rejectionReason String? @db.Text`: Menyimpan alasan penolakan bukti transfer / pembatalan yang diinput oleh manajer/admin.
+
+2. **Dashboard Reservasi Manajer (`/dashboard/bookings`)**:
+   - Tabel menampilkan daftar add-on (nama item & pcs) di kolom Villa, serta catatan tamu di kolom Tamu.
+   - Tombol **"Tolak Bukti"** membuka modal interaktif dengan opsi cepat (nominal kurang, foto buram, rekening salah, expired) dan textarea alasan kustom.
+   - Saat bukti ditolak, API `PUT /api/bookings/[id]` mengubah status menjadi `CANCELLED` dan menyimpan `rejectionReason`.
+
+3. **Halaman Publik Tamu (`/booking/[code]` & `/booking/status`)**:
+   - Jika pesanan berstatus `CANCELLED`, tampil banner penolakan berwarna merah dengan menampilkan teks alasan dari pengelola secara transparan.
+   - Tamu disediakan formulir dropzone khusus untuk mengunggah ulang bukti pembayaran yang benar.
+   - Saat bukti baru diunggah (`POST /api/upload/payment-proof`), sistem otomatis mereset status kembali menjadi `PENDING` dan menghapus `rejectionReason` agar manajer dapat memverifikasi ulang.
+
+---
+
+## 19. Modul Kustomisasi Logo Global & Sinkronisasi End-to-End
+
+1. **Konfigurasi Database & Storage**:
+   - Parameter kunci: `site_logo` (type: `string`) di model `site_configs`.
+   - File default monogram logo: `public/logo.png` & `public/logo.svg` (resolusi tinggi dengan alpha transparency).
+   - Pengunggahan gambar logo melalui `/api/upload/cms-image` mendukung otorisasi role `ADMIN`, `cms:update`, serta `settings:update`, dengan optimalisasi format WebP / SVG vector preservation ke Cloudflare R2 atau storage lokal `public/uploads/branding`.
+
+2. **Pengelolaan di Dashboard**:
+   - **Pengaturan Situs (`/dashboard/settings`)**: Sub-kategori *Identitas & Brand* dilengkapi input teks URL, dropzone unggah file logo instan, pratinjau ganda (*dual preview*: background terang untuk invoice dan background gelap untuk navbar/hero), serta tombol reset bawaan `/logo.png` atau hapus logo.
+   - **Hero & Desain CMS (`/dashboard/cms/hero`)**: Tab *Desain & Tipografi* menyediakan kartu kustomisasi logo yang terhubung langsung dengan `HERO_CONFIG_KEYS`, mempermudah tim Marketing memperbarui logo brand tanpa perlu berpindah menu.
+
+3. **Titik Tampil Logo di Seluruh Aplikasi**:
+   - **Beranda (Index)**: Komponen `Hero` (`src/components/public/hero.tsx`) menampilkan floating badge logo beraksen kaca (*glassmorphism*) tepat di atas tagline.
+   - **Navbar Publik (`src/components/public/navbar.tsx`)**: Menampilkan logo responsif berdampingan dengan nama brand pada desktop navbar dan drawer navigasi mobile, tersinkron dari layout server.
+   - **Footer Publik (`src/components/public/footer.tsx`)**: Menampilkan logo pada kolom identitas brand di sisi kiri bawah.
+   - **Halaman Login & Register (`/login`, `/register`, `/auth/login`, `/auth/register`)**: Menampilkan logo di header mobile dan banner sambutan desktop sebelah kanan bersama video ambience.
+   - **Sidebar & Header Dashboard (`src/components/dashboard/sidebar.tsx` & `header.tsx`)**: Menampilkan logo di header navigasi dashboard dan mobile top bar.
+   - **Dokumen Resmi Invoice & Voucher PDF (`src/lib/booking-pdf.ts`)**: Fungsi `buildBookingPDFDocument` dan `downloadBookingPDF` mengonversi gambar logo ke format Data URI dan mencetaknya di pojok kiri atas banner invoice A4.
+   - **Notifikasi Email Tamu (`src/lib/email/resend.ts`)**: Menyematkan logo brand pada header email konfirmasi HTML dan melampirkan berkas PDF invoice berlogo.
+   - **Ekspor Laporan Keuangan (`src/lib/export-pdf.ts`)**: Menampilkan logo pada header dokumen laporan transaksi A4 landscape.---
+
+## 20. Arsitektur Granular RBAC & Matriks Hak Akses Terpadu (`/dashboard/users`)
+
+1. **Struktur Matriks & 35 Hak Akses Granular (`src/lib/rbac.ts`)**:
+   - Sistem RBAC dipecah menjadi 8 domain modul fitur nyata yang mencakup seluruh fungsionalitas aplikasi:
+     1. **Unit Villa & Fasilitas (`villas`)**: `villa:read`, `villa:create`, `villa:update`, `villa:status`, `villa:pricing`, `villa:addon`, `villa:delete` (7 izin).
+     2. **Reservasi & Transaksi Tamu (`bookings`)**: `booking:read`, `booking:create`, `booking:update`, `booking:assign`, `booking:export`, `booking:delete` (6 izin).
+     3. **Konten & Promosi CMS (`cms`)**: `cms:hero`, `cms:about`, `cms:articles`, `cms:popups`, `cms:testimonials`, `cms:promos`, `cms:read`, `cms:update` (8 izin).
+     4. **Housekeeping & Maintenance (`maintenance`)**: `maintenance:read`, `maintenance:create`, `maintenance:update` (3 izin).
+     5. **Laporan & Analitik Keuangan (`reports`)**: `reports:view`, `reports:export` (2 izin).
+     6. **Pengguna & Tim (`users`)**: `user:read`, `user:create`, `user:update`, `user:status`, `user:delete` (5 izin).
+     7. **Pengaturan Sistem & Rekening (`settings`)**: `settings:read`, `settings:update`, `settings:payment` (3 izin).
+     8. **Log Audit & Keamanan (`activity`)**: `activity:view` (1 izin).
+   - Total keseluruhan: **35 izin granular**.
+
+2. **Hierarchical Inheritance & Bypass Proteksi (`hasUserPermission`)**:
+   - Pengguna dengan `role === "ADMIN"` secara otomatis memiliki izin bypass ke seluruh 35 modul.
+   - Aturan inheritance hirarkis menjamin backwards compatibility:
+     - `cms:read` / `cms:update` mewarisi akses ke seluruh sub-menu CMS (`hero`, `about`, `articles`, `popups`, `testimonials`, `promos`).
+     - `settings:update` mewarisi `settings:payment` (kelola rekening transfer) dan `settings:read`.
+     - `user:update` mewarisi `user:status` (aktivasi/deaktivasi akun).
+     - `booking:update` mewarisi `booking:export`.
+     - `reports:view` mewarisi `reports:export`.
+     - `villa:update` mewarisi `villa:pricing` dan `villa:addon`.
+
+3. **Antarmuka Pemilihan RBAC Modern (`src/components/dashboard/users/user-form-modal.tsx`)**:
+   - **Preset Cepat 1-Klik**: Tombol chip instan untuk menerapkan konfigurasi default peran (`ADMIN` [35 izin], `MANAJER` [20 izin], `MARKETING` [11 izin], `MAINTENANCE` [5 izin], `GUEST` [3 izin]) dengan status aktif visual.
+   - **Pencarian Real-Time**: Input filter langsung untuk mencari izin berdasarkan nama label, kode izin monospaced (misal `cms:promos`, `villa:pricing`), atau teks deskripsi.
+   - **Grup Modul Visual Berwarna**: Setiap modul dilengkapi ikon Lucide tematik (`Building2`, `CalendarDays`, `Palette`, `Wrench`, `FileText`, `Users`, `Settings`, `Activity`), badge warna, statistik keterpilihan (`X / Y`), progress bar persentase, dan tombol "Pilih Semua / Lepas Semua" per grup.
+   - **Kartu Izin Interaktif**: Disertai label, kode teknis monospaced badge, deskripsi tugas, dan checkbox elegan.
+   - **Banner Khusus Superuser**: Peringatan informatif saat mengedit atau memilih peran `ADMIN` bahwa akun memiliki hak bypass penuh.
+   - **Keamanan Akun Sendiri**: Proteksi preventif agar pengguna tidak dapat menurunkan peran admin sendiri atau menonaktifkan akun sendiri.
+
+---
+
+## 21. Portal Khusus Tamu (Guest Portal), Checkout Dinamis & Penonaktifan QRIS
+
+1. **Portal Khusus Tamu (`src/components/dashboard/roles/guest-dashboard.tsx`)**:
+   - Menjadi tampilan utama di `/dashboard` saat pengguna login dengan `role: GUEST`.
+   - **Hero Card Sambutan**: Menampilkan nama tamu, avatar inisial, badge "Tamu Terdaftar", dan ringkasan metrik (Pesanan Berjalan, Total Malam Menginap, Riwayat Selesai, dan Status Akun Aktif).
+   - **Tab 1: Pesanan Berjalan (`active`)**: Memantau pesanan aktif (`PENDING`, `CONFIRMED`, `CHECKED_IN`), tombol salin kode booking, rincian add-on, unduh Voucher & Invoice PDF berlogo (`downloadBookingPDF`), dan tautan WhatsApp concierge otomatis.
+   - **Tab 2: Riwayat Reservasi (`history`)**: Menampilkan pesanan `COMPLETED` dan `CANCELLED`, kotak penjelasan alasan penolakan/pembatalan (`rejectionReason`), dan tombol pesan kembali ke `/villas/[slug]`.
+   - **Tab 3: Pengaturan Akun (`profile`)**: Formulir ubah nama lengkap, verifikasi kata sandi lama untuk mengganti password baru, informasi keanggotaan, dan tombol keluar (sign out).
+
+2. **Dinamisme Checkout `/booking` & Checkbox Akun Otomatis**:
+   - Menghapus string hardcoded "Singgahsana": label pendaftaran akun diubah menjadi `"Buat akun {siteName} sekaligus"` dan nama manajemen transfer diubah menjadi `"BCA / Mandiri / BRI ({siteName} Management)"`.
+   - **Default Checkbox**: Jika tamu belum login (`!currentUser`), checkbox pendaftaran akun diinisialisasi aktif (`createAccount = !currentUser`) sehingga kolom input kata sandi langsung tampil. Jika tamu sudah login, opsi ini otomatis tersembunyi.
+
+3. **Penonaktifan & Penghapusan QRIS**:
+   - Seluruh alur pembayaran difokuskan secara eksklusif ke **Transfer Bank Manual Resmi** (BCA, Mandiri, BRI, dll) yang tersimpan di `site_configs`.
+   - Opsi radio QRIS pada checkout dan tampilan QR dummy pada `/booking/[code]` dihapus. Default `paymentMethod` di API `/api/bookings` diubah menjadi `"BANK_TRANSFER"`.
+
+4. **Navigasi Footer Publik (`src/components/public/footer.tsx`)**:
+   - Kolom *Link* pada footer utama ditambahkan tautan **Cek Status Booking** (`/booking/status`), memudahkan seluruh tamu melacak pesanan mereka kapan saja dari halaman mana pun.
+
+5. **Proteksi Akses & Isolasi RBAC**:
+   - Peran `GUEST` dibebaskan dari izin staf di `rbac.ts` (`rolePermissions.GUEST = []`).
+   - Route operasional staf `/dashboard/bookings` dan `/dashboard/villas` secara otomatis me-redirect peran `GUEST` kembali ke portal pribadi `/dashboard`.
+
+---
+
+## 20. Arsitektur Granular RBAC & Matriks Hak Akses Terpadu (`/dashboard/users`)
+
+1. **Struktur Matriks & 35 Hak Akses Granular (`src/lib/rbac.ts`)**:
+   - Sistem RBAC dipecah menjadi 8 domain modul fitur nyata yang mencakup seluruh fungsionalitas aplikasi:
+     1. **Unit Villa & Fasilitas (`villas`)**: `villa:read`, `villa:create`, `villa:update`, `villa:status`, `villa:pricing`, `villa:addon`, `villa:delete` (7 izin).
+     2. **Reservasi & Transaksi Tamu (`bookings`)**: `booking:read`, `booking:create`, `booking:update`, `booking:assign`, `booking:export`, `booking:delete` (6 izin).
+     3. **Konten & Promosi CMS (`cms`)**: `cms:hero`, `cms:about`, `cms:articles`, `cms:popups`, `cms:testimonials`, `cms:promos`, `cms:read`, `cms:update` (8 izin).
+     4. **Housekeeping & Maintenance (`maintenance`)**: `maintenance:read`, `maintenance:create`, `maintenance:update` (3 izin).
+     5. **Laporan & Analitik Keuangan (`reports`)**: `reports:view`, `reports:export` (2 izin).
+     6. **Pengguna & Tim (`users`)**: `user:read`, `user:create`, `user:update`, `user:status`, `user:delete` (5 izin).
+     7. **Pengaturan Sistem & Rekening (`settings`)**: `settings:read`, `settings:update`, `settings:payment` (3 izin).
+     8. **Log Audit & Keamanan (`activity`)**: `activity:view` (1 izin).
+   - Total keseluruhan: **35 izin granular**.
+
+2. **Hierarchical Inheritance & Bypass Proteksi (`hasUserPermission`)**:
+   - Pengguna dengan `role === "ADMIN"` secara otomatis memiliki izin bypass ke seluruh 35 modul.
+   - Aturan inheritance hirarkis menjamin backwards compatibility:
+     - `cms:read` / `cms:update` mewarisi akses ke seluruh sub-menu CMS (`hero`, `about`, `articles`, `popups`, `testimonials`, `promos`).
+     - `settings:update` mewarisi `settings:payment` (kelola rekening transfer) dan `settings:read`.
+     - `user:update` mewarisi `user:status` (aktivasi/deaktivasi akun).
+     - `booking:update` mewarisi `booking:export`.
+     - `reports:view` mewarisi `reports:export`.
+     - `villa:update` mewarisi `villa:pricing` dan `villa:addon`.
+
+3. **Antarmuka Pemilihan RBAC Modern (`src/components/dashboard/users/user-form-modal.tsx`)**:
+   - **Preset Cepat 1-Klik**: Tombol chip instan untuk menerapkan konfigurasi default peran (`ADMIN` [35 izin], `MANAJER` [20 izin], `MARKETING` [11 izin], `MAINTENANCE` [5 izin], `GUEST` [3 izin]) dengan status aktif visual.
+   - **Pencarian Real-Time**: Input filter langsung untuk mencari izin berdasarkan nama label, kode izin monospaced (misal `cms:promos`, `villa:pricing`), atau teks deskripsi.
+   - **Grup Modul Visual Berwarna**: Setiap modul dilengkapi ikon Lucide tematik (`Building2`, `CalendarDays`, `Palette`, `Wrench`, `FileText`, `Users`, `Settings`, `Activity`), badge warna, statistik keterpilihan (`X / Y`), progress bar persentase, dan tombol "Pilih Semua / Lepas Semua" per grup.
+   - **Kartu Izin Interaktif**: Disertai label, kode teknis monospaced badge, deskripsi tugas, dan checkbox elegan.
+   - **Banner Khusus Superuser**: Peringatan informatif saat mengedit atau memilih peran `ADMIN` bahwa akun memiliki hak bypass penuh.
+   - **Keamanan Akun Sendiri**: Proteksi preventif agar pengguna tidak dapat menurunkan peran admin sendiri atau menonaktifkan akun sendiri.
+
+---
+
+## 21. Portal Khusus Tamu (Guest Portal), Checkout Dinamis & Penonaktifan QRIS
+
+1. **Portal Khusus Tamu (`src/components/dashboard/roles/guest-dashboard.tsx`)**:
+   - Menjadi tampilan utama di `/dashboard` saat pengguna login dengan `role: GUEST`.
+   - **Hero Card Sambutan**: Menampilkan nama tamu, avatar inisial, badge "Tamu Terdaftar", dan ringkasan metrik (Pesanan Berjalan, Total Malam Menginap, Riwayat Selesai, dan Status Akun Aktif).
+   - **Tab 1: Pesanan Berjalan (`active`)**: Memantau pesanan aktif (`PENDING`, `CONFIRMED`, `CHECKED_IN`), tombol salin kode booking, rincian add-on, unduh Voucher & Invoice PDF berlogo (`downloadBookingPDF`), dan tautan WhatsApp concierge otomatis.
+   - **Tab 2: Riwayat Reservasi (`history`)**: Menampilkan pesanan `COMPLETED` dan `CANCELLED`, kotak penjelasan alasan penolakan/pembatalan (`rejectionReason`), dan tombol pesan kembali ke `/villas/[slug]`.
+   - **Tab 3: Pengaturan Akun (`profile`)**: Formulir ubah nama lengkap, verifikasi kata sandi lama untuk mengganti password baru, informasi keanggotaan, dan tombol keluar (sign out).
+
+2. **Dinamisme Checkout `/booking` & Checkbox Akun Otomatis**:
+   - Menghapus string hardcoded "Singgahsana": label pendaftaran akun diubah menjadi `"Buat akun {siteName} sekaligus"` dan nama manajemen transfer diubah menjadi `"BCA / Mandiri / BRI ({siteName} Management)"`.
+   - **Default Checkbox**: Jika tamu belum login (`!currentUser`), checkbox pendaftaran akun diinisialisasi aktif (`createAccount = !currentUser`) sehingga kolom input kata sandi langsung tampil. Jika tamu sudah login, opsi ini otomatis tersembunyi.
+
+3. **Penonaktifan & Penghapusan QRIS**:
+   - Seluruh alur pembayaran difokuskan secara eksklusif ke **Transfer Bank Manual Resmi** (BCA, Mandiri, BRI, dll) yang tersimpan di `site_configs`.
+   - Opsi radio QRIS pada checkout dan tampilan QR dummy pada `/booking/[code]` dihapus. Default `paymentMethod` di API `/api/bookings` diubah menjadi `"BANK_TRANSFER"`.
+
+4. **Navigasi Footer Publik (`src/components/public/footer.tsx`)**:
+   - Kolom *Link* pada footer utama ditambahkan tautan **Cek Status Booking** (`/booking/status`), memudahkan seluruh tamu melacak pesanan mereka kapan saja dari halaman mana pun.
+
+5. **Proteksi Akses & Isolasi RBAC**:
+   - Peran `GUEST` dibebaskan dari izin staf di `rbac.ts` (`rolePermissions.GUEST = []`).
+   - Route operasional staf `/dashboard/bookings` dan `/dashboard/villas` secara otomatis me-redirect peran `GUEST` kembali ke portal pribadi `/dashboard`.
 

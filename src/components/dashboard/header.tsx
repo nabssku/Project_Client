@@ -12,15 +12,22 @@ interface HeaderProps {
     avatar?: string | null;
   };
   siteName?: string;
+  siteLogo?: string | null;
   onMenuToggle?: () => void;
 }
 
-export function DashboardHeader({ user, siteName = "Singgahsana", onMenuToggle }: HeaderProps) {
+export function DashboardHeader({
+  user,
+  siteName = "Singgahsana",
+  siteLogo,
+  onMenuToggle,
+}: HeaderProps) {
   const roleLabels: Record<string, string> = {
     ADMIN: "Administrator",
     MANAJER: "Manajer Operasional",
     MARKETING: "Marketing",
     MAINTENANCE: "Housekeeping / Maintenance",
+    GUEST: "Tamu / Pelanggan",
   };
 
   return (
@@ -36,10 +43,17 @@ export function DashboardHeader({ user, siteName = "Singgahsana", onMenuToggle }
           </button>
         )}
         <div className="flex items-center gap-2.5">
-          <span className="text-sm sm:text-base font-bold font-display text-[#1a1a2e] tracking-tight">
+          {siteLogo ? (
+            <img
+              src={siteLogo}
+              alt={siteName}
+              className="lg:hidden h-6 w-auto max-w-[80px] object-contain"
+            />
+          ) : null}
+          <span className="text-sm sm:text-base font-bold font-display text-primary tracking-tight">
             Dashboard
           </span>
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-[#C8A44E]/10 text-[#9c7827] border border-[#C8A44E]/30">
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-accent/10 text-accent border border-accent/30">
             {roleLabels[user.role] || user.role}
           </span>
         </div>
@@ -56,11 +70,11 @@ export function DashboardHeader({ user, siteName = "Singgahsana", onMenuToggle }
         </Link>
 
         <div className="flex items-center gap-2 pl-2 sm:border-l border-[#e8e6df]">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#1a1a2e] text-[#C8A44E] font-bold text-xs">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-accent font-bold text-xs">
             {user.name.charAt(0)}
           </div>
           <div className="hidden md:block text-left">
-            <p className="text-xs font-bold text-[#1a1a2e] leading-tight truncate max-w-[120px]">
+            <p className="text-xs font-bold text-primary leading-tight truncate max-w-[120px]">
               {user.name}
             </p>
             <p className="text-[10px] text-slate-500 capitalize">{user.role.toLowerCase()}</p>

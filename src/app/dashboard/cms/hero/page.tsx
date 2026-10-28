@@ -5,6 +5,7 @@ import { HeroClient } from "@/components/dashboard/cms/hero-client";
 export const instant = false;
 
 const HERO_CONFIG_KEYS = [
+  "site_logo",
   "hero_title",
   "hero_title_italic",
   "hero_tagline",
@@ -24,6 +25,7 @@ const HERO_CONFIG_KEYS = [
 ];
 
 const DEFAULT_CONFIGS: Record<string, string> = {
+  site_logo: "/logo.png",
   hero_title: "Kemewahan Bertemu Ketenangan",
   hero_title_italic: "Suaka Eksklusif Anda",
   hero_tagline: "Hai, Hallo Tatangga",

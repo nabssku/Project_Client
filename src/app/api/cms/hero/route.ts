@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/auth-guard";
 
 const HERO_CONFIG_KEYS = [
+  "site_logo",
   "hero_title",
   "hero_title_italic",
   "hero_tagline",
@@ -23,6 +24,7 @@ const HERO_CONFIG_KEYS = [
 ];
 
 const DEFAULT_CONFIGS: Record<string, string> = {
+  site_logo: "/logo.png",
   hero_title: "Kemewahan Bertemu Ketenangan",
   hero_title_italic: "Suaka Eksklusif Anda",
   hero_tagline: "Hai, Hallo Tatangga",
@@ -114,6 +116,8 @@ export async function PUT(request: Request) {
       revalidatePath("/artikel", "layout");
       revalidatePath("/promo", "layout");
       revalidatePath("/booking", "layout");
+      revalidatePath("/about", "layout");
+      revalidatePath("/dashboard", "layout");
       revalidatePath("/dashboard/cms/hero", "page");
       revalidatePath("/dashboard/settings");
     } catch (e) {

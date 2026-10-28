@@ -8,9 +8,15 @@ import { Menu, X, Phone, Search, User } from "lucide-react";
 
 interface NavbarProps {
   contactPhone?: string;
+  siteName?: string;
+  siteLogo?: string | null;
 }
 
-export function Navbar({ contactPhone = "628111141052" }: NavbarProps) {
+export function Navbar({
+  contactPhone = "628111141052",
+  siteName = "Singgahsana",
+  siteLogo,
+}: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
@@ -46,13 +52,20 @@ export function Navbar({ contactPhone = "628111141052" }: NavbarProps) {
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">
           {/* Logo */}
-          <Link href="/" className="flex items-center">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            {siteLogo ? (
+              <img
+                src={siteLogo}
+                alt={siteName}
+                className="h-8 md:h-9 w-auto max-w-[140px] md:max-w-[180px] object-contain transition-transform duration-300 group-hover:scale-105"
+              />
+            ) : null}
             <span
               className={`text-xl font-bold font-display tracking-tight transition-colors duration-300 ${
                 isDarkBackground ? "text-white" : "text-primary"
               }`}
             >
-              Name
+              {siteName}
             </span>
           </Link>
 
@@ -73,14 +86,6 @@ export function Navbar({ contactPhone = "628111141052" }: NavbarProps) {
               }`}
             >
               Villa
-            </Link>
-            <Link
-              href="/promo"
-              className={`link-underline text-sm font-medium tracking-wide transition-colors duration-300 ${
-                isDarkBackground ? "text-white/90 hover:text-white" : "text-primary-dark/80 hover:text-primary-dark"
-              }`}
-            >
-              Promo
             </Link>
             <Link
               href="/artikel"
@@ -178,6 +183,20 @@ export function Navbar({ contactPhone = "628111141052" }: NavbarProps) {
             : "bg-white border-primary-dark/10 shadow-lg"
         }`}>
           <div className="max-w-7xl mx-auto px-6 py-6 space-y-4">
+            {/* Mobile Brand Header */}
+            <div className={`flex items-center gap-2.5 pb-4 border-b ${isDarkBackground ? "border-white/10" : "border-gray-200"}`}>
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={siteName}
+                  className="h-8 w-auto max-w-[120px] object-contain"
+                />
+              ) : null}
+              <span className={`text-lg font-bold font-display ${isDarkBackground ? "text-white" : "text-primary"}`}>
+                {siteName}
+              </span>
+            </div>
+
             <Link
               href="/"
               className={`block py-2 text-sm font-medium ${
@@ -195,15 +214,6 @@ export function Navbar({ contactPhone = "628111141052" }: NavbarProps) {
               onClick={() => setIsOpen(false)}
             >
               Villa
-            </Link>
-            <Link
-              href="/promo"
-              className={`block py-2 text-sm font-medium ${
-                isDarkBackground ? "text-white/90 hover:text-white" : "text-primary-dark/80 hover:text-primary-dark"
-              }`}
-              onClick={() => setIsOpen(false)}
-            >
-              Promo
             </Link>
             <Link
               href="/artikel"

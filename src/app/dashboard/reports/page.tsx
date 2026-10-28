@@ -11,7 +11,7 @@ export default async function DashboardReportsPage() {
   const currentUser = await requirePagePermission("reports:view");
 
   // Ambil semua data reservasi dengan relasi villa
-  const [bookings, villas, siteConfig] = await Promise.all([
+  const [bookings, villas, siteConfigsList] = await Promise.all([
     prisma.bookings.findMany({
       orderBy: { createdAt: "desc" },
       include: {
@@ -32,12 +32,17 @@ export default async function DashboardReportsPage() {
       },
       orderBy: { name: "asc" },
     }),
-    prisma.site_configs.findUnique({
-      where: { key: "site_name" },
+    prisma.site_configs.findMany({
+      where: { key: { in: ["site_name", "site_logo"] } },
     }),
   ]);
 
-  const siteName = siteConfig?.value || "Singgahsana";
+  let siteName = "Singgahsana";
+  let siteLogo: string | null = null;
+  siteConfigsList?.forEach((c) => {
+    if (c.key === "site_name" && c.value) siteName = c.value;
+    if (c.key === "site_logo" && c.value) siteLogo = c.value;
+  });
 
   // Serialisasi data untuk Client Component
   const serializedBookings = bookings.map((b) => ({
@@ -68,6 +73,7 @@ export default async function DashboardReportsPage() {
       initialBookings={serializedBookings}
       villas={villas}
       siteName={siteName}
+      siteLogo={siteLogo}
       currentUser={{
         id: currentUser.id,
         name: currentUser.name,

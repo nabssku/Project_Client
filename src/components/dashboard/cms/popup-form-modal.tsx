@@ -166,11 +166,11 @@ export function PopupFormModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8e6df] bg-[#f8f7f4]">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-lg bg-[#C8A44E]/15 text-[#C8A44E]">
+            <span className="p-2 rounded-lg bg-accent/15 text-accent">
               <Megaphone className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-[#1a1a2e]">
+              <h2 className="text-lg font-bold text-primary">
                 {isEditing ? "Edit Pop-up Pengumuman / Promo" : "Buat Pop-up Pengumuman Baru"}
               </h2>
               <p className="text-xs text-gray-500">
@@ -199,7 +199,7 @@ export function PopupFormModal({
             {/* Form Inputs (Left) */}
             <div className="lg:col-span-7 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                   Judul Pop-up <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -207,13 +207,13 @@ export function PopupFormModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Contoh: Diskon Menginap Spesial Akhir Pekan 25%!"
-                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                   Teks Badge (Pita Atas)
                 </label>
                 <input
@@ -221,7 +221,7 @@ export function PopupFormModal({
                   value={badge}
                   onChange={(e) => setBadge(e.target.value)}
                   placeholder="PROMO TERBATAS / PENGUMUMAN"
-                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                 />
               </div>
 
@@ -229,7 +229,7 @@ export function PopupFormModal({
               <div className="rounded-xl border border-[#e8e6df] p-4 bg-[#fcfbf9] space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div>
-                    <label className="text-xs font-bold text-[#1a1a2e] uppercase tracking-wider block">
+                    <label className="text-xs font-bold text-primary uppercase tracking-wider block">
                       Gambar Banner Pop-up
                     </label>
                     <span className="text-[11px] text-gray-500">
@@ -244,7 +244,7 @@ export function PopupFormModal({
                       onClick={() => setImageMode("upload")}
                       className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
                         imageMode === "upload"
-                          ? "bg-[#1a1a2e] text-white shadow-2xs"
+                          ? "bg-primary text-white shadow-2xs"
                           : "text-gray-600 hover:text-gray-900"
                       }`}
                     >
@@ -256,7 +256,7 @@ export function PopupFormModal({
                       onClick={() => setImageMode("url")}
                       className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer flex items-center gap-1.5 ${
                         imageMode === "url"
-                          ? "bg-[#1a1a2e] text-white shadow-2xs"
+                          ? "bg-primary text-white shadow-2xs"
                           : "text-gray-600 hover:text-gray-900"
                       }`}
                     >
@@ -281,11 +281,11 @@ export function PopupFormModal({
                     />
                     <div
                       onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-[#e8e6df] hover:border-[#C8A44E] bg-white rounded-xl p-5 text-center cursor-pointer transition-colors group"
+                      className="border-2 border-dashed border-[#e8e6df] hover:border-accent bg-white rounded-xl p-5 text-center cursor-pointer transition-colors group"
                     >
                       {uploadingImage ? (
                         <div className="flex flex-col items-center justify-center py-2">
-                          <Loader2 className="w-6 h-6 text-[#C8A44E] animate-spin mb-2" />
+                          <Loader2 className="w-6 h-6 text-accent animate-spin mb-2" />
                           <span className="text-xs font-semibold text-gray-700">
                             Mengompresi &amp; Mengunggah Banner...
                           </span>
@@ -295,7 +295,7 @@ export function PopupFormModal({
                         </div>
                       ) : (
                         <div className="flex flex-col items-center justify-center">
-                          <div className="w-10 h-10 rounded-full bg-amber-50 group-hover:bg-amber-100/70 text-[#C8A44E] flex items-center justify-center mb-2 transition-colors">
+                          <div className="w-10 h-10 rounded-full bg-amber-50 group-hover:bg-amber-100/70 text-accent flex items-center justify-center mb-2 transition-colors">
                             <Upload className="w-5 h-5" />
                           </div>
                           <span className="text-xs font-semibold text-gray-800">
@@ -318,7 +318,7 @@ export function PopupFormModal({
                       value={imageUrl}
                       onChange={(e) => setImageUrl(e.target.value)}
                       placeholder="https://images.unsplash.com/photo-..."
-                      className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
                 )}
@@ -337,7 +337,7 @@ export function PopupFormModal({
                         />
                       </div>
                       <div className="overflow-hidden">
-                        <span className="text-xs font-semibold text-[#1a1a2e] block truncate">
+                        <span className="text-xs font-semibold text-primary block truncate">
                           Banner Pop-up Terpasang
                         </span>
                         <span className="text-[11px] font-mono text-gray-400 truncate block max-w-sm">
@@ -373,7 +373,7 @@ export function PopupFormModal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                   Subjudul / Pesan Lengkap
                 </label>
                 <textarea
@@ -381,13 +381,13 @@ export function PopupFormModal({
                   value={subtitle}
                   onChange={(e) => setSubtitle(e.target.value)}
                   placeholder="Nikmati liburan mewah dengan harga spesial. Gunakan kode promo saat reservasi..."
-                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                  className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Label Tombol Aksi (CTA)
                   </label>
                   <input
@@ -395,12 +395,12 @@ export function PopupFormModal({
                     value={actionLabel}
                     onChange={(e) => setActionLabel(e.target.value)}
                     placeholder="Klaim Sekarang"
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Tautan / Link Tujuan
                   </label>
                   <input
@@ -408,14 +408,14 @@ export function PopupFormModal({
                     value={actionUrl}
                     onChange={(e) => setActionUrl(e.target.value)}
                     placeholder="/villas atau /promo"
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Tanggal Mulai (Opsional)
                   </label>
                   <input
@@ -427,7 +427,7 @@ export function PopupFormModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Tanggal Berakhir (Opsional)
                   </label>
                   <input
@@ -441,7 +441,7 @@ export function PopupFormModal({
 
               <div className="p-3.5 rounded-xl border border-[#e8e6df] bg-[#f8f7f4] flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-bold text-[#1a1a2e]">Status Aktif Pop-up</div>
+                  <div className="text-xs font-bold text-primary">Status Aktif Pop-up</div>
                   <div className="text-[11px] text-gray-500">
                     Jika aktif, pop-up akan tampil ke pengunjung website publik.
                   </div>
@@ -460,8 +460,8 @@ export function PopupFormModal({
 
             {/* Live Interactive Preview (Right) */}
             <div className="lg:col-span-5 space-y-3">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider">
-                <Eye className="w-4 h-4 text-[#C8A44E]" />
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase tracking-wider">
+                <Eye className="w-4 h-4 text-accent" />
                 Pratinjau Tampilan Pop-up
               </div>
 
@@ -484,14 +484,14 @@ export function PopupFormModal({
                         onError={(e) => ((e.target as HTMLElement).style.display = "none")}
                       />
                       {badge && (
-                        <span className="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#C8A44E] text-white shadow-xs">
+                        <span className="absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent text-white shadow-xs">
                           {badge}
                         </span>
                       )}
                     </div>
                   ) : badge ? (
                     <div className="pt-4 pb-1">
-                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#C8A44E]/15 text-[#C8A44E]">
+                      <span className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent/15 text-accent">
                         {badge}
                       </span>
                     </div>
@@ -499,7 +499,7 @@ export function PopupFormModal({
 
                   {/* Copy */}
                   <div className="p-4 space-y-2">
-                    <h3 className="font-bold text-base text-[#1a1a2e] leading-snug">
+                    <h3 className="font-bold text-base text-primary leading-snug">
                       {title || "Judul Pop-up Pengumuman"}
                     </h3>
                     <p className="text-xs text-gray-600 leading-relaxed">
@@ -512,7 +512,7 @@ export function PopupFormModal({
                       <div className="pt-2">
                         <button
                           type="button"
-                          className="w-full py-2.5 rounded-xl bg-[#1a1a2e] text-white text-xs font-semibold hover:bg-black transition-colors"
+                          className="w-full py-2.5 rounded-xl bg-primary text-white text-xs font-semibold hover:bg-black transition-colors"
                         >
                           {actionLabel}
                         </button>
@@ -538,7 +538,7 @@ export function PopupFormModal({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#C8A44E] hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-accent hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {saving ? (
                 <>

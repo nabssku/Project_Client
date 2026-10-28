@@ -8,6 +8,7 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 export interface SendBookingEmailOptions {
   booking: BookingPDFData;
   siteName?: string;
+  siteLogo?: string | null;
   appBaseUrl?: string;
   type?: "CONFIRMATION" | "RECEIPT" | "REMINDER";
 }
@@ -18,7 +19,8 @@ export interface SendBookingEmailOptions {
 function buildBookingEmailHtml(
   booking: BookingPDFData,
   siteName: string,
-  appBaseUrl: string
+  appBaseUrl: string,
+  siteLogo?: string | null
 ): string {
   const checkInDate = new Date(booking.checkIn);
   const checkOutDate = new Date(booking.checkOut);
@@ -63,6 +65,11 @@ function buildBookingEmailHtml(
           <!-- Header Banner -->
           <tr>
             <td style="background-color: #1a1a2e; padding: 32px 30px; text-align: center; border-bottom: 3px solid #C8A44E;">
+              ${
+                siteLogo
+                  ? `<div style="margin-bottom: 12px;"><img src="${siteLogo.startsWith("http") ? siteLogo : `${appBaseUrl.replace(/\/$/, "")}${siteLogo.startsWith("/") ? siteLogo : `/${siteLogo}`}`}" alt="${siteName}" style="max-height: 48px; width: auto; max-width: 160px; object-fit: contain; display: inline-block;" /></div>`
+                  : ""
+              }
               <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700; letter-spacing: 2px;">
                 ${siteName.toUpperCase()}<span style="color: #C8A44E;">.</span>
               </h1>
@@ -139,6 +146,16 @@ function buildBookingEmailHtml(
                     ${nights} Malam • ${booking.guestsCount} Orang Tamu
                   </td>
                 </tr>
+                ${
+                  booking.addons && booking.addons.length > 0
+                    ? `<tr>
+                        <td style="padding: 12px 16px; font-size: 13px; color: #64748b; border-bottom: 1px solid #edf2f7;">Fasilitas Ekstra</td>
+                        <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #1a1a2e; border-bottom: 1px solid #edf2f7;">
+                          ${booking.addons.map((a) => `${a.name} (${a.qty} ${a.unit || "pcs"})`).join("<br/>")}
+                        </td>
+                      </tr>`
+                    : ""
+                }
                 <tr style="background-color: #1a1a2e; color: #ffffff;">
                   <td style="padding: 14px 16px; font-size: 13px; font-weight: 600;">Total Biaya</td>
                   <td style="padding: 14px 16px; font-size: 16px; font-weight: 700; color: #C8A44E; text-align: right;">
@@ -222,12 +239,12 @@ export async function sendBookingConfirmationEmail(
   const { booking, siteName = "Singgahsana", appBaseUrl = process.env.AUTH_URL || "http://localhost:3000" } = options;
 
   try {
-    // 1. Generate PDF Attachment Buffer
-    const pdfBuffer = generateBookingPDFBuffer(booking, siteName);
+    // 1. Generate PDF Attachment Buffer with dynamic brand logo
+    const pdfBuffer = await generateBookingPDFBuffer(booking, siteName, options.siteLogo);
     const pdfFilename = `Voucher-${siteName.toLowerCase().replace(/\s+/g, "-")}-${booking.code}.pdf`;
 
     // 2. Generate HTML Email Body
-    const htmlBody = buildBookingEmailHtml(booking, siteName, appBaseUrl);
+    const htmlBody = buildBookingEmailHtml(booking, siteName, appBaseUrl, options.siteLogo);
 
     // Subject
     const isConfirmed = booking.status === "CONFIRMED" || booking.status === "COMPLETED";

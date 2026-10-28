@@ -40,15 +40,17 @@ export default async function DashboardLayout({
   const effectivePermissions = getUserPermissions(dbUser);
 
   let siteName = "Singgahsana";
+  let siteLogo: string | null = null;
   try {
-    const config = await prisma.site_configs.findUnique({
-      where: { key: "site_name" },
+    const configs = await prisma.site_configs.findMany({
+      where: { key: { in: ["site_name", "site_logo"] } },
     });
-    if (config?.value) {
-      siteName = config.value;
-    }
+    configs.forEach((c) => {
+      if (c.key === "site_name" && c.value) siteName = c.value;
+      if (c.key === "site_logo" && c.value) siteLogo = c.value;
+    });
   } catch (err) {
-    console.error("Failed to load site_name in dashboard:", err);
+    console.error("Failed to load site configs in dashboard:", err);
   }
 
   return (
@@ -60,6 +62,7 @@ export default async function DashboardLayout({
         permissions: effectivePermissions,
       }}
       siteName={siteName}
+      siteLogo={siteLogo}
     >
       {children}
     </DashboardLayoutClient>

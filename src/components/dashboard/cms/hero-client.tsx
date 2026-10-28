@@ -110,8 +110,50 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Logo upload states
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
   const handleChange = (key: string, value: string) => {
     setConfigs((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    setFeedback(null);
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "branding");
+
+    try {
+      const res = await fetch("/api/upload/cms-image", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Gagal mengunggah logo");
+      }
+
+      handleChange("site_logo", data.url);
+      setFeedback({
+        type: "success",
+        message: "Logo berhasil diunggah! Klik 'Simpan Perubahan' di atas untuk mengaktifkannya secara global.",
+      });
+      setTimeout(() => setFeedback(null), 5000);
+    } catch (err: any) {
+      setFeedback({
+        type: "error",
+        message: err.message || "Gagal mengunggah file logo",
+      });
+    } finally {
+      setUploadingLogo(false);
+      if (e.target) e.target.value = "";
+    }
   };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,6 +219,20 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
         throw new Error(data.error || "Gagal menyimpan perubahan");
       }
 
+      // Live dispatch to update FontLoader immediately without full page reload
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("theme-change", {
+            detail: {
+              font_body: configs.font_body,
+              font_display: configs.font_display,
+              primary_color: configs.primary_color,
+              secondary_color: configs.secondary_color,
+            },
+          })
+        );
+      }
+
       setFeedback({
         type: "success",
         message: "Pengaturan visual web & hero berhasil diperbarui!",
@@ -199,10 +255,10 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#e8e6df] pb-5">
         <div>
           <div className="flex items-center gap-2">
-            <span className="p-1.5 rounded-lg bg-[#C8A44E]/10 text-[#C8A44E]">
+            <span className="p-1.5 rounded-lg bg-accent/10 text-accent">
               <Palette className="w-5 h-5" />
             </span>
-            <h1 className="text-2xl font-bold text-[#1a1a2e]">Hero, Branding & Desain Web</h1>
+            <h1 className="text-2xl font-bold text-primary">Hero, Branding & Desain Web</h1>
           </div>
           <p className="text-sm text-gray-500 mt-1">
             Sesuaikan video background, judul, tipografi font Google, dan palet warna beranda.
@@ -217,7 +273,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
             title="Bersihkan cache ISR/PPR di server dan Vercel agar perubahan langsung tampil di publik"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 px-3 py-2 rounded-lg border border-slate-300 bg-slate-100 hover:bg-slate-200 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${purgingCache ? "animate-spin text-[#C8A44E]" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-slate-600 ${purgingCache ? "animate-spin text-accent" : ""}`} />
             <span>{purgingCache ? "Membersihkan Cache..." : "Bersihkan Cache Vercel"}</span>
           </button>
 
@@ -225,7 +281,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
             href="/"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-[#1a1a2e] px-3 py-2 rounded-lg border border-[#e8e6df] bg-white hover:bg-gray-50 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-600 hover:text-primary px-3 py-2 rounded-lg border border-[#e8e6df] bg-white hover:bg-gray-50 transition-colors shadow-xs"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             Lihat Beranda Publik
@@ -235,7 +291,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
             <button
               onClick={handleSubmit}
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#C8A44E] hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-accent hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {saving ? (
                 <>
@@ -281,7 +337,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
               onClick={() => setActiveTab("media")}
               className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all cursor-pointer ${
                 activeTab === "media"
-                  ? "border-[#C8A44E] text-[#1a1a2e]"
+                  ? "border-accent text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -293,7 +349,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
               onClick={() => setActiveTab("design")}
               className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all cursor-pointer ${
                 activeTab === "design"
-                  ? "border-[#C8A44E] text-[#1a1a2e]"
+                  ? "border-accent text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -305,7 +361,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
               onClick={() => setActiveTab("stats")}
               className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-all cursor-pointer ${
                 activeTab === "stats"
-                  ? "border-[#C8A44E] text-[#1a1a2e]"
+                  ? "border-accent text-primary"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
@@ -320,7 +376,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
             {activeTab === "media" && (
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     URL Video YouTube (Background Hero Looping)
                   </label>
                   <input
@@ -329,11 +385,11 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                     onChange={(e) => handleChange("hero_video", e.target.value)}
                     disabled={!canEdit}
                     placeholder="https://www.youtube.com/embed/YOUR_VIDEO_ID"
-                    className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                   <p className="text-xs text-gray-400 mt-1.5">
                     Gunakan tautan embed YouTube seperti{" "}
-                    <code className="text-[#C8A44E] bg-gray-50 px-1.5 py-0.5 rounded font-mono">
+                    <code className="text-accent bg-gray-50 px-1.5 py-0.5 rounded font-mono">
                       https://www.youtube.com/embed/dQw4w9WgXcQ
                     </code>
                     . Video otomatis diputar berulang tanpa suara. Kosongkan jika ingin menggunakan gambar latar cover.
@@ -344,7 +400,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                 <div className="space-y-3.5 p-5 rounded-xl border border-[#e8e6df] bg-[#f8f7f4]/70">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
                     <div>
-                      <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider">
+                      <label className="block text-xs font-semibold text-primary uppercase tracking-wider">
                         Fallback Cover Image (Latar Hero)
                       </label>
                       <p className="text-xs text-gray-500 mt-0.5">
@@ -359,7 +415,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                         onClick={() => setCoverMode("url")}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
                           coverMode === "url"
-                            ? "bg-[#1a1a2e] text-white font-semibold shadow-xs"
+                            ? "bg-primary text-white font-semibold shadow-xs"
                             : "text-gray-500 hover:text-gray-900"
                         }`}
                       >
@@ -371,7 +427,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                         onClick={() => setCoverMode("upload")}
                         className={`flex items-center gap-1 px-3 py-1.5 rounded-md transition-all cursor-pointer ${
                           coverMode === "upload"
-                            ? "bg-[#1a1a2e] text-white font-semibold shadow-xs"
+                            ? "bg-primary text-white font-semibold shadow-xs"
                             : "text-gray-500 hover:text-gray-900"
                         }`}
                       >
@@ -390,7 +446,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                         onChange={(e) => handleChange("hero_image", e.target.value)}
                         disabled={!canEdit}
                         placeholder="https://images.unsplash.com/photo-..."
-                        className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                        className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                       />
                       <p className="text-[11px] text-gray-400">
                         Tempel tautan gambar beresolusi tinggi (misal dari Unsplash atau CDN eksternal).
@@ -414,15 +470,15 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                         onClick={() => canEdit && !uploadingCover && fileInputRef.current?.click()}
                         className={`border-2 border-dashed rounded-xl p-6 text-center transition-all bg-white cursor-pointer ${
                           uploadingCover
-                            ? "border-[#C8A44E] bg-[#C8A44E]/5"
-                            : "border-[#e8e6df] hover:border-[#C8A44E] hover:bg-gray-50"
+                            ? "border-accent bg-accent/5"
+                            : "border-[#e8e6df] hover:border-accent hover:bg-gray-50"
                         }`}
                       >
                         <div className="flex flex-col items-center justify-center gap-2">
                           {uploadingCover ? (
                             <>
-                              <Loader2 className="w-8 h-8 animate-spin text-[#C8A44E]" />
-                              <div className="text-xs font-semibold text-[#1a1a2e]">
+                              <Loader2 className="w-8 h-8 animate-spin text-accent" />
+                              <div className="text-xs font-semibold text-primary">
                                 Mengoptimasi &amp; mengunggah gambar ke cloud...
                               </div>
                               <p className="text-[11px] text-gray-400">
@@ -431,10 +487,10 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                             </>
                           ) : (
                             <>
-                              <div className="p-3 rounded-full bg-[#C8A44E]/10 text-[#C8A44E]">
+                              <div className="p-3 rounded-full bg-accent/10 text-accent">
                                 <UploadCloud className="w-6 h-6" />
                               </div>
-                              <div className="text-xs font-semibold text-[#1a1a2e]">
+                              <div className="text-xs font-semibold text-primary">
                                 Klik untuk memilih gambar dari perangkat Anda
                               </div>
                               <p className="text-[11px] text-gray-400 max-w-sm">
@@ -468,8 +524,8 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                           />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-xs font-bold text-[#1a1a2e] flex items-center gap-1.5">
-                            <ImageIcon className="w-3.5 h-3.5 text-[#C8A44E]" />
+                          <div className="text-xs font-bold text-primary flex items-center gap-1.5">
+                            <ImageIcon className="w-3.5 h-3.5 text-accent" />
                             Gambar Cover Terpasang
                           </div>
                           <p className="text-[11px] text-gray-400 truncate max-w-md font-mono mt-0.5">
@@ -483,7 +539,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                           href={configs.hero_image}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1.5 rounded-lg border border-[#e8e6df] text-gray-600 hover:text-[#1a1a2e] hover:bg-gray-100 transition-colors text-xs inline-flex items-center gap-1 font-medium"
+                          className="px-2.5 py-1.5 rounded-lg border border-[#e8e6df] text-gray-600 hover:text-primary hover:bg-gray-100 transition-colors text-xs inline-flex items-center gap-1 font-medium"
                           title="Buka gambar di tab baru"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -508,7 +564,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Tagline Kecil (Di Atas Judul)
                     </label>
                     <input
@@ -517,12 +573,12 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                       onChange={(e) => handleChange("hero_tagline", e.target.value)}
                       disabled={!canEdit}
                       placeholder="Hai, Hallo Tatangga"
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Judul Utama Baris 1
                     </label>
                     <input
@@ -531,13 +587,13 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                       onChange={(e) => handleChange("hero_title", e.target.value)}
                       disabled={!canEdit}
                       placeholder="Kemewahan Bertemu Ketenangan"
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 font-semibold focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Kata Beraksen Miring Emas (Italic Accent Line 2)
                   </label>
                   <input
@@ -546,7 +602,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                     onChange={(e) => handleChange("hero_title_italic", e.target.value)}
                     disabled={!canEdit}
                     placeholder="Suaka Eksklusif Anda"
-                    className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 italic focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 italic focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                   <p className="text-xs text-gray-400 mt-1.5">
                     Ditampilkan di bawah judul utama dengan gaya serif miring elegan dan aksen warna sekunder emas.
@@ -554,7 +610,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                     Subjudul / Deskripsi Pendukung
                   </label>
                   <textarea
@@ -563,7 +619,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                     onChange={(e) => handleChange("hero_subtitle", e.target.value)}
                     disabled={!canEdit}
                     placeholder="Pengalaman menginap lengkap untuk momen yang lebih berkesan..."
-                    className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                 </div>
               </div>
@@ -572,10 +628,112 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
             {/* TAB 2: Desain & Tipografi */}
             {activeTab === "design" && (
               <div className="space-y-6 animate-in fade-in duration-200">
+                {/* Logo Situs & Brand */}
+                <div className="p-5 rounded-xl bg-white border border-[#e8e6df] shadow-xs space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-primary flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-accent" />
+                        Logo Situs &amp; Identitas Brand
+                      </h3>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Logo ini otomatis sinkron di hero beranda, navbar, halaman login &amp; register, sidebar dashboard, dan invoice PDF resmi.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Dual Preview: Light & Dark */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-4 rounded-xl border border-gray-200 bg-white flex flex-col items-center justify-center min-h-[90px] text-center shadow-2xs">
+                      <span className="text-[10px] font-medium text-gray-400 mb-2">Pratinjau di Background Terang (Invoice / Form)</span>
+                      {configs.site_logo ? (
+                        <img
+                          src={configs.site_logo}
+                          alt="Logo Preview Light"
+                          className="h-10 max-w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">Belum ada logo (menggunakan teks)</span>
+                      )}
+                    </div>
+
+                    <div className="p-4 rounded-xl border border-white/10 bg-[#1a1a2e] flex flex-col items-center justify-center min-h-[90px] text-center shadow-2xs">
+                      <span className="text-[10px] font-medium text-white/50 mb-2">Pratinjau di Background Gelap (Navbar / Hero / Sidebar)</span>
+                      {configs.site_logo ? (
+                        <img
+                          src={configs.site_logo}
+                          alt="Logo Preview Dark"
+                          className="h-10 max-w-full object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-white/40 italic">Belum ada logo (menggunakan teks)</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Upload & Input Controls */}
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <input
+                      type="text"
+                      value={configs.site_logo || ""}
+                      onChange={(e) => handleChange("site_logo", e.target.value)}
+                      disabled={!canEdit}
+                      placeholder="/logo.png atau https://..."
+                      className="flex-1 text-xs px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
+                    />
+
+                    <input
+                      type="file"
+                      ref={logoInputRef}
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      onChange={handleLogoUpload}
+                      className="hidden"
+                    />
+
+                    {canEdit && (
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          disabled={uploadingLogo}
+                          onClick={() => logoInputRef.current?.click()}
+                          className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-accent text-white font-semibold text-xs hover:bg-accent-light transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                        >
+                          {uploadingLogo ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <UploadCloud className="w-3.5 h-3.5" />
+                          )}
+                          <span>{uploadingLogo ? "Mengunggah..." : "Unggah Logo"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleChange("site_logo", "/logo.png")}
+                          title="Kembalikan ke logo bawaan"
+                          className="px-3 py-2.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          Bawaan
+                        </button>
+
+                        {configs.site_logo && (
+                          <button
+                            type="button"
+                            onClick={() => handleChange("site_logo", "")}
+                            title="Hapus logo (gunakan teks saja)"
+                            className="p-2.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Preset Themes */}
                 <div className="p-5 rounded-xl bg-[#f8f7f4] border border-[#e8e6df]">
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1a1a2e] mb-3">
-                    <Sparkles className="w-4 h-4 text-[#C8A44E]" />
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-primary mb-3">
+                    <Sparkles className="w-4 h-4 text-accent" />
                     Palet Warna Tema Instan (Sekali Klik Mengganti Warna Website)
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -585,7 +743,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                         type="button"
                         onClick={() => handleApplyPreset(p)}
                         disabled={!canEdit}
-                        className="p-3 text-left rounded-lg bg-white border border-[#e8e6df] hover:border-[#C8A44E] transition-all cursor-pointer group shadow-2xs hover:shadow-sm"
+                        className="p-3 text-left rounded-lg bg-white border border-[#e8e6df] hover:border-accent transition-all cursor-pointer group shadow-2xs hover:shadow-sm"
                       >
                         <div className="flex items-center gap-2 mb-2">
                           <span
@@ -597,7 +755,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                             style={{ backgroundColor: p.secondary }}
                           />
                         </div>
-                        <p className="text-xs font-medium text-gray-800 line-clamp-1 group-hover:text-[#C8A44E]">
+                        <p className="text-xs font-medium text-gray-800 line-clamp-1 group-hover:text-accent">
                           {p.name}
                         </p>
                       </button>
@@ -608,14 +766,14 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                 {/* Fonts */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Font Judul Website (Display Font)
                     </label>
                     <select
                       value={configs.font_display || "Playfair Display"}
                       onChange={(e) => handleChange("font_display", e.target.value)}
                       disabled={!canEdit}
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     >
                       {DISPLAY_FONTS.map((f) => (
                         <option key={f.name} value={f.name}>
@@ -629,14 +787,14 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Font Isi Website (Body Font)
                     </label>
                     <select
                       value={configs.font_body || "DM Sans"}
                       onChange={(e) => handleChange("font_body", e.target.value)}
                       disabled={!canEdit}
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     >
                       {BODY_FONTS.map((f) => (
                         <option key={f.name} value={f.name}>
@@ -653,7 +811,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                 {/* Colors */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Warna Primer Website (Primary)
                     </label>
                     <div className="flex items-center gap-2.5">
@@ -678,7 +836,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Warna Aksen Emas (Secondary / Accent)
                     </label>
                     <div className="flex items-center gap-2.5">
@@ -703,7 +861,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Gradient Overlay Accent
                     </label>
                     <div className="flex items-center gap-2.5">
@@ -735,7 +893,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
               <div className="space-y-6 animate-in fade-in duration-200">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Counter Properti
                     </label>
                     <input
@@ -744,12 +902,12 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                       onChange={(e) => handleChange("stats_properties", e.target.value)}
                       disabled={!canEdit}
                       placeholder="50+"
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Counter Tamu
                     </label>
                     <input
@@ -758,12 +916,12 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                       onChange={(e) => handleChange("stats_guests", e.target.value)}
                       disabled={!canEdit}
                       placeholder="10K+"
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Counter Rating
                     </label>
                     <input
@@ -772,14 +930,14 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                       onChange={(e) => handleChange("stats_rating", e.target.value)}
                       disabled={!canEdit}
                       placeholder="4.8"
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
                 </div>
 
                 <div className="border-t border-[#e8e6df] pt-6 space-y-5">
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Judul Banner CTA (Bawah Halaman)
                     </label>
                     <input
@@ -788,12 +946,12 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                       onChange={(e) => handleChange("cta_title", e.target.value)}
                       disabled={!canEdit}
                       placeholder="Siap Untuk Liburan?"
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+                    <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                       Subjudul Banner CTA
                     </label>
                     <textarea
@@ -802,7 +960,7 @@ export function HeroClient({ initialConfigs, canEdit }: HeroClientProps) {
                       onChange={(e) => handleChange("cta_subtitle", e.target.value)}
                       disabled={!canEdit}
                       placeholder="Hubungi kami dan dapatkan penawaran terbaik untuk villa impian Anda"
-                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                      className="w-full text-sm px-4 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                     />
                   </div>
                 </div>

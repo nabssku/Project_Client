@@ -159,11 +159,11 @@ export function TestimonialModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8e6df] bg-[#f8f7f4]">
           <div className="flex items-center gap-2.5">
-            <span className="p-2 rounded-lg bg-[#C8A44E]/15 text-[#C8A44E]">
+            <span className="p-2 rounded-lg bg-accent/15 text-accent">
               <MessageSquare className="w-5 h-5" />
             </span>
             <div>
-              <h2 className="text-lg font-bold text-[#1a1a2e]">
+              <h2 className="text-lg font-bold text-primary">
                 {isEditing ? "Edit Testimoni Tamu" : "Tambah Testimoni Baru"}
               </h2>
               <p className="text-xs text-gray-500">
@@ -191,7 +191,7 @@ export function TestimonialModal({
           <div className="p-6 space-y-4 max-h-[72vh] overflow-y-auto">
             {/* Rating Stars Selector */}
             <div>
-              <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-2">
                 Rating Keseluruhan (1 - 5)
               </label>
               <div className="flex items-center gap-2">
@@ -300,7 +300,7 @@ export function TestimonialModal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                 Nama Tamu <span className="text-red-500">*</span>
               </label>
               <input
@@ -308,7 +308,7 @@ export function TestimonialModal({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Contoh: Raditya &amp; Keluarga"
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                 required
               />
             </div>
@@ -316,7 +316,7 @@ export function TestimonialModal({
             {/* Avatar Tamu: Dual-Mode */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider">
+                <label className="text-xs font-semibold text-primary uppercase tracking-wider">
                   Foto Profil Tamu (Avatar)
                 </label>
                 <div className="flex items-center gap-1 text-[11px]">
@@ -325,7 +325,7 @@ export function TestimonialModal({
                     onClick={() => setAvatarMode("url")}
                     className={`px-2 py-0.5 rounded cursor-pointer ${
                       avatarMode === "url"
-                        ? "bg-[#1a1a2e] text-white"
+                        ? "bg-primary text-white"
                         : "text-gray-500 hover:text-gray-800"
                     }`}
                   >
@@ -336,7 +336,7 @@ export function TestimonialModal({
                     onClick={() => setAvatarMode("upload")}
                     className={`px-2 py-0.5 rounded cursor-pointer ${
                       avatarMode === "upload"
-                        ? "bg-[#1a1a2e] text-white"
+                        ? "bg-primary text-white"
                         : "text-gray-500 hover:text-gray-800"
                     }`}
                   >
@@ -352,7 +352,7 @@ export function TestimonialModal({
                     value={avatar}
                     onChange={(e) => setAvatar(e.target.value)}
                     placeholder="https://images.unsplash.com/..."
-                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                    className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                   />
                   {avatar && (
                     <div className="w-10 h-10 rounded-full overflow-hidden border border-[#e8e6df] shrink-0 bg-gray-100">
@@ -382,12 +382,12 @@ export function TestimonialModal({
                     type="button"
                     onClick={() => avatarFileInputRef.current?.click()}
                     disabled={uploadingAvatar}
-                    className="px-3.5 py-2.5 rounded-lg border border-dashed border-[#e8e6df] hover:border-[#C8A44E] bg-[#faf9f5] text-xs font-semibold text-gray-700 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="px-3.5 py-2.5 rounded-lg border border-dashed border-[#e8e6df] hover:border-accent bg-[#faf9f5] text-xs font-semibold text-gray-700 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                   >
                     {uploadingAvatar ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-[#C8A44E]" />
+                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
                     ) : (
-                      <Upload className="w-4 h-4 text-[#C8A44E]" />
+                      <Upload className="w-4 h-4 text-accent" />
                     )}
                     <span>{uploadingAvatar ? "Mengunggah..." : "Pilih Foto Tamu"}</span>
                   </button>
@@ -419,13 +419,13 @@ export function TestimonialModal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                 Villa Terkait (Assign ke Villa)
               </label>
               <select
                 value={villaId}
                 onChange={(e) => setVillaId(e.target.value)}
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
               >
                 <option value="">-- Pengalaman Umum (Seluruh Villa) --</option>
                 {villas.map((v) => (
@@ -440,7 +440,7 @@ export function TestimonialModal({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#1a1a2e] uppercase tracking-wider mb-1.5">
+              <label className="block text-xs font-semibold text-primary uppercase tracking-wider mb-1.5">
                 Isi Ulasan Tamu <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -448,14 +448,14 @@ export function TestimonialModal({
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="Pelayanan sangat luar biasa ramah, pemandangan bukit pagi hari sangat menyejukkan hati..."
-                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E]"
+                className="w-full text-sm px-3.5 py-2.5 rounded-lg border border-[#e8e6df] bg-white text-gray-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent"
                 required
               />
             </div>
 
             <div className="p-3.5 rounded-xl border border-[#e8e6df] bg-[#f8f7f4] flex items-center justify-between">
               <div>
-                <div className="text-xs font-bold text-[#1a1a2e]">
+                <div className="text-xs font-bold text-primary">
                   Tampilkan di Beranda (Featured)
                 </div>
                 <div className="text-[11px] text-gray-500">
@@ -469,7 +469,7 @@ export function TestimonialModal({
                   onChange={(e) => setIsFeatured(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C8A44E]"></div>
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent"></div>
               </label>
             </div>
           </div>
@@ -488,7 +488,7 @@ export function TestimonialModal({
             <button
               type="submit"
               disabled={saving}
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-[#C8A44E] hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-accent hover:bg-[#b8933e] text-white text-sm font-semibold transition-all shadow-sm disabled:opacity-50 cursor-pointer"
             >
               {saving ? (
                 <>

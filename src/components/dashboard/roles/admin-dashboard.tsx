@@ -74,7 +74,7 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
       {/* Minimal Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#e8e6df]">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e] tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">
             Ringkasan Eksekutif
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -84,14 +84,14 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/dashboard/users"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#C8A44E] hover:text-[#12121f] transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-accent hover:text-primary-dark transition-all"
           >
             <Users className="h-3.5 w-3.5" />
             <span>Kelola Staf</span>
           </Link>
           <Link
             href="/dashboard/settings"
-            className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e8e6df] px-4 py-2 text-xs font-semibold text-[#1a1a2e] hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e8e6df] px-4 py-2 text-xs font-semibold text-primary hover:bg-slate-50 transition-colors"
           >
             <Settings className="h-3.5 w-3.5 text-slate-500" />
             <span>Pengaturan</span>
@@ -101,20 +101,20 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
 
       {/* Key Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Total Unit Villa
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1a1a2e]/5 text-[#1a1a2e]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/5 text-primary">
               <Building2 className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline justify-between">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.villaCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.villaCount}</p>
             <Link
               href="/dashboard/villas"
-              className="text-xs font-medium text-[#C8A44E] hover:underline inline-flex items-center"
+              className="text-xs font-medium text-accent hover:underline inline-flex items-center"
             >
               Lihat <ArrowUpRight className="h-3 w-3 ml-0.5" />
             </Link>
@@ -122,17 +122,17 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
           <p className="mt-1 text-[11px] text-slate-400">Unit terdaftar di platform</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Total Reservasi
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1a1a2e]/5 text-[#1a1a2e]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/5 text-primary">
               <CalendarDays className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline justify-between">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.bookingCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.bookingCount}</p>
             <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
               {data.pendingBookings} Pending
             </span>
@@ -140,37 +140,37 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
           <p className="mt-1 text-[11px] text-slate-400">Seluruh booking masuk</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Estimasi Revenue
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C8A44E]/10 text-[#C8A44E]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
               <DollarSign className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-xl sm:text-2xl font-bold text-[#1a1a2e] truncate">
+            <p className="font-display text-xl sm:text-2xl font-bold text-primary truncate">
               {formatPrice(data.totalRevenue)}
             </p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Dari booking valid & selesai</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Pengguna & Staf
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1a1a2e]/5 text-[#1a1a2e]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/5 text-primary">
               <Users className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3 flex items-baseline justify-between">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.userCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.userCount}</p>
             <Link
               href="/dashboard/users"
-              className="text-xs font-medium text-[#C8A44E] hover:underline inline-flex items-center"
+              className="text-xs font-medium text-accent hover:underline inline-flex items-center"
             >
               Kelola <ArrowUpRight className="h-3 w-3 ml-0.5" />
             </Link>
@@ -185,12 +185,12 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
         <div className="rounded-2xl border border-[#e8e6df] bg-white shadow-xs lg:col-span-2 overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#e8e6df] p-5">
             <div>
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Reservasi Terbaru</h2>
+              <h2 className="font-display text-base font-bold text-primary">Reservasi Terbaru</h2>
               <p className="text-xs text-slate-400">Daftar transaksi reservasi terakhir</p>
             </div>
             <Link
               href="/dashboard/bookings"
-              className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E] inline-flex items-center transition-colors"
+              className="text-xs font-semibold text-primary hover:text-accent inline-flex items-center transition-colors"
             >
               Semua Booking <ArrowUpRight className="h-3 w-3 ml-1" />
             </Link>
@@ -218,7 +218,7 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
                   data.recentBookings.map((b) => (
                     <tr key={b.id} className="hover:bg-[#f8f7f4]/50 transition-colors">
                       <td className="px-5 py-3.5">
-                        <div className="font-bold text-[#1a1a2e]">{b.code}</div>
+                        <div className="font-bold text-primary">{b.code}</div>
                         <div className="text-slate-400 text-[11px]">{b.guestName}</div>
                       </td>
                       <td className="px-5 py-3.5 font-medium text-slate-700">
@@ -228,7 +228,7 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
                         <div>{formatDate(b.checkIn)}</div>
                         <div className="text-slate-400">s/d {formatDate(b.checkOut)}</div>
                       </td>
-                      <td className="px-5 py-3.5 font-bold text-[#1a1a2e]">
+                      <td className="px-5 py-3.5 font-bold text-primary">
                         {formatPrice(b.totalPrice)}
                       </td>
                       <td className="px-5 py-3.5">
@@ -259,10 +259,10 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
           {/* User List */}
           <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Pengguna & Peran</h2>
+              <h2 className="font-display text-base font-bold text-primary">Pengguna & Peran</h2>
               <Link
                 href="/dashboard/users"
-                className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E]"
+                className="text-xs font-semibold text-primary hover:text-accent"
               >
                 Kelola
               </Link>
@@ -271,10 +271,10 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
               {data.usersList.map((u) => (
                 <div key={u.id} className="flex items-center justify-between p-2.5 rounded-xl bg-[#f8f7f4] border border-[#e8e6df]">
                   <div className="min-w-0 pr-2">
-                    <p className="text-xs font-bold text-[#1a1a2e] truncate">{u.name}</p>
+                    <p className="text-xs font-bold text-primary truncate">{u.name}</p>
                     <p className="text-[11px] text-slate-400 truncate">{u.email}</p>
                   </div>
-                  <span className="shrink-0 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-[#1a1a2e] text-white">
+                  <span className="shrink-0 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-primary text-white">
                     {u.role}
                   </span>
                 </div>
@@ -286,12 +286,12 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
           <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-[#C8A44E]" />
-                <h2 className="font-display text-base font-bold text-[#1a1a2e]">Log Aktivitas</h2>
+                <Activity className="h-4 w-4 text-accent" />
+                <h2 className="font-display text-base font-bold text-primary">Log Aktivitas</h2>
               </div>
               <Link
                 href="/dashboard/activity"
-                className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E]"
+                className="text-xs font-semibold text-primary hover:text-accent"
               >
                 Semua
               </Link>
@@ -301,8 +301,8 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
                 <p className="text-xs text-slate-400">Belum ada riwayat aktivitas.</p>
               ) : (
                 data.recentLogs.map((log) => (
-                  <div key={log.id} className="text-xs border-l-2 border-[#C8A44E] pl-3 py-0.5 space-y-0.5">
-                    <p className="font-semibold text-[#1a1a2e]">
+                  <div key={log.id} className="text-xs border-l-2 border-accent pl-3 py-0.5 space-y-0.5">
+                    <p className="font-semibold text-primary">
                       {log.action} <span className="text-slate-400 font-normal">({log.user?.name || "Sistem"})</span>
                     </p>
                     <p className="text-slate-500 text-[11px] line-clamp-1">{log.details}</p>

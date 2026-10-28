@@ -44,12 +44,12 @@ export function DeleteUserModal({
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-display text-lg font-bold text-[#1a1a2e]">
+            <h3 className="font-display text-lg font-bold text-primary">
               Hapus Akun Pengguna
             </h3>
             <p className="text-xs text-slate-500 mt-1 leading-relaxed">
               Apakah Anda yakin ingin menghapus akun{" "}
-              <strong className="text-[#1a1a2e]">{user.name}</strong> ({user.email})?
+              <strong className="text-primary">{user.name}</strong> ({user.email})?
               Tindakan ini tidak dapat dibatalkan.
             </p>
           </div>

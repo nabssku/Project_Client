@@ -183,6 +183,7 @@ async function main() {
   // Create site configs
   const configs = [
     { key: "site_name", value: "singgahsana", type: "string" },
+    { key: "site_logo", value: "/logo.png", type: "string" },
     { key: "watermark_text", value: "singgahsana", type: "string" },
     { key: "site_description", value: "Pengelola villa terdepan di Puncak, Bogor yang menawarkan akomodasi berkualitas dengan harga terjangkau dan fasilitas modern.", type: "string" },
     { key: "site_tagline", value: "Pengalaman menginap lengkap untuk momen yang lebih berkesan", type: "string" },

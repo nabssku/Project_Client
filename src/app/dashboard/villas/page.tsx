@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { VillaListClient } from "@/components/dashboard/villas/villa-list-client";
 import { requirePagePermission } from "@/lib/auth-guard";
@@ -11,6 +12,9 @@ export const metadata = {
 
 export default async function VillasDashboardPage() {
   const user = await requirePagePermission("villa:read");
+  if (user.role === "GUEST") {
+    redirect("/dashboard");
+  }
 
   const villas = await prisma.villas.findMany({
     orderBy: { createdAt: "desc" },

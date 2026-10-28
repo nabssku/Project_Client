@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   CreditCard,
   Building,
@@ -26,6 +26,8 @@ import {
   Sparkles,
   Lock,
   RefreshCw,
+  UploadCloud,
+  Image as ImageIcon,
 } from "lucide-react";
 import { type BankAccount, DEFAULT_BANK_ACCOUNTS } from "@/lib/payment-config";
 
@@ -59,7 +61,7 @@ interface ConfigFieldDef {
   label: string;
   placeholder?: string;
   description?: string;
-  type?: "text" | "textarea" | "color";
+  type?: "text" | "textarea" | "color" | "image";
   category: ConfigCategory;
 }
 
@@ -70,6 +72,14 @@ const CONFIG_FIELDS: ConfigFieldDef[] = [
     label: "Nama Situs / Brand",
     placeholder: "Singgahsana",
     description: "Nama brand yang tampil di navbar, footer, dan meta title.",
+    category: "identity",
+  },
+  {
+    key: "site_logo",
+    label: "Logo Situs & Brand",
+    placeholder: "/logo.png atau https://...",
+    description: "Logo resmi yang tampil di header beranda, navbar, login, register, sidebar dashboard, dan invoice PDF.",
+    type: "image",
     category: "identity",
   },
   {
@@ -362,6 +372,45 @@ export function SettingsClient({
   const [newInstructions, setNewInstructions] = useState(
     "Transfer sesuai nominal total tagihan hingga digit terakhir"
   );
+
+  // Logo Upload State & Ref
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingLogo(true);
+    setSiteError("");
+    setSiteSuccess("");
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", "branding");
+
+      const res = await fetch("/api/upload/cms-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal mengunggah logo");
+      }
+
+      handleConfigChange("site_logo", data.url);
+      setSiteSuccess("File logo berhasil diunggah! Klik 'Simpan Perubahan Situs' untuk mengaktifkannya di seluruh halaman.");
+      setTimeout(() => setSiteSuccess(""), 5000);
+    } catch (err: any) {
+      setSiteError(err.message || "Gagal mengunggah file logo");
+    } finally {
+      setUploadingLogo(false);
+      if (logoFileInputRef.current) {
+        logoFileInputRef.current.value = "";
+      }
+    }
+  };
 
   // Update Config Field
   const handleConfigChange = (key: string, value: string) => {
@@ -695,7 +744,7 @@ export function SettingsClient({
                   <div
                     key={field.key}
                     className={`p-4 rounded-2xl border transition-all ${
-                      field.type === "textarea" ? "md:col-span-2" : ""
+                      field.type === "textarea" || field.type === "image" ? "md:col-span-2" : ""
                     } border-gray-100 bg-[#fafafa]/80 hover:bg-white hover:border-gray-200 focus-within:bg-white focus-within:border-accent/60`}
                   >
                     <div className="flex items-center justify-between mb-1.5">
@@ -713,7 +762,105 @@ export function SettingsClient({
                       </p>
                     )}
 
-                    {field.type === "textarea" ? (
+                    {field.type === "image" ? (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          {/* Light Preview */}
+                          <div className="p-3.5 rounded-xl border border-gray-200 bg-white flex flex-col items-center justify-center min-h-[90px] text-center shadow-xs">
+                            <span className="text-[10px] font-medium text-gray-400 mb-2">Pratinjau Background Terang (Invoice / Card)</span>
+                            {val ? (
+                              <img
+                                src={val}
+                                alt="Logo Preview Light"
+                                className="h-10 max-w-full object-contain"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400">
+                                <ImageIcon className="w-4 h-4" />
+                                <span>Belum ada logo (tampilan teks monogram)</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Dark Preview */}
+                          <div className="p-3.5 rounded-xl border border-white/10 bg-[#1a1a2e] flex flex-col items-center justify-center min-h-[90px] text-center shadow-xs">
+                            <span className="text-[10px] font-medium text-white/50 mb-2">Pratinjau Background Gelap (Navbar / Hero / Sidebar)</span>
+                            {val ? (
+                              <img
+                                src={val}
+                                alt="Logo Preview Dark"
+                                className="h-10 max-w-full object-contain"
+                              />
+                            ) : (
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-white/40">
+                                <ImageIcon className="w-4 h-4" />
+                                <span>Belum ada logo (tampilan teks monogram)</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Input & Upload Controls */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                          <input
+                            type="text"
+                            disabled={!isAdmin}
+                            value={val}
+                            onChange={(e) =>
+                              handleConfigChange(field.key, e.target.value)
+                            }
+                            placeholder={field.placeholder}
+                            className="flex-1 px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs text-gray-800 bg-white focus:outline-none focus:ring-1 focus:ring-accent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          />
+
+                          <input
+                            type="file"
+                            ref={logoFileInputRef}
+                            accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                            onChange={handleLogoUpload}
+                            className="hidden"
+                          />
+
+                          {isAdmin && (
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                type="button"
+                                disabled={uploadingLogo}
+                                onClick={() => logoFileInputRef.current?.click()}
+                                className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-accent text-white font-semibold text-xs hover:bg-accent-light transition-all shadow-xs cursor-pointer disabled:opacity-50"
+                              >
+                                {uploadingLogo ? (
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : (
+                                  <UploadCloud className="w-3.5 h-3.5" />
+                                )}
+                                <span>{uploadingLogo ? "Mengunggah..." : "Unggah Logo"}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleConfigChange(field.key, "/logo.png")}
+                                title="Kembalikan ke logo bawaan"
+                                className="px-3 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition-colors cursor-pointer"
+                              >
+                                Bawaan
+                              </button>
+
+                              {val && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfigChange(field.key, "")}
+                                  title="Hapus logo (gunakan teks/monogram saja)"
+                                  className="p-2.5 rounded-xl text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : field.type === "textarea" ? (
                       <textarea
                         rows={3}
                         disabled={!isAdmin}

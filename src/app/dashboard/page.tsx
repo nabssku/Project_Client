@@ -7,6 +7,7 @@ import { AdminDashboard } from "@/components/dashboard/roles/admin-dashboard";
 import { ManajerDashboard } from "@/components/dashboard/roles/manajer-dashboard";
 import { MaintenanceDashboard } from "@/components/dashboard/roles/maintenance-dashboard";
 import { MarketingDashboard } from "@/components/dashboard/roles/marketing-dashboard";
+import { GuestDashboard } from "@/components/dashboard/roles/guest-dashboard";
 
 export const instant = false;
 
@@ -145,6 +146,80 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     };
 
     dashboardView = <MarketingDashboard user={session.user} data={marketingData} />;
+  } else if (role === "GUEST") {
+    // Data fetching for Guest customer portal
+    const [guestBookings, dbUser, siteConfigs] = await Promise.all([
+      prisma.bookings.findMany({
+        where: {
+          OR: [
+            { userId: session.user.id },
+            { guestEmail: { equals: session.user.email?.toLowerCase(), mode: "insensitive" } },
+          ],
+        },
+        orderBy: { createdAt: "desc" },
+        include: {
+          villa: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              location: true,
+              images: true,
+              checkInTime: true,
+              checkOutTime: true,
+              pricePerNight: true,
+            },
+          },
+          addons: true,
+        },
+      }),
+      prisma.users.findUnique({
+        where: { id: session.user.id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          createdAt: true,
+          avatar: true,
+        },
+      }),
+      prisma.site_configs.findMany({
+        where: {
+          key: {
+            in: ["site_name", "site_logo", "contact_phone_1", "contact_phone_2"],
+          },
+        },
+      }),
+    ]);
+
+    let siteName = "Singgahsana";
+    let siteLogo: string | null = null;
+    let contactPhone = "628111141052";
+
+    siteConfigs.forEach((c) => {
+      if (c.key === "site_name" && c.value) siteName = c.value;
+      if (c.key === "site_logo" && c.value) siteLogo = c.value;
+      if (c.key === "contact_phone_1" && c.value) contactPhone = c.value;
+    });
+
+    const guestData = {
+      bookings: JSON.parse(JSON.stringify(guestBookings)),
+      user: dbUser,
+      siteName,
+      siteLogo,
+      contactPhone,
+    };
+
+    dashboardView = (
+      <GuestDashboard
+        currentUser={{
+          id: session.user.id || "",
+          name: session.user.name || "Tamu",
+          email: session.user.email || "",
+        }}
+        data={guestData}
+      />
+    );
   } else {
     // Default to MANAJER
   const [

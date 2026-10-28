@@ -26,11 +26,11 @@ export function Hero({ config }: HeroProps) {
         ) : (
           <div className="absolute inset-0 bg-primary-dark" />
         )}
-        {/* Gradient Overlay - customizable via hero_gradient_accent */}
+        {/* Gradient Overlay - seamlessly blends into dynamic primary theme color */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
-            background: `linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(26,26,46,0.7) 50%, ${config.hero_gradient_accent || '#1a1a2e'}95 100%)`
+            background: `linear-gradient(to bottom, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.4) 50%, var(--primary) 100%)`
           }}
         />
       </div>
@@ -38,6 +38,19 @@ export function Hero({ config }: HeroProps) {
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 w-full pt-20 pb-24 sm:pt-24 sm:pb-40">
         <div className="text-center max-w-3xl mx-auto">
+          {/* Logo in Hero */}
+          {config.site_logo && (
+            <div className="flex justify-center mb-5 hero-animate">
+              <div className="inline-flex items-center justify-center p-2 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-xl transition-transform hover:scale-105 duration-300">
+                <img
+                  src={config.site_logo}
+                  alt={config.site_name || "Logo"}
+                  className="h-12 sm:h-14 md:h-16 w-auto max-w-[200px] object-contain drop-shadow-md"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Tagline */}
           <div className="overflow-hidden mb-4">
             <p className="hero-animate text-accent font-medium tracking-[0.3em] uppercase text-sm">

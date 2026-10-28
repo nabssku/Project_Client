@@ -16,6 +16,7 @@ async function getFooterConfigs() {
         key: {
           in: [
             "site_name",
+            "site_logo",
             "company_name",
             "contact_phone_1",
             "contact_phone_2",
@@ -45,6 +46,7 @@ export async function Footer() {
   );
 
   const siteName = c["site_name"] || "Singgahsana";
+  const siteLogo = c["site_logo"] || null;
   const companyName = c["company_name"] || "PT Singgahsana Villa Management";
   const phone1 = c["contact_phone_1"] || "(+62) 811-1141-052";
   const phone2 = c["contact_phone_2"] || "(+62) 8521-9949-626";
@@ -83,9 +85,16 @@ export async function Footer() {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-12 md:gap-12">
           {/* Brand */}
           <div className="md:col-span-5">
-            <Link href="/" className="inline-flex items-center gap-2 mb-6">
+            <Link href="/" className="inline-flex items-center gap-3 mb-6 group">
+              {siteLogo ? (
+                <img
+                  src={siteLogo}
+                  alt={siteName}
+                  className="h-9 md:h-10 w-auto max-w-[160px] object-contain transition-transform group-hover:scale-105"
+                />
+              ) : null}
               <span className="text-xl font-bold font-display text-white">
-                {siteName}<span className="text-[#C8A44E]">.</span>
+                {siteName}<span className="text-accent">.</span>
               </span>
             </Link>
             <p className="mb-6 max-w-sm text-sm leading-relaxed time-text-secondary">
@@ -108,11 +117,21 @@ export async function Footer() {
                   Private Villa
                 </Link>
               </li>
-              {/*<li>
-                <Link href="/resorts" className="link-underline text-sm time-link">
-                  Resort
+              <li>
+                <Link href="/booking/status" className="link-underline text-sm time-link">
+                  Cek Status Booking
                 </Link>
-              </li>*/}
+              </li>
+              <li>
+                <Link href="/about" className="link-underline text-sm time-link">
+                  Tentang Kami
+                </Link>
+              </li>
+              <li>
+                <Link href="/artikel" className="link-underline text-sm time-link">
+                  Artikel & Berita
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -199,7 +218,7 @@ export async function Footer() {
           <p className="text-xs time-text-tertiary">
             © <CurrentYear /> {siteName}. All rights reserved.
           </p>
-          <p className="text-xs time-text-tertiary">{siteName.toLowerCase().replace(/\s+/g, "")}.id</p>
+          <p className="text-xs time-text-tertiary">{siteName.toLowerCase().replace(/\s+/g, "")}.com</p>
         </div>
       </div>
     </footer>

@@ -292,9 +292,9 @@ export default async function VillaDetailPage({
                   {villa.amenities.map((amenity: string, idx: number) => (
                     <div
                       key={idx}
-                      className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-gray-100/90 shadow-2xs hover:border-[#C8A44E]/40 hover:shadow-xs transition-all"
+                      className="flex items-center gap-3 p-3 rounded-2xl bg-white border border-gray-100/90 shadow-2xs hover:border-accent/40 hover:shadow-xs transition-all"
                     >
-                      <div className="w-10 h-10 rounded-xl bg-[#C8A44E]/10 text-[#C8A44E] flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center shrink-0">
                         <AmenityIcon name={amenity} className="h-5 w-5" />
                       </div>
                       <span className="text-sm font-medium text-primary/85 leading-tight">
@@ -382,7 +382,7 @@ export default async function VillaDetailPage({
                 {villa.rules && villa.rules.length > 0 && (
                   <div className="mt-5 rounded-2xl bg-white border border-gray-100 p-5 sm:p-6 shadow-2xs">
                     <h3 className="text-sm font-bold font-display text-primary mb-3 flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-[#C8A44E]" />
+                      <ShieldCheck className="h-4 w-4 text-accent" />
                       Tata Tertib &amp; Ketentuan Menginap
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -391,7 +391,7 @@ export default async function VillaDetailPage({
                           key={idx}
                           className="flex items-start gap-2.5 text-xs sm:text-sm text-gray-600 bg-slate-50/70 p-3 rounded-xl border border-gray-100"
                         >
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#C8A44E]/15 text-[#C8A44E] font-bold text-[10px] mt-0.5">
+                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent/15 text-accent font-bold text-[10px] mt-0.5">
                             ✓
                           </span>
                           <span className="leading-snug">{rule}</span>
@@ -534,7 +534,7 @@ export default async function VillaDetailPage({
                       {villaTestimonials.map((t) => (
                         <div
                           key={t.id}
-                          className="p-5 rounded-2xl bg-white border border-gray-100 shadow-2xs space-y-3 hover:border-[#C8A44E]/30 transition-all flex flex-col justify-between"
+                          className="p-5 rounded-2xl bg-white border border-gray-100 shadow-2xs space-y-3 hover:border-accent/30 transition-all flex flex-col justify-between"
                         >
                           <div className="space-y-2.5">
                             <div className="flex items-start justify-between gap-2">

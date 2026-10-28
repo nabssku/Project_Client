@@ -21,9 +21,17 @@ const createBookingSchema = z.object({
   companionType: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   promoCode: z.string().optional().nullable(),
-  paymentMethod: z.string().default("QRIS"),
+  paymentMethod: z.string().default("BANK_TRANSFER"),
   createAccount: z.boolean().default(false),
   password: z.string().optional().nullable(),
+  selectedAddons: z
+    .array(
+      z.object({
+        addonId: z.string(),
+        qty: z.coerce.number().min(1),
+      })
+    )
+    .optional(),
   // For Manager direct bookings
   directBookingStatus: z.enum(["PENDING", "CONFIRMED"]).optional(),
 });
@@ -88,6 +96,7 @@ export async function GET(request: Request) {
             name: true,
           },
         },
+        addons: true,
       },
     });
 
@@ -196,7 +205,46 @@ export async function POST(request: Request) {
       }
     }
 
-    const totalPrice = Math.max(0, stay.subtotal - discountAmount);
+    // 2b. Add-ons Calculation & Verification
+    let addonsTotal = 0;
+    const validAddonsToInsert: Array<{
+      addonId: string;
+      name: string;
+      price: number;
+      qty: number;
+      subtotal: number;
+      unit: string;
+    }> = [];
+
+    if (data.selectedAddons && data.selectedAddons.length > 0) {
+      const addonIds = data.selectedAddons.map((a) => a.addonId);
+      const dbAddons = await prisma.villa_addons.findMany({
+        where: {
+          id: { in: addonIds },
+          villaId: villa.id,
+          isActive: true,
+        },
+      });
+
+      for (const item of data.selectedAddons) {
+        const matched = dbAddons.find((a) => a.id === item.addonId);
+        if (matched) {
+          const qty = Math.min(matched.maxQty, Math.max(1, item.qty));
+          const subtotal = qty * matched.price;
+          addonsTotal += subtotal;
+          validAddonsToInsert.push({
+            addonId: matched.id,
+            name: matched.name,
+            price: matched.price,
+            qty,
+            subtotal,
+            unit: matched.unit,
+          });
+        }
+      }
+    }
+
+    const totalPrice = Math.max(0, stay.subtotal - discountAmount) + addonsTotal;
 
     // 3. Handle Account Creation or User Association
     let userId: string | null = session?.user?.id || null;
@@ -273,12 +321,26 @@ export async function POST(request: Request) {
           checkOut: checkOutDate,
           totalPrice,
           discountAmount,
+          addonsTotal,
           promoCode: validPromoCode,
           status: initialStatus,
           notes: data.notes || null,
-          paymentMethod: data.paymentMethod || "QRIS",
+          paymentMethod: data.paymentMethod || "BANK_TRANSFER",
           userId,
           assignedToId: isManagerOrAdmin ? session.user.id : null,
+          addons:
+            validAddonsToInsert.length > 0
+              ? {
+                  create: validAddonsToInsert.map((a) => ({
+                    addonId: a.addonId,
+                    name: a.name,
+                    price: a.price,
+                    qty: a.qty,
+                    subtotal: a.subtotal,
+                    unit: a.unit,
+                  })),
+                }
+              : undefined,
         },
         include: {
           villa: {
@@ -290,6 +352,7 @@ export async function POST(request: Request) {
               images: true,
             },
           },
+          addons: true,
         },
       });
 
@@ -317,13 +380,17 @@ export async function POST(request: Request) {
 
     // Kirim email konfirmasi reservasi & PDF invoice secara asynchronous via Resend
     try {
-      const siteConfig = await prisma.site_configs.findUnique({
-        where: { key: "site_name" },
+      const configs = await prisma.site_configs.findMany({
+        where: { key: { in: ["site_name", "site_logo"] } },
       });
-      const siteName = siteConfig?.value || "Singgahsana";
+      const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
+      const siteName = configMap.site_name || "Singgahsana";
+      const siteLogo = configMap.site_logo || null;
 
       const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
       sendBookingConfirmationEmail({
+        siteName,
+        siteLogo,
         booking: {
           id: newBooking.id,
           code: newBooking.code,
@@ -349,7 +416,6 @@ export async function POST(request: Request) {
             checkOutTime: villa.checkOutTime,
           },
         },
-        siteName,
       }).catch((e) => console.error("Background Resend email error on booking create:", e));
     } catch (emailErr) {
       console.warn("Could not trigger booking creation email:", emailErr);

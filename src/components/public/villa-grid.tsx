@@ -29,21 +29,29 @@ export function VillaGrid({ villas, title = "Villa Tersedia" }: VillaGridProps) 
     );
   }
 
+  // Split title if it contains multiple words
+  const titleParts = title.trim().split(" ");
+  const mainTitle = titleParts[0];
+  const subTitle = titleParts.slice(1).join(" ");
+
   return (
     <div className="w-full">
       {title && (
         <div className="flex items-end justify-between mb-16">
           <div>
-            <p className="text-emerald-600 font-medium tracking-[0.2em] uppercase text-xs mb-3">
+            <p className="text-accent font-medium tracking-[0.2em] uppercase text-xs mb-3">
               Terbaik Bulan Ini
             </p>
-            <h2 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-slate-900 leading-tight">
-              Villa <span className="italic text-slate-900/40">Populer</span>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-bold text-primary leading-tight">
+              {mainTitle}{" "}
+              {subTitle && (
+                <span className="italic text-primary/40">{subTitle}</span>
+              )}
             </h2>
           </div>
           <Link
             href="/villas"
-            className="hidden md:inline-flex items-center gap-2 text-slate-900 text-sm font-medium hover:text-emerald-600 transition"
+            className="hidden md:inline-flex items-center gap-2 text-primary text-sm font-medium hover:text-accent transition"
           >
             Lihat Semua
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor" className="w-4 h-4">
@@ -55,7 +63,11 @@ export function VillaGrid({ villas, title = "Villa Tersedia" }: VillaGridProps) 
 
       <div className="space-y-5">
         {/* Row 1: 7/5 split - LARGE cards */}
-        {villas.length >= 2 && (
+        {villas.length === 1 ? (
+          <div>
+            <VillaCard villa={villas[0]} size="large" />
+          </div>
+        ) : (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <VillaCard villa={villas[0]} size="large" />
@@ -67,7 +79,11 @@ export function VillaGrid({ villas, title = "Villa Tersedia" }: VillaGridProps) 
         )}
 
         {/* Row 2: 5/7 split - MEDIUM cards */}
-        {villas.length >= 4 && (
+        {villas.length === 3 ? (
+          <div>
+            <VillaCard villa={villas[2]} size="medium" />
+          </div>
+        ) : villas.length >= 4 ? (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <div className="lg:col-span-5">
               <VillaCard villa={villas[2]} size="medium" />
@@ -76,10 +92,14 @@ export function VillaGrid({ villas, title = "Villa Tersedia" }: VillaGridProps) 
               <VillaCard villa={villas[3]} size="medium" />
             </div>
           </div>
-        )}
+        ) : null}
 
         {/* Row 3: 7/5 split - LARGE cards */}
-        {villas.length >= 6 && (
+        {villas.length === 5 ? (
+          <div>
+            <VillaCard villa={villas[4]} size="large" />
+          </div>
+        ) : villas.length >= 6 ? (
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
             <div className="lg:col-span-7">
               <VillaCard villa={villas[4]} size="large" />
@@ -88,14 +108,18 @@ export function VillaGrid({ villas, title = "Villa Tersedia" }: VillaGridProps) 
               <VillaCard villa={villas[5]} size="large" />
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Villa ke-7+ full width */}
-        {villas.slice(6).map((villa) => (
-          <div key={villa.id}>
-            <VillaCard villa={villa} size="large" />
+        {/* Villa ke-7+ full width or grid */}
+        {villas.length > 6 && (
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {villas.slice(6).map((villa) => (
+              <div key={villa.id}>
+                <VillaCard villa={villa} size="medium" />
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -138,7 +162,7 @@ function VillaCard({
 
       {/* Location/Feature Badge */}
       <div className="absolute left-5 top-5 z-10">
-        <span className="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white">
+        <span className="rounded-full bg-accent px-4 py-1.5 text-xs font-semibold text-white shadow-sm">
           {badgeText}
         </span>
       </div>
@@ -169,7 +193,7 @@ function VillaCard({
               /malam
             </span>
           </p>
-          <span className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-slate-900 transition-colors duration-300 group-hover:bg-emerald-600 group-hover:text-white">
+          <span className="rounded-full bg-white px-6 py-2.5 text-sm font-semibold text-primary transition-colors duration-300 group-hover:bg-accent group-hover:text-white shadow-sm">
             Lihat Detail
           </span>
         </div>

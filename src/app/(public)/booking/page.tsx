@@ -29,7 +29,7 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
     redirect("/villas");
   }
 
-  // Fetch villa with custom holiday prices
+  // Fetch villa with custom holiday prices and active addons
   const villa = await prisma.villas.findFirst({
     where: {
       OR: [{ slug: villaSlugOrId }, { id: villaSlugOrId }],
@@ -37,6 +37,10 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
     include: {
       customPrices: {
         orderBy: { startDate: "asc" },
+      },
+      addons: {
+        where: { isActive: true },
+        orderBy: { price: "asc" },
       },
     },
   });
@@ -59,8 +63,19 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
 
   const guests = parseInt(params.guests || "2", 10) || 2;
 
+  let siteName = "Singgahsana";
+  try {
+    const config = await prisma.site_configs.findUnique({
+      where: { key: "site_name" },
+    });
+    if (config?.value) siteName = config.value;
+  } catch (err) {
+    console.warn("Failed to load site_name in booking page:", err);
+  }
+
   return (
     <BookingFlowClient
+      siteName={siteName}
       villa={{
         id: villa.id,
         slug: villa.slug,
@@ -77,6 +92,14 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
           endDate: cp.endDate.toISOString(),
           price: cp.price,
           reason: cp.reason,
+        })),
+        addons: villa.addons.map((a) => ({
+          id: a.id,
+          name: a.name,
+          description: a.description,
+          price: a.price,
+          maxQty: a.maxQty,
+          unit: a.unit,
         })),
       }}
       initialCheckIn={checkIn}

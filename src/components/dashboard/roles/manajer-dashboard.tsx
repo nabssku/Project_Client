@@ -78,7 +78,7 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
       {/* Minimal Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#e8e6df]">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e] tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">
             Operasional & Reservasi
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -88,14 +88,14 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/dashboard/bookings"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#C8A44E] hover:text-[#12121f] transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-accent hover:text-primary-dark transition-all"
           >
             <CreditCard className="h-3.5 w-3.5" />
             <span>Verifikasi Booking</span>
           </Link>
           <Link
             href="/dashboard/maintenance"
-            className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e8e6df] px-4 py-2 text-xs font-semibold text-[#1a1a2e] hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e8e6df] px-4 py-2 text-xs font-semibold text-primary hover:bg-slate-50 transition-colors"
           >
             <Wrench className="h-3.5 w-3.5 text-slate-500" />
             <span>Housekeeping</span>
@@ -120,7 +120,7 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Menunggu Verifikasi
@@ -138,7 +138,7 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
           <p className="mt-1 text-[11px] text-slate-400">Status PENDING transfer</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Terkonfirmasi
@@ -148,37 +148,37 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.confirmedBookingsCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.confirmedBookingsCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Jadwal tamu aktif</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Unit Siap Huni
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1a1a2e]/5 text-[#1a1a2e]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/5 text-primary">
               <Building2 className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.availableVillasCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.availableVillasCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Unit berstatus AVAILABLE</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Unit Cleaning
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C8A44E]/10 text-[#C8A44E]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
               <Wrench className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.cleaningVillasCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.cleaningVillasCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Unit proses housekeeping</p>
         </div>
@@ -190,12 +190,12 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
         <div className="rounded-2xl border border-[#e8e6df] bg-white shadow-xs lg:col-span-2 overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#e8e6df] p-5">
             <div>
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Antrean Verifikasi Pembayaran</h2>
+              <h2 className="font-display text-base font-bold text-primary">Antrean Verifikasi Pembayaran</h2>
               <p className="text-xs text-slate-400">Reservasi transfer yang menunggu konfirmasi</p>
             </div>
             <Link
               href="/dashboard/bookings"
-              className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E] inline-flex items-center"
+              className="text-xs font-semibold text-primary hover:text-accent inline-flex items-center"
             >
               Semua Booking <ArrowUpRight className="h-3 w-3 ml-1" />
             </Link>
@@ -212,14 +212,14 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
                 <div key={b.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#f8f7f4]/50 transition-colors">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-[#1a1a2e] text-xs sm:text-sm">{b.code}</span>
+                      <span className="font-bold text-primary text-xs sm:text-sm">{b.code}</span>
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                         PENDING
                       </span>
                     </div>
                     <p className="text-xs font-bold text-slate-800">{b.villa.name}</p>
                     <p className="text-[11px] text-slate-500">
-                      Tamu: <span className="font-medium text-[#1a1a2e]">{b.guestName}</span> ({b.guestPhone})
+                      Tamu: <span className="font-medium text-primary">{b.guestName}</span> ({b.guestPhone})
                     </p>
                     <p className="text-[11px] text-slate-400">
                       Check-in: {formatDate(b.checkIn)} — Check-out: {formatDate(b.checkOut)}
@@ -231,10 +231,10 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
                     )}
                   </div>
                   <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2.5 shrink-0">
-                    <p className="font-display font-bold text-[#1a1a2e] text-base">{formatPrice(b.totalPrice)}</p>
+                    <p className="font-display font-bold text-primary text-base">{formatPrice(b.totalPrice)}</p>
                     <Link
                       href={`/dashboard/bookings?verify=${b.code}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1a1a2e] text-white hover:bg-[#C8A44E] hover:text-[#12121f] text-xs font-semibold shadow-xs transition-colors"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-accent hover:text-primary-dark text-xs font-semibold shadow-xs transition-colors"
                     >
                       <FileCheck className="h-3 w-3" />
                       <span>Verifikasi</span>
@@ -250,10 +250,10 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
         <div className="space-y-6">
           <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Kesiapan Villa</h2>
+              <h2 className="font-display text-base font-bold text-primary">Kesiapan Villa</h2>
               <Link
                 href="/dashboard/villas"
-                className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E]"
+                className="text-xs font-semibold text-primary hover:text-accent"
               >
                 Unit
               </Link>
@@ -262,7 +262,7 @@ export function ManajerDashboard({ user, data }: ManajerDashboardProps) {
               {data.villasStatus.map((villa) => (
                 <div key={villa.id} className="flex items-center justify-between p-2.5 rounded-xl bg-[#f8f7f4] border border-[#e8e6df]">
                   <div>
-                    <p className="text-xs font-bold text-[#1a1a2e]">{villa.name}</p>
+                    <p className="text-xs font-bold text-primary">{villa.name}</p>
                     <p className="text-[11px] text-slate-400">{villa.capacity} Tamu • {villa.bedrooms} Kamar</p>
                   </div>
                   <span

@@ -73,8 +73,26 @@ model villas {
 
   bookings          bookings[]
   customPrices      villa_custom_prices[]
+  addons            villa_addons[]
   testimonials      testimonials[]
   maintenanceTasks  maintenance_tasks[]
+}
+
+model villa_addons {
+  id          String   @id @default(cuid())
+  villaId     String
+  name        String
+  description String?  @db.Text
+  price       Int      @default(0)
+  maxQty      Int      @default(10)
+  unit        String   @default("pcs")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  villa       villas   @relation(fields: [villaId], references: [id], onDelete: Cascade)
+
+  @@index([villaId])
 }
 
 model villa_custom_prices {
@@ -107,8 +125,10 @@ model bookings {
   totalPrice             Int
   discountAmount         Int           @default(0)
   promoCode              String?
+  addonsTotal            Int           @default(0)
   status                 BookingStatus @default(PENDING)
   notes                  String?       @db.Text
+  rejectionReason        String?       @db.Text
   paymentMethod          String        @default("QRIS")
   paymentProofUrl        String?       @db.Text
   paymentProofUploadedAt DateTime?
@@ -120,7 +140,24 @@ model bookings {
   villa                  villas        @relation(fields: [villaId], references: [id])
   user                   users?        @relation("UserBookings", fields: [userId], references: [id])
   assignedTo             users?        @relation("AssignedTo", fields: [assignedToId], references: [id])
+  addons                 booking_addons[]
   testimonial            testimonials?
+}
+
+model booking_addons {
+  id          String   @id @default(cuid())
+  bookingId   String
+  addonId     String?
+  name        String
+  price       Int
+  qty         Int      @default(1)
+  subtotal    Int
+  unit        String   @default("pcs")
+  createdAt   DateTime @default(now())
+
+  booking     bookings @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([bookingId])
 }
 
 model site_configs {

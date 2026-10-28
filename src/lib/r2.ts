@@ -40,7 +40,9 @@ export async function uploadBufferToR2(
     await client.send(command);
 
     const publicBase = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
-    if (publicBase) {
+    // If publicBase is set to a custom CDN domain (not blocked r2.dev), use it;
+    // otherwise use local proxy /api/media/${key} to prevent ISP DNS sinkhole in Indonesia.
+    if (publicBase && !publicBase.includes("r2.dev")) {
       return `${publicBase}/${key}`;
     }
     return `/api/media/${key}`;
@@ -83,8 +85,13 @@ export async function deleteFile(key: string): Promise<void> {
 
 export function getPublicUrl(key: string): string {
   const publicBase = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
-  return publicBase ? `${publicBase}/${key}` : `/uploads/${key}`;
+  if (publicBase && !publicBase.includes("r2.dev")) {
+    return `${publicBase}/${key}`;
+  }
+  return `/api/media/${key}`;
 }
+
+export { normalizeMediaUrl } from "./media";
 
 export function generateKey(folder: string, filename: string): string {
   const timestamp = Date.now();

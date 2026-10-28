@@ -62,14 +62,17 @@ export async function POST(request: Request) {
 
     const publicUrl = await uploadBufferToR2(buffer, key, file.type);
 
-    // Update booking with payment proof URL and timestamp
+    // Update booking with payment proof URL, timestamp, reset status to PENDING, and clear rejection reason
     const updated = await prisma.bookings.update({
       where: { id: booking.id },
       data: {
         paymentProofUrl: publicUrl,
         paymentProofUploadedAt: new Date(),
+        status: "PENDING",
+        rejectionReason: null,
       },
       include: {
+        addons: true,
         villa: {
           select: {
             id: true,
@@ -86,13 +89,17 @@ export async function POST(request: Request) {
 
     // Kirim notifikasi bukti bayar via Resend beserta PDF invoice
     try {
-      const siteConfig = await prisma.site_configs.findUnique({
-        where: { key: "site_name" },
+      const configs = await prisma.site_configs.findMany({
+        where: { key: { in: ["site_name", "site_logo"] } },
       });
-      const siteName = siteConfig?.value || "Singgahsana";
+      const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
+      const siteName = configMap.site_name || "Singgahsana";
+      const siteLogo = configMap.site_logo || null;
 
       const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
       sendBookingConfirmationEmail({
+        siteName,
+        siteLogo,
         booking: {
           id: updated.id,
           code: updated.code,
@@ -118,7 +125,6 @@ export async function POST(request: Request) {
             checkOutTime: updated.villa.checkOutTime,
           },
         },
-        siteName,
       }).catch((e) => console.error("Background Resend email error on payment proof upload:", e));
     } catch (err) {
       console.warn("Could not trigger booking email on proof upload:", err);

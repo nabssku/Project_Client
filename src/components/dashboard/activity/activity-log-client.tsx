@@ -312,7 +312,7 @@ export function ActivityLogClient({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-[#1a1a2e]">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-primary">
               Log Aktivitas & Audit Trail
             </h1>
             <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-semibold text-purple-800">
@@ -340,10 +340,10 @@ export function ActivityLogClient({
           <button
             onClick={handleExportPDF}
             disabled={filteredLogs.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#252542] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#252542] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             title="Download PDF Laporan Audit"
           >
-            <FileText className="h-4 w-4 text-[#C8A44E]" />
+            <FileText className="h-4 w-4 text-accent" />
             <span>Ekspor PDF</span>
           </button>
         </div>
@@ -422,7 +422,7 @@ export function ActivityLogClient({
               }}
               className={`rounded-lg px-2.5 py-1 text-xs font-medium transition cursor-pointer ${
                 timePreset === preset.id
-                  ? "bg-[#1a1a2e] text-white shadow-xs"
+                  ? "bg-primary text-white shadow-xs"
                   : "bg-gray-100/70 text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -485,7 +485,7 @@ export function ActivityLogClient({
                 setSelectedUser(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
             >
               <option value="all">Semua Staf & Sistem</option>
               <option value="system">Sistem Otomatis</option>
@@ -508,7 +508,7 @@ export function ActivityLogClient({
                 setSelectedEntity(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
             >
               <option value="all">Semua Modul</option>
               <option value="bookings">Reservasi (bookings)</option>
@@ -533,7 +533,7 @@ export function ActivityLogClient({
                 setSelectedAction(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
             >
               <option value="all">Semua Jenis Aksi</option>
               <option value="CREATE">CREATE (Tambah Baru)</option>
@@ -559,7 +559,7 @@ export function ActivityLogClient({
                   setCurrentPage(1);
                 }}
                 placeholder="Cari deskripsi, nama staf..."
-                className="w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+                className="w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
               />
             </div>
           </div>
@@ -644,7 +644,7 @@ export function ActivityLogClient({
                       <td className="py-3 px-4">
                         {log.user ? (
                           <div className="flex items-center gap-2">
-                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#1a1a2e] text-white font-bold text-[10px]">
+                            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white font-bold text-[10px]">
                               {log.user.name.charAt(0).toUpperCase()}
                             </span>
                             <div>

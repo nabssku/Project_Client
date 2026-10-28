@@ -38,19 +38,25 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Ambil nama situs dari database
+    // Ambil nama situs & logo dari database
     let siteName = "Singgahsana";
+    let siteLogo: string | null = null;
     try {
-      const config = await prisma.site_configs.findUnique({
-        where: { key: "site_name" },
+      const configs = await prisma.site_configs.findMany({
+        where: { key: { in: ["site_name", "site_logo"] } },
       });
-      if (config?.value) siteName = config.value;
+      configs.forEach((c) => {
+        if (c.key === "site_name" && c.value) siteName = c.value;
+        if (c.key === "site_logo" && c.value) siteLogo = c.value;
+      });
     } catch {
       // fallback
     }
 
     // Kirim email konfirmasi beserta PDF lampiran melalui Resend
     const result = await sendBookingConfirmationEmail({
+      siteName,
+      siteLogo,
       booking: {
         id: booking.id,
         code: booking.code,
@@ -76,7 +82,6 @@ export async function POST(request: Request, { params }: RouteParams) {
           checkOutTime: booking.villa.checkOutTime,
         },
       },
-      siteName,
     });
 
     // Catat log mutasi aktivitas

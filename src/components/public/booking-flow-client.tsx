@@ -19,6 +19,10 @@ import {
   Loader2,
   Lock,
   ArrowLeft,
+  Package,
+  Plus,
+  Minus,
+  Sparkles,
 } from "lucide-react";
 
 interface VillaData {
@@ -38,9 +42,18 @@ interface VillaData {
     price: number;
     reason?: string | null;
   }>;
+  addons?: Array<{
+    id: string;
+    name: string;
+    description?: string | null;
+    price: number;
+    maxQty: number;
+    unit: string;
+  }>;
 }
 
 interface BookingFlowClientProps {
+  siteName?: string;
   villa: VillaData;
   initialCheckIn: string;
   initialCheckOut: string;
@@ -54,6 +67,7 @@ interface BookingFlowClientProps {
 }
 
 export function BookingFlowClient({
+  siteName = "Singgahsana",
   villa,
   initialCheckIn,
   initialCheckOut,
@@ -71,8 +85,24 @@ export function BookingFlowClient({
   const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("BANK_TRANSFER");
 
-  // Account creation state
-  const [createAccount, setCreateAccount] = useState(false);
+  // Addons selection state: { [addonId]: quantity }
+  const [selectedAddons, setSelectedAddons] = useState<Record<string, number>>({});
+
+  const handleUpdateAddonQty = (addonId: string, delta: number, maxQty: number) => {
+    setSelectedAddons((prev) => {
+      const current = prev[addonId] || 0;
+      const next = Math.max(0, Math.min(maxQty, current + delta));
+      if (next === 0) {
+        const copy = { ...prev };
+        delete copy[addonId];
+        return copy;
+      }
+      return { ...prev, [addonId]: next };
+    });
+  };
+
+  // Account creation state - default active if not logged in
+  const [createAccount, setCreateAccount] = useState(!currentUser);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -112,10 +142,19 @@ export function BookingFlowClient({
     return Math.round((breakdown.subtotal * appliedPromo.discountPercent) / 100);
   }, [breakdown, appliedPromo]);
 
+  // Total biaya addons terpilih
+  const addonsTotal = useMemo(() => {
+    if (!villa.addons || villa.addons.length === 0) return 0;
+    return villa.addons.reduce((sum, addon) => {
+      const qty = selectedAddons[addon.id] || 0;
+      return sum + qty * addon.price;
+    }, 0);
+  }, [villa.addons, selectedAddons]);
+
   const finalTotal = useMemo(() => {
     if (!breakdown) return 0;
-    return Math.max(0, breakdown.subtotal - discountAmount);
-  }, [breakdown, discountAmount]);
+    return Math.max(0, breakdown.subtotal - discountAmount) + addonsTotal;
+  }, [breakdown, discountAmount, addonsTotal]);
 
   // Handle promo code verification
   const handleApplyPromo = async () => {
@@ -185,6 +224,10 @@ export function BookingFlowClient({
     setSubmitting(true);
 
     try {
+      const chosenAddons = Object.entries(selectedAddons)
+        .filter(([_, qty]) => qty > 0)
+        .map(([addonId, qty]) => ({ addonId, qty }));
+
       const payload = {
         villaId: villa.id,
         checkIn: initialCheckIn,
@@ -200,6 +243,7 @@ export function BookingFlowClient({
         paymentMethod,
         createAccount,
         password: createAccount ? password : undefined,
+        selectedAddons: chosenAddons,
       };
 
       const res = await fetch("/api/bookings", {
@@ -387,7 +431,7 @@ export function BookingFlowClient({
                       />
                       <div>
                         <span className="text-sm font-semibold text-gray-800">
-                          Buat akun Singgahsana sekaligus
+                          Buat akun {siteName} sekaligus
                         </span>
                         <p className="text-xs text-gray-500 mt-0.5">
                           Memudahkan Anda melihat riwayat reservasi, status pembayaran, dan penawaran khusus member di masa mendatang.
@@ -434,6 +478,91 @@ export function BookingFlowClient({
               </div>
             </div>
 
+            {/* Card: Add-ons & Extra Facilities */}
+            {villa.addons && villa.addons.length > 0 && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm space-y-4">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-base sm:text-lg font-bold font-display text-primary flex items-center gap-2">
+                      <Package className="w-5 h-5 text-accent" />
+                      Fasilitas & Layanan Tambahan (Add-on)
+                    </h2>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Pilihan perlengkapan ekstra untuk kenyamanan liburan Anda (opsional).
+                    </p>
+                  </div>
+                  {addonsTotal > 0 && (
+                    <span className="text-xs font-bold text-accent bg-accent/10 px-2.5 py-1 rounded-full border border-accent/20">
+                      + {formatIDR(addonsTotal)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="divide-y divide-gray-100 rounded-2xl border border-gray-100 overflow-hidden">
+                  {villa.addons.map((addon) => {
+                    const currentQty = selectedAddons[addon.id] || 0;
+                    const isSelected = currentQty > 0;
+
+                    return (
+                      <div
+                        key={addon.id}
+                        className={`p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+                          isSelected ? "bg-accent/5" : "hover:bg-gray-50/50"
+                        }`}
+                      >
+                        <div className="space-y-0.5 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-gray-900">
+                              {addon.name}
+                            </span>
+                            {isSelected && (
+                              <span className="text-[10px] font-bold text-accent bg-accent/15 px-2 py-0.2 rounded-full">
+                                {currentQty} {addon.unit} terpilih
+                              </span>
+                            )}
+                          </div>
+                          {addon.description && (
+                            <p className="text-xs text-gray-500 line-clamp-2">
+                              {addon.description}
+                            </p>
+                          )}
+                          <p className="text-xs font-bold text-accent pt-1">
+                            {formatIDR(addon.price)}{" "}
+                            <span className="text-[11px] text-gray-400 font-normal">
+                              / {addon.unit} (maks. {addon.maxQty} {addon.unit})
+                            </span>
+                          </p>
+                        </div>
+
+                        {/* Stepper Counter */}
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <button
+                            type="button"
+                            disabled={currentQty === 0}
+                            onClick={() => handleUpdateAddonQty(addon.id, -1, addon.maxQty)}
+                            className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:border-accent hover:text-accent disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer bg-white shadow-2xs"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-bold text-primary tabular-nums">
+                            {currentQty}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={currentQty >= addon.maxQty}
+                            onClick={() => handleUpdateAddonQty(addon.id, 1, addon.maxQty)}
+                            className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:border-accent hover:text-accent disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer bg-white shadow-2xs"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Card: Payment Method */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
               <h2 className="text-lg font-bold font-display text-primary mb-4 flex items-center gap-2">
@@ -443,44 +572,10 @@ export function BookingFlowClient({
                 Metode Pembayaran
               </h2>
 
-              <div  className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {/* QRIS */}
-                {/*<label
-                  className={`p-4 rounded-2xl border-2 cursor-pointer flex items-start gap-3 transition-all ${
-                    paymentMethod === "QRIS"
-                      ? "border-accent bg-accent/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <input
-                    disabled
-                    type="radio"
-                    name="paymentMethod"
-                    value="QRIS"
-                    checked={paymentMethod === "QRIS"}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
-                    className="mt-1 text-accent focus:ring-accent"
-                  />
-                  <div>
-                    <span className="font-bold text-sm text-gray-900 block">
-                      QRIS Instant
-                    </span>
-                    <span className="text-xs text-gray-500 mt-0.5 block">
-                      BCA, Mandiri, BRI, BNI, GoPay, OVO, ShopeePay, Dana & LinkAja
-                    </span>
-                    <span className="inline-block mt-2 text-[10px] bg-green-100 text-yellow-700 font-semibold px-2 py-0.5 rounded-full">
-                      Sedang Maintenance
-                    </span>
-                  </div>
-                </label>*/}
-
-                {/* Transfer Bank */}
+              <div className="grid grid-cols-1 gap-3">
+                {/* Transfer Bank Manual Resmi */}
                 <label
-                  className={`p-4 rounded-2xl border-2 cursor-pointer flex items-start gap-3 transition-all ${
-                    paymentMethod === "BANK_TRANSFER"
-                      ? "border-accent bg-accent/5"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
+                  className="p-4 rounded-2xl border-2 border-accent bg-accent/5 cursor-pointer flex items-start gap-3 transition-all"
                 >
                   <input
                     type="radio"
@@ -495,10 +590,10 @@ export function BookingFlowClient({
                       Transfer Bank Manual
                     </span>
                     <span className="text-xs text-gray-500 mt-0.5 block">
-                      BCA / Mandiri / BRI Singgahsana Management
+                      BCA / Mandiri / BRI ({siteName} Management)
                     </span>
-                    <span className="inline-block mt-2 text-[10px] bg-gray-100 text-gray-600 font-semibold px-2 py-0.5 rounded-full">
-                      Unggah Bukti Struk
+                    <span className="inline-block mt-2 text-[10px] bg-accent/15 text-accent-dark font-semibold px-2 py-0.5 rounded-full">
+                      Unggah Bukti Struk Transfer
                     </span>
                   </div>
                 </label>
@@ -577,7 +672,7 @@ export function BookingFlowClient({
                 </div>
                 <div>
                   <span className="text-[10px] font-bold text-accent uppercase tracking-wider">
-                    Villa Singgahsana
+                    {siteName}
                   </span>
                   <h3 className="font-display font-bold text-lg text-primary leading-tight">
                     {villa.name}
@@ -680,6 +775,42 @@ export function BookingFlowClient({
                     {formatIDR(breakdown?.subtotal || 0)}
                   </span>
                 </div>
+
+                {/* Add-ons Breakdown */}
+                {addonsTotal > 0 && villa.addons && (
+                  <div className="border-t border-gray-200/60 pt-2 space-y-1.5 text-xs sm:text-sm">
+                    <div className="flex items-center justify-between text-gray-500 font-semibold text-[11px] uppercase tracking-wider">
+                      <span className="flex items-center gap-1">
+                        <Package className="w-3.5 h-3.5 text-accent" />
+                        Add-on Tambahan
+                      </span>
+                      <span className="text-accent font-bold tabular-nums">
+                        + {formatIDR(addonsTotal)}
+                      </span>
+                    </div>
+                    {villa.addons
+                      .filter((a) => (selectedAddons[a.id] || 0) > 0)
+                      .map((a) => {
+                        const qty = selectedAddons[a.id];
+                        return (
+                          <div
+                            key={a.id}
+                            className="flex items-center justify-between text-xs text-gray-700 pl-4"
+                          >
+                            <span>
+                              {a.name}{" "}
+                              <span className="text-gray-400 font-normal">
+                                ({qty} {a.unit})
+                              </span>
+                            </span>
+                            <span className="font-medium tabular-nums">
+                              {formatIDR(qty * a.price)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
 
                 {discountAmount > 0 && (
                   <div className="flex items-center justify-between text-xs sm:text-sm text-emerald-700 font-semibold">

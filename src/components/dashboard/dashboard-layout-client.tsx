@@ -12,12 +12,14 @@ interface DashboardLayoutClientProps {
     permissions?: string[];
   };
   siteName?: string;
+  siteLogo?: string | null;
   children: React.ReactNode;
 }
 
 export function DashboardLayoutClient({
   user,
   siteName = "Singgahsana",
+  siteLogo,
   children,
 }: DashboardLayoutClientProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -28,6 +30,7 @@ export function DashboardLayoutClient({
       <DashboardSidebar
         user={user}
         siteName={siteName}
+        siteLogo={siteLogo}
         mobileOpen={mobileMenuOpen}
         onCloseMobile={() => setMobileMenuOpen(false)}
       />
@@ -37,6 +40,7 @@ export function DashboardLayoutClient({
         <DashboardHeader
           user={user}
           siteName={siteName}
+          siteLogo={siteLogo}
           onMenuToggle={() => setMobileMenuOpen(true)}
         />
         <main className="flex-1 p-4 sm:p-6 lg:p-8 w-full max-w-7xl mx-auto min-w-0">

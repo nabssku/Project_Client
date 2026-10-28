@@ -93,8 +93,8 @@ export function ImageUploader({ images, onChange, maxFiles = 10 }: ImageUploader
         onClick={() => fileInputRef.current?.click()}
         className={`relative flex flex-col items-center justify-center p-6 sm:p-8 rounded-2xl border-2 border-dashed transition-all cursor-pointer ${
           dragOver
-            ? "border-[#C8A44E] bg-[#C8A44E]/5"
-            : "border-[#e8e6df] bg-white hover:border-[#C8A44E]/50 hover:bg-[#f8f7f4]/50"
+            ? "border-accent bg-accent/5"
+            : "border-[#e8e6df] bg-white hover:border-accent/50 hover:bg-[#f8f7f4]/50"
         } ${isUploading ? "pointer-events-none opacity-70" : ""}`}
       >
         <input
@@ -108,8 +108,8 @@ export function ImageUploader({ images, onChange, maxFiles = 10 }: ImageUploader
 
         {isUploading ? (
           <div className="flex flex-col items-center gap-2 text-center">
-            <Loader2 className="h-8 w-8 animate-spin text-[#C8A44E]" />
-            <p className="text-xs font-semibold text-[#1a1a2e]">
+            <Loader2 className="h-8 w-8 animate-spin text-accent" />
+            <p className="text-xs font-semibold text-primary">
               Mengunggah & Menerapkan Watermark di Tengah...
             </p>
             <p className="text-[11px] text-slate-400">
@@ -118,18 +118,18 @@ export function ImageUploader({ images, onChange, maxFiles = 10 }: ImageUploader
           </div>
         ) : (
           <div className="flex flex-col items-center gap-2 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1a1a2e]/5 text-[#C8A44E]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-accent">
               <UploadCloud className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-semibold text-[#1a1a2e]">
+              <p className="text-xs sm:text-sm font-semibold text-primary">
                 Klik atau seret foto villa ke sini
               </p>
               <p className="text-[11px] text-slate-400 mt-0.5">
                 Mendukung JPG, PNG, WebP (Maks. 15MB per foto)
               </p>
             </div>
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#C8A44E]/10 text-[10px] font-bold text-[#9c7827] border border-[#C8A44E]/30 mt-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent/10 text-[10px] font-bold text-[#9c7827] border border-accent/30 mt-1">
               <Sparkles className="h-3 w-3" />
               <span>Otomatis Watermark</span>
             </div>
@@ -148,7 +148,7 @@ export function ImageUploader({ images, onChange, maxFiles = 10 }: ImageUploader
       {images.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#1a1a2e]">
+            <p className="text-xs font-semibold text-primary">
               Galeri Foto ({images.length}/{maxFiles})
             </p>
             <span className="text-[11px] text-slate-400">
@@ -172,8 +172,8 @@ export function ImageUploader({ images, onChange, maxFiles = 10 }: ImageUploader
 
                 {/* Cover badge */}
                 {idx === 0 && (
-                  <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#1a1a2e]/90 text-[#C8A44E] text-[10px] font-bold shadow-xs backdrop-blur-xs">
-                    <Star className="h-3 w-3 fill-[#C8A44E]" />
+                  <span className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/90 text-accent text-[10px] font-bold shadow-xs backdrop-blur-xs">
+                    <Star className="h-3 w-3 fill-accent text-accent" />
                     Sampul
                   </span>
                 )}
@@ -187,7 +187,7 @@ export function ImageUploader({ images, onChange, maxFiles = 10 }: ImageUploader
                       title="Jadikan foto sampul utama"
                       className="p-1.5 rounded-lg bg-white/90 hover:bg-white text-slate-800 shadow-xs transition-colors"
                     >
-                      <Star className="h-4 w-4 text-[#C8A44E]" />
+                      <Star className="h-4 w-4 text-accent" />
                     </button>
                   )}
                   <button

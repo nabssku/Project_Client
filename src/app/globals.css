@@ -74,9 +74,60 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Display font for headings */
-.font-display {
-  font-family: var(--font-display);
+/* Display font for headings & titles */
+.font-display, [class*="font-display"] {
+  font-family: var(--font-display), Georgia, serif !important;
+}
+
+/* Base font for body and sans elements */
+.font-sans, [class*="font-sans"] {
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif !important;
+}
+
+/* ==========================================================================
+   DYNAMIC COLOR SYNCHRONIZATION OVERRIDES
+   Memastikan elemen dengan arbitrary hex class lama otomatis memetakan ke
+   CSS variable dinamis: var(--primary), var(--primary-dark), var(--accent), var(--accent-light)
+   ========================================================================== */
+.bg-\[\#1a1a2e\], .bg-\[\#1A1A2E\] { background-color: var(--primary) !important; }
+.text-\[\#1a1a2e\], .text-\[\#1A1A2E\] { color: var(--primary) !important; }
+.border-\[\#1a1a2e\], .border-\[\#1A1A2E\] { border-color: var(--primary) !important; }
+.ring-\[\#1a1a2e\], .ring-\[\#1A1A2E\] { --tw-ring-color: var(--primary) !important; }
+.fill-\[\#1a1a2e\], .fill-\[\#1A1A2E\] { fill: var(--primary) !important; }
+
+.bg-\[\#12121f\], .bg-\[\#12121F\] { background-color: var(--primary-dark) !important; }
+.text-\[\#12121f\], .text-\[\#12121F\] { color: var(--primary-dark) !important; }
+.border-\[\#12121f\], .border-\[\#12121F\] { border-color: var(--primary-dark) !important; }
+
+.bg-\[\#C8A44E\], .bg-\[\#c8a44e\], .bg-\[\#C8a44e\] { background-color: var(--accent) !important; }
+.text-\[\#C8A44E\], .text-\[\#c8a44e\], .text-\[\#C8a44e\] { color: var(--accent) !important; }
+.border-\[\#C8A44E\], .border-\[\#c8a44e\], .border-\[\#C8a44e\] { border-color: var(--accent) !important; }
+.ring-\[\#C8A44E\], .ring-\[\#c8a44e\], .ring-\[\#C8a44e\] { --tw-ring-color: var(--accent) !important; }
+.fill-\[\#C8A44E\], .fill-\[\#c8a44e\], .fill-\[\#C8a44e\] { fill: var(--accent) !important; }
+
+.bg-\[\#d4b366\], .bg-\[\#D4B366\], .bg-\[\#d6b25a\] { background-color: var(--accent-light) !important; }
+.text-\[\#d4b366\], .text-\[\#D4B366\], .text-\[\#d6b25a\] { color: var(--accent-light) !important; }
+.border-\[\#d4b366\], .border-\[\#D4B366\], .border-\[\#d6b25a\] { border-color: var(--accent-light) !important; }
+
+/* Dynamic Opacity Variants */
+[class*="bg-[#C8A44E]/"], [class*="bg-[#c8a44e]/"] {
+  background-color: color-mix(in srgb, var(--accent) 15%, transparent) !important;
+}
+[class*="text-[#C8A44E]/"], [class*="text-[#c8a44e]/"] {
+  color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
+}
+[class*="border-[#C8A44E]/"], [class*="border-[#c8a44e]/"] {
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
+}
+
+[class*="bg-[#1a1a2e]/"], [class*="bg-[#1A1A2E]/"] {
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+}
+[class*="text-[#1a1a2e]/"], [class*="text-[#1A1A2E]/"] {
+  color: color-mix(in srgb, var(--primary) 80%, transparent) !important;
+}
+[class*="border-[#1a1a2e]/"], [class*="border-[#1A1A2E]/"] {
+  border-color: color-mix(in srgb, var(--primary) 30%, transparent) !important;
 }
 
 /* Grain texture overlay */

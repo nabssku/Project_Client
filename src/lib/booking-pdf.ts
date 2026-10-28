@@ -20,7 +20,15 @@ export interface BookingPDFData {
   paymentMethod: string;
   paymentProofUrl?: string | null;
   notes?: string | null;
+  rejectionReason?: string | null;
   createdAt: string | Date;
+  addons?: Array<{
+    name: string;
+    price: number;
+    qty: number;
+    subtotal: number;
+    unit?: string;
+  }>;
   villa: {
     name: string;
     location?: string;
@@ -30,11 +38,64 @@ export interface BookingPDFData {
 }
 
 /**
+ * Helper to fetch image and convert to data URI format for jsPDF
+ */
+export async function resolveImageToDataUri(url: string): Promise<string | null> {
+  if (!url) return null;
+  if (url.startsWith("data:")) return url;
+
+  if (typeof window === "undefined") {
+    // Node.js environment
+    try {
+      if (url.startsWith("/")) {
+        const fs = await import("fs/promises");
+        const path = await import("path");
+        const filePath = path.join(process.cwd(), "public", url.replace(/^\//, ""));
+        const buf = await fs.readFile(filePath);
+        const ext = path.extname(url).toLowerCase().replace(".", "") || "png";
+        const mime =
+          ext === "svg"
+            ? "image/svg+xml"
+            : ext === "webp"
+            ? "image/webp"
+            : ext === "jpg" || ext === "jpeg"
+            ? "image/jpeg"
+            : "image/png";
+        return `data:${mime};base64,${buf.toString("base64")}`;
+      }
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const ab = await res.arrayBuffer();
+      const contentType = res.headers.get("content-type") || "image/png";
+      return `data:${contentType};base64,${Buffer.from(ab).toString("base64")}`;
+    } catch {
+      return null;
+    }
+  } else {
+    // Browser environment
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const blob = await res.blob();
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(blob);
+      });
+    } catch {
+      return null;
+    }
+  }
+}
+
+/**
  * Membangun dokumen jsPDF Voucher & Invoice Reservasi dengan desain Luxury Hospitality
  */
 export function buildBookingPDFDocument(
   booking: BookingPDFData,
-  siteName: string = "Singgahsana"
+  siteName: string = "Singgahsana",
+  siteLogoDataUri?: string | null
 ): jsPDF {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -88,19 +149,43 @@ export function buildBookingPDFDocument(
   doc.setFillColor(gold[0], gold[1], gold[2]);
   doc.rect(0, 0, pageWidth, 2.5, "F");
 
+  let hasLogo = false;
+  let textStartX = 16;
+
+  if (siteLogoDataUri) {
+    try {
+      let format = "PNG";
+      if (
+        siteLogoDataUri.includes("image/jpeg") ||
+        siteLogoDataUri.includes("image/jpg")
+      ) {
+        format = "JPEG";
+      } else if (siteLogoDataUri.includes("image/webp")) {
+        format = "WEBP";
+      }
+      doc.addImage(siteLogoDataUri, format, 16, 7, 20, 20);
+      hasLogo = true;
+      textStartX = 39;
+    } catch (err) {
+      console.warn("Failed to embed logo in PDF invoice:", err);
+      hasLogo = false;
+      textStartX = 16;
+    }
+  }
+
   // Brand Name
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
+  doc.setFontSize(hasLogo ? 17 : 20);
   doc.setTextColor(255, 255, 255);
-  doc.text(siteName.toUpperCase(), 16, 17);
+  doc.text(siteName.toUpperCase(), textStartX, 17);
 
   doc.setTextColor(gold[0], gold[1], gold[2]);
-  doc.text(".", 16 + doc.getTextWidth(siteName.toUpperCase()), 17);
+  doc.text(".", textStartX + doc.getTextWidth(siteName.toUpperCase()), 17);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(190, 190, 205);
-  doc.text("LUXURY PRIVATE VILLAS & RESIDENTIAL RESORTS", 16, 24);
+  doc.text("LUXURY PRIVATE VILLAS & RESIDENTIAL RESORTS", textStartX, 24);
 
   // Right side: Status Badge & Booking Code
   const statusUpper = booking.status.toUpperCase();
@@ -286,8 +371,14 @@ export function buildBookingPDFDocument(
   doc.text("RINCIAN BIAYA & STATUS PEMBAYARAN", 16, y);
 
   const discountVal = booking.discountAmount || 0;
-  const originalPrice = booking.totalPrice + discountVal;
-  const pricePerNightEst = Math.round(originalPrice / nights);
+  // Hitung total addons jika ada
+  const addonsSum = (booking.addons || []).reduce(
+    (sum, a) => sum + (Number(a.subtotal) || 0),
+    0
+  );
+  // Sewa murni villa = total bayar - addons + diskon
+  const villaRentTotal = Math.max(0, booking.totalPrice - addonsSum + discountVal);
+  const pricePerNightEst = Math.round(villaRentTotal / nights);
 
   const invoiceItems: string[][] = [
     [
@@ -295,13 +386,25 @@ export function buildBookingPDFDocument(
       `Sewa Private Villa: ${booking.villa.name}\nPeriode: ${nights} Malam (${booking.guestsCount} Tamu)`,
       `${nights} Malam`,
       formatPrice(pricePerNightEst),
-      formatPrice(originalPrice),
+      formatPrice(villaRentTotal),
     ],
   ];
 
+  if (booking.addons && booking.addons.length > 0) {
+    booking.addons.forEach((a) => {
+      invoiceItems.push([
+        String(invoiceItems.length + 1),
+        `Fasilitas Ekstra: ${a.name}`,
+        `${a.qty} ${a.unit || "pcs"}`,
+        formatPrice(a.price),
+        formatPrice(a.subtotal),
+      ]);
+    });
+  }
+
   if (discountVal > 0) {
     invoiceItems.push([
-      "2",
+      String(invoiceItems.length + 1),
       `Potongan Diskon Kupon Promo ${booking.promoCode ? `[${booking.promoCode}]` : ""}`,
       "1x",
       `-${formatPrice(discountVal)}`,
@@ -376,6 +479,17 @@ export function buildBookingPDFDocument(
   const splitNotes = doc.splitTextToSize(notesText, totalBoxX - 22);
   doc.text(splitNotes, 16, finalTableY + 12);
 
+  if (booking.rejectionReason) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
+    doc.setTextColor(220, 38, 38);
+    const splitRejection = doc.splitTextToSize(
+      `Alasan Penolakan/Batal: ${booking.rejectionReason}`,
+      totalBoxX - 22
+    );
+    doc.text(splitRejection, 16, finalTableY + 20);
+  }
+
   // ==========================================
   // 6. ATURAN VILLA & PANDUAN CHECK-IN
   // ==========================================
@@ -439,11 +553,16 @@ export function buildBookingPDFDocument(
 /**
  * Trigger unduh dokumen PDF secara langsung di peramban klien
  */
-export function downloadBookingPDF(
+export async function downloadBookingPDF(
   booking: BookingPDFData,
-  siteName: string = "Singgahsana"
+  siteName: string = "Singgahsana",
+  siteLogo?: string | null
 ) {
-  const doc = buildBookingPDFDocument(booking, siteName);
+  let logoDataUri: string | null = null;
+  if (siteLogo) {
+    logoDataUri = await resolveImageToDataUri(siteLogo);
+  }
+  const doc = buildBookingPDFDocument(booking, siteName, logoDataUri);
   const filename = `Voucher-${siteName.toLowerCase().replace(/\s+/g, "-")}-${booking.code}.pdf`;
   doc.save(filename);
 }
@@ -451,11 +570,16 @@ export function downloadBookingPDF(
 /**
  * Meng-generate PDF sebagai Buffer untuk pengiriman email server-side
  */
-export function generateBookingPDFBuffer(
+export async function generateBookingPDFBuffer(
   booking: BookingPDFData,
-  siteName: string = "Singgahsana"
-): Buffer {
-  const doc = buildBookingPDFDocument(booking, siteName);
+  siteName: string = "Singgahsana",
+  siteLogo?: string | null
+): Promise<Buffer> {
+  let logoDataUri: string | null = null;
+  if (siteLogo) {
+    logoDataUri = await resolveImageToDataUri(siteLogo);
+  }
+  const doc = buildBookingPDFDocument(booking, siteName, logoDataUri);
   const arrayBuf = doc.output("arraybuffer");
   return Buffer.from(arrayBuf);
 }

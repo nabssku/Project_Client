@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getUserPermissions } from "@/lib/rbac";
+import { hasUserPermission } from "@/lib/rbac";
 import { z } from "zod";
 
 const toggleStatusSchema = z.object({
@@ -30,8 +30,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Akun dinonaktifkan" }, { status: 403 });
     }
 
-    const perms = getUserPermissions(currentUser);
-    if (!perms.includes("user:update")) {
+    if (!hasUserPermission(currentUser, "user:status")) {
       return NextResponse.json(
         { error: "Forbidden: Anda tidak memiliki izin mengubah status pengguna" },
         { status: 403 }

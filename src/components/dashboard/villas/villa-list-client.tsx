@@ -22,8 +22,10 @@ import {
   Ban,
   LayoutGrid,
   List,
+  Package,
 } from "lucide-react";
 import { VillaPricingManager } from "./villa-pricing-manager";
+import { VillaAddonManager } from "./villa-addon-manager";
 
 interface VillaItem {
   id: string;
@@ -77,6 +79,8 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
 
   // Dynamic pricing modal state
   const [pricingModalVilla, setPricingModalVilla] = useState<VillaItem | null>(null);
+  // Addon manager modal state
+  const [addonModalVilla, setAddonModalVilla] = useState<VillaItem | null>(null);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("id-ID", {
@@ -158,7 +162,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#e8e6df]">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e] tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">
             Manajemen Unit Villa
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -169,7 +173,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
         {isAdmin && (
           <Link
             href="/dashboard/villas/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-[#C8A44E] hover:text-[#12121f] transition-all self-start sm:self-auto cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs sm:text-sm font-semibold text-white shadow-xs hover:bg-accent hover:text-primary-dark transition-all self-start sm:self-auto cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             <span>Tambah Unit Baru</span>
@@ -183,7 +187,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
           <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
             Total Unit
           </p>
-          <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e] mt-1">
+          <p className="font-display text-2xl sm:text-3xl font-bold text-primary mt-1">
             {totalCount}
           </p>
         </div>
@@ -226,7 +230,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
             placeholder="Cari nama villa atau wilayah lokasi..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm text-[#1a1a2e] placeholder:text-slate-400 focus:outline-hidden"
+            className="w-full pl-10 pr-4 py-2 rounded-xl text-xs sm:text-sm text-primary placeholder:text-slate-400 focus:outline-hidden"
           />
         </div>
 
@@ -244,7 +248,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
               onClick={() => setStatusFilter(tab.key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold shrink-0 transition-colors cursor-pointer ${
                 statusFilter === tab.key
-                  ? "bg-[#1a1a2e] text-white shadow-2xs"
+                  ? "bg-primary text-white shadow-2xs"
                   : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
               }`}
             >
@@ -257,8 +261,8 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
             <button
               onClick={() => setViewMode("grid")}
               title="Grid View"
-              className={`p-1.5 rounded-lg ${
-                viewMode === "grid" ? "bg-slate-200 text-slate-900" : "text-slate-400 hover:text-slate-700"
+              className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
+                viewMode === "grid" ? "bg-primary text-white shadow-2xs" : "text-slate-400 hover:text-primary"
               }`}
             >
               <LayoutGrid className="h-4 w-4" />
@@ -266,8 +270,8 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
             <button
               onClick={() => setViewMode("table")}
               title="Table View"
-              className={`p-1.5 rounded-lg ${
-                viewMode === "table" ? "bg-slate-200 text-slate-900" : "text-slate-400 hover:text-slate-700"
+              className={`p-1.5 rounded-lg cursor-pointer transition-colors ${
+                viewMode === "table" ? "bg-primary text-white shadow-2xs" : "text-slate-400 hover:text-primary"
               }`}
             >
               <List className="h-4 w-4" />
@@ -279,11 +283,11 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
       {/* Empty State */}
       {filteredVillas.length === 0 ? (
         <div className="rounded-2xl border border-[#e8e6df] bg-white p-12 text-center space-y-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1a1a2e]/5 text-[#C8A44E] mx-auto">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/5 text-accent mx-auto">
             <Building2 className="h-6 w-6" />
           </div>
           <div>
-            <p className="font-bold text-sm text-[#1a1a2e]">Tidak ada unit villa yang cocok</p>
+            <p className="font-bold text-sm text-primary">Tidak ada unit villa yang cocok</p>
             <p className="text-xs text-slate-400 mt-1">
               Coba sesuaikan kata kunci pencarian atau ubah filter status
             </p>
@@ -295,7 +299,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
           {filteredVillas.map((villa) => (
             <div
               key={villa.id}
-              className="group rounded-2xl border border-[#e8e6df] bg-white overflow-hidden shadow-xs hover:border-[#C8A44E]/50 hover:shadow-md transition-all flex flex-col"
+              className="group rounded-2xl border border-[#e8e6df] bg-white overflow-hidden shadow-xs hover:border-accent/50 hover:shadow-md transition-all flex flex-col"
             >
               {/* Image Preview */}
               <div className="relative aspect-16/10 w-full overflow-hidden bg-slate-100">
@@ -331,7 +335,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                 {/* Featured Badge */}
                 {villa.isFeatured && (
                   <div className="absolute top-3 right-3 z-10">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#1a1a2e]/90 text-[#C8A44E] text-[10px] font-bold shadow-xs backdrop-blur-md border border-[#C8A44E]/40">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/90 text-accent text-[10px] font-bold shadow-xs backdrop-blur-md border border-accent/40">
                       <Sparkles className="h-3 w-3" />
                       Featured
                     </span>
@@ -343,7 +347,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
               <div className="p-5 flex-1 flex flex-col justify-between space-y-4">
                 <div className="space-y-1.5">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="font-display font-bold text-base text-[#1a1a2e] group-hover:text-[#C8A44E] transition-colors line-clamp-1">
+                    <h3 className="font-display font-bold text-base text-primary group-hover:text-accent transition-colors line-clamp-1">
                       {villa.name}
                     </h3>
                   </div>
@@ -375,7 +379,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                       <span className="text-[10px] uppercase font-semibold text-slate-400 block">
                         Tarif per Malam
                       </span>
-                      <span className="font-display text-lg font-bold text-[#1a1a2e]">
+                      <span className="font-display text-lg font-bold text-primary">
                         {formatPrice(villa.pricePerNight)}
                       </span>
                     </div>
@@ -383,12 +387,12 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                     {/* Quick Status Dropdown */}
                     <div className="relative">
                       {updatingId === villa.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin text-[#C8A44E]" />
+                        <Loader2 className="h-4 w-4 animate-spin text-accent" />
                       ) : (
                         <select
                           value={villa.status}
                           onChange={(e) => handleQuickStatus(villa.id, e.target.value)}
-                          className="text-[11px] font-semibold py-1 px-2 rounded-lg border border-[#e8e6df] bg-slate-50 text-slate-700 hover:border-[#C8A44E] cursor-pointer focus:outline-hidden"
+                          className="text-[11px] font-semibold py-1 px-2 rounded-lg border border-[#e8e6df] bg-slate-50 text-slate-700 hover:border-accent cursor-pointer focus:outline-hidden"
                         >
                           <option value="AVAILABLE">AVAILABLE</option>
                           <option value="CLEANING">CLEANING</option>
@@ -404,7 +408,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                     <Link
                       href={`/villas/${villa.slug}`}
                       target="_blank"
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-[#1a1a2e]"
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-primary"
                     >
                       <Eye className="h-3.5 w-3.5" />
                       Lihat Publik
@@ -414,18 +418,28 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                       <button
                         type="button"
                         onClick={() => setPricingModalVilla(villa)}
-                        className="px-2 py-1 rounded-lg border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                        className="px-2 py-1 rounded-lg border border-accent/40 text-primary bg-accent/10 hover:bg-accent/20 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
                         title="Kelola Harga Weekend & Hari Libur"
                       >
                         <Sparkles className="h-3.5 w-3.5 text-accent" />
                         <span>Tarif</span>
                       </button>
 
+                      <button
+                        type="button"
+                        onClick={() => setAddonModalVilla(villa)}
+                        className="px-2 py-1 rounded-lg border border-accent/40 text-primary bg-accent/10 hover:bg-accent/20 transition-colors flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
+                        title="Kelola Fasilitas Tambahan (Extra Bed, Flooties, dll)"
+                      >
+                        <Package className="h-3.5 w-3.5 text-accent" />
+                        <span>Add-on</span>
+                      </button>
+
                       {isAdmin && (
                         <>
                           <Link
                             href={`/dashboard/villas/${villa.id}/edit`}
-                            className="p-1.5 rounded-lg border border-[#e8e6df] text-slate-600 hover:text-[#1a1a2e] hover:bg-slate-50 transition-colors"
+                            className="p-1.5 rounded-lg border border-[#e8e6df] text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors"
                             title="Edit Villa"
                           >
                             <Edit3 className="h-3.5 w-3.5" />
@@ -484,10 +498,10 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                           />
                         </div>
                         <div>
-                          <p className="font-bold text-[#1a1a2e]">{villa.name}</p>
+                          <p className="font-bold text-primary">{villa.name}</p>
                           <p className="text-[11px] text-slate-400">{villa.location}</p>
                           {villa.isFeatured && (
-                            <span className="inline-block mt-0.5 text-[9px] font-bold text-[#9c7827] bg-[#C8A44E]/10 px-1.5 py-0.2 rounded">
+                            <span className="inline-block mt-0.5 text-[9px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded border border-accent/20">
                               Featured
                             </span>
                           )}
@@ -502,7 +516,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                       </div>
                     </td>
 
-                    <td className="px-5 py-4 font-bold text-[#1a1a2e]">
+                    <td className="px-5 py-4 font-bold text-primary">
                       {formatPrice(villa.pricePerNight)}
                     </td>
 
@@ -510,7 +524,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                       <select
                         value={villa.status}
                         onChange={(e) => handleQuickStatus(villa.id, e.target.value)}
-                        className="text-[11px] font-semibold py-1 px-2 rounded-lg border border-[#e8e6df] bg-slate-50 text-slate-700 hover:border-[#C8A44E] cursor-pointer focus:outline-hidden"
+                        className="text-[11px] font-semibold py-1 px-2 rounded-lg border border-[#e8e6df] bg-slate-50 text-slate-700 hover:border-accent cursor-pointer focus:outline-hidden"
                       >
                         <option value="AVAILABLE">AVAILABLE</option>
                         <option value="CLEANING">CLEANING</option>
@@ -524,7 +538,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                         <Link
                           href={`/villas/${villa.slug}`}
                           target="_blank"
-                          className="p-1.5 rounded-lg border border-[#e8e6df] text-slate-600 hover:text-[#1a1a2e] hover:bg-slate-50 transition-colors"
+                          className="p-1.5 rounded-lg border border-[#e8e6df] text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors"
                           title="Lihat Publik"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -533,17 +547,26 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
                         <button
                           type="button"
                           onClick={() => setPricingModalVilla(villa)}
-                          className="p-1.5 rounded-lg border border-amber-200 text-amber-800 bg-amber-50 hover:bg-amber-100 transition-colors"
+                          className="p-1.5 rounded-lg border border-accent/40 text-primary bg-accent/10 hover:bg-accent/20 transition-colors cursor-pointer"
                           title="Kelola Harga Weekend & Libur"
                         >
                           <Sparkles className="h-3.5 w-3.5 text-accent" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setAddonModalVilla(villa)}
+                          className="p-1.5 rounded-lg border border-accent/40 text-primary bg-accent/10 hover:bg-accent/20 transition-colors cursor-pointer"
+                          title="Kelola Fasilitas Tambahan (Extra Bed, Flooties, dll)"
+                        >
+                          <Package className="h-3.5 w-3.5 text-accent" />
                         </button>
 
                         {isAdmin && (
                           <>
                             <Link
                               href={`/dashboard/villas/${villa.id}/edit`}
-                              className="p-1.5 rounded-lg border border-[#e8e6df] text-slate-600 hover:text-[#1a1a2e] hover:bg-slate-50 transition-colors"
+                              className="p-1.5 rounded-lg border border-[#e8e6df] text-slate-600 hover:text-primary hover:bg-slate-50 transition-colors"
                               title="Edit"
                             >
                               <Edit3 className="h-3.5 w-3.5" />
@@ -588,12 +611,12 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="font-display text-lg font-bold text-[#1a1a2e]">
+              <h3 className="font-display text-lg font-bold text-primary">
                 Hapus Unit Villa?
               </h3>
               <p className="text-xs text-slate-500">
                 Apakah Anda yakin ingin menghapus{" "}
-                <span className="font-bold text-[#1a1a2e]">
+                <span className="font-bold text-primary">
                   &ldquo;{deleteModal.villa.name}&rdquo;
                 </span>
                 ? Tindakan ini tidak dapat dibatalkan.
@@ -649,6 +672,15 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
             />
           </div>
         </div>
+      )}
+
+      {/* Villa Addon Manager Modal */}
+      {addonModalVilla && (
+        <VillaAddonManager
+          villaId={addonModalVilla.id}
+          villaName={addonModalVilla.name}
+          onClose={() => setAddonModalVilla(null)}
+        />
       )}
     </div>
   );

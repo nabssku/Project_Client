@@ -21,6 +21,7 @@ import {
   Loader2,
   Copy,
   ChevronRight,
+  ChevronDown,
   UserCheck,
   Building,
   Check,
@@ -33,9 +34,13 @@ import {
   Share2,
   CreditCard,
   Mail,
+  Package,
+  XCircle,
+  MessageSquare,
 } from "lucide-react";
 import { BankAccountsManagerModal } from "@/components/dashboard/settings/bank-accounts-manager-modal";
 import { downloadBookingPDF } from "@/lib/booking-pdf";
+import { normalizeMediaUrl } from "@/lib/media";
 
 interface VillaOption {
   id: string;
@@ -65,7 +70,16 @@ interface BookingItem {
   paymentProofUrl?: string | null;
   paymentProofUploadedAt?: string | null;
   notes?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
+  addons?: Array<{
+    id: string;
+    name: string;
+    price: number;
+    qty: number;
+    subtotal: number;
+    unit: string;
+  }>;
   villa: {
     id: string;
     name: string;
@@ -77,12 +91,16 @@ interface ManagerBookingsClientProps {
   initialBookings: BookingItem[];
   villas: VillaOption[];
   userRole: string;
+  siteName?: string;
+  siteLogo?: string | null;
 }
 
 export function ManagerBookingsClient({
   initialBookings,
   villas,
   userRole,
+  siteName = "Singgahsana",
+  siteLogo = "/logo.png",
 }: ManagerBookingsClientProps) {
   const [bookings, setBookings] = useState<BookingItem[]>(initialBookings);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -109,11 +127,36 @@ export function ManagerBookingsClient({
   // Action Menu Dropdown state (stores booking id)
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
 
+  // Expandable Add-ons in Table state (keeps table row height clean)
+  const [expandedAddonIds, setExpandedAddonIds] = useState<Set<string>>(new Set());
+  const toggleExpandAddons = (id: string) => {
+    setExpandedAddonIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   // Download loading state
   const [downloadingCode, setDownloadingCode] = useState<string | null>(null);
 
   // Bank Accounts Settings Modal
   const [bankModalOpen, setBankModalOpen] = useState(false);
+
+  // Reject Payment Proof Modal state
+  const [rejectModal, setRejectModal] = useState<{
+    isOpen: boolean;
+    booking: BookingItem | null;
+    reason: string;
+  }>({
+    isOpen: false,
+    booking: null,
+    reason: "",
+  });
 
   // Direct Booking Modal
   const [directBookingOpen, setDirectBookingOpen] = useState(false);
@@ -164,30 +207,42 @@ Status: ${b.status}`;
   };
 
   // Unduh Dokumen PDF Resmi (Invoice & Voucher Menginap)
-  const handleDownloadPDF = (b: BookingItem) => {
+  const handleDownloadPDF = async (b: BookingItem) => {
     try {
-      downloadBookingPDF({
-        id: b.id,
-        code: b.code,
-        guestName: b.guestName,
-        guestEmail: b.guestEmail,
-        guestPhone: b.guestPhone,
-        guestCity: b.guestCity,
-        companionType: b.companionType,
-        checkIn: b.checkIn,
-        checkOut: b.checkOut,
-        guestsCount: b.guestsCount,
-        totalPrice: b.totalPrice,
-        discountAmount: b.discountAmount,
-        promoCode: b.promoCode,
-        status: b.status,
-        paymentMethod: b.paymentMethod,
-        notes: b.notes,
-        createdAt: b.createdAt,
-        villa: {
-          name: b.villa.name,
+      await downloadBookingPDF(
+        {
+          id: b.id,
+          code: b.code,
+          guestName: b.guestName,
+          guestEmail: b.guestEmail,
+          guestPhone: b.guestPhone,
+          guestCity: b.guestCity,
+          companionType: b.companionType,
+          checkIn: b.checkIn,
+          checkOut: b.checkOut,
+          guestsCount: b.guestsCount,
+          totalPrice: b.totalPrice,
+          discountAmount: b.discountAmount,
+          promoCode: b.promoCode,
+          status: b.status,
+          paymentMethod: b.paymentMethod,
+          notes: b.notes,
+          rejectionReason: b.rejectionReason,
+          createdAt: b.createdAt,
+          addons: b.addons?.map((a) => ({
+            name: a.name,
+            price: a.price,
+            qty: a.qty,
+            subtotal: a.subtotal,
+            unit: a.unit,
+          })),
+          villa: {
+            name: b.villa.name,
+          },
         },
-      });
+        siteName,
+        siteLogo
+      );
     } catch (err) {
       console.error("Gagal mengunduh dokumen PDF:", err);
       alert("Gagal mengunduh dokumen PDF.");
@@ -248,14 +303,15 @@ Status: ${b.status}`;
   const handleUpdateStatus = async (
     bookingId: string,
     newStatus: BookingItem["status"],
-    notes?: string
+    notes?: string,
+    rejectionReason?: string
   ) => {
     setUpdatingId(bookingId);
     try {
       const res = await fetch(`/api/bookings/${bookingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, notes }),
+        body: JSON.stringify({ status: newStatus, notes, rejectionReason }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -268,9 +324,11 @@ Status: ${b.status}`;
             ? {
                 ...b,
                 status: newStatus,
-                notes: notes
-                  ? `${b.notes ? b.notes + "\n" : ""}[Catatan Admin]: ${notes}`
-                  : b.notes,
+                notes: notes !== undefined ? notes : b.notes,
+                rejectionReason:
+                  newStatus === "CANCELLED"
+                    ? rejectionReason || notes || b.rejectionReason
+                    : null,
               }
             : b
         )
@@ -278,11 +336,23 @@ Status: ${b.status}`;
 
       if (selectedProofBooking?.id === bookingId) {
         setSelectedProofBooking((prev) =>
-          prev ? { ...prev, status: newStatus } : null
+          prev
+            ? {
+                ...prev,
+                status: newStatus,
+                rejectionReason:
+                  newStatus === "CANCELLED"
+                    ? rejectionReason || notes || prev.rejectionReason
+                    : null,
+              }
+            : null
         );
       }
       if (statusModal.isOpen && statusModal.booking?.id === bookingId) {
         setStatusModal((prev) => ({ ...prev, isOpen: false }));
+      }
+      if (rejectModal.isOpen && rejectModal.booking?.id === bookingId) {
+        setRejectModal({ isOpen: false, booking: null, reason: "" });
       }
     } catch (err: any) {
       alert(err.message || "Gagal memperbarui status");
@@ -307,13 +377,14 @@ Status: ${b.status}`;
 
   // Handle Download Transfer Proof
   const handleDownloadProof = async (url: string, code: string) => {
+    const targetUrl = normalizeMediaUrl(url);
     setDownloadingCode(code);
     try {
-      const cleanUrl = url.split("?")[0];
+      const cleanUrl = targetUrl.split("?")[0];
       const ext = cleanUrl.split(".").pop() || "jpg";
       const filename = `${code}-bukti-transfer.${ext}`;
 
-      const response = await fetch(url);
+      const response = await fetch(targetUrl);
       if (!response.ok) throw new Error("Gagal mengambil file gambar bukti");
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
@@ -327,7 +398,7 @@ Status: ${b.status}`;
       window.URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.warn("Direct blob download failed, opening in new tab:", err);
-      window.open(url, "_blank");
+      window.open(targetUrl, "_blank");
     } finally {
       setDownloadingCode(null);
     }
@@ -612,8 +683,8 @@ Status: ${b.status}`;
                       </td>
 
                       {/* Guest */}
-                      <td className="py-3.5 px-4">
-                        <span className="font-semibold text-gray-900 block">
+                      <td className="py-3.5 px-4 max-w-[210px]">
+                        <span className="font-semibold text-gray-900 block truncate">
                           {b.guestName}
                         </span>
                         <a
@@ -627,18 +698,104 @@ Status: ${b.status}`;
                           <span>{b.guestPhone}</span>
                         </a>
                         {b.guestCity && (
-                          <span className="text-[10px] text-gray-400 block">
-                            {b.guestCity}
+                          <span className="text-[10px] text-gray-400 block truncate">
+                            {b.guestCity} {b.companionType ? `• ${b.companionType}` : ""}
                           </span>
+                        )}
+                        {/* Guest Notes */}
+                        {b.notes && (
+                          <div className="mt-1.5 p-1.5 rounded-lg bg-amber-50/90 border border-amber-200/70 text-[10px] text-amber-900 leading-tight">
+                            <span className="font-bold flex items-center gap-1 text-amber-800">
+                              <MessageSquare className="w-2.5 h-2.5 shrink-0" />
+                              Catatan Tamu:
+                            </span>
+                            <span className="line-clamp-2 italic mt-0.5">&ldquo;{b.notes}&rdquo;</span>
+                          </div>
+                        )}
+                        {/* Rejection Reason if Cancelled */}
+                        {b.status === "CANCELLED" && b.rejectionReason && (
+                          <div className="mt-1.5 p-1.5 rounded-lg bg-rose-50 border border-rose-200 text-[10px] text-rose-800 leading-tight">
+                            <span className="font-bold block text-rose-900">Alasan Ditolak:</span>
+                            <span className="line-clamp-2 mt-0.5">{b.rejectionReason}</span>
+                          </div>
                         )}
                       </td>
 
-                      {/* Villa */}
-                      <td className="py-3.5 px-4 font-medium text-gray-800">
-                        <span className="block font-semibold">{b.villa.name}</span>
-                        <span className="text-[10px] text-gray-400 block">
-                          {b.guestsCount} Tamu
-                        </span>
+                      {/* Villa & Addons */}
+                      <td className="py-3.5 px-4 font-medium text-gray-800 max-w-[220px]">
+                        <span className="block font-semibold truncate">{b.villa.name}</span>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <span className="text-[10px] text-gray-400">
+                            {b.guestsCount} Tamu
+                          </span>
+                          {b.addons && b.addons.length > 0 && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-accent/15 text-accent text-[10px] font-bold cursor-default"
+                              title={b.addons
+                                .map((a) => `• ${a.name}: ${a.qty} ${a.unit}`)
+                                .join("\n")}
+                            >
+                              <Package className="w-2.5 h-2.5" />
+                              <span>
+                                {b.addons.reduce((sum, a) => sum + a.qty, 0)} Pcs ({b.addons.length} Item)
+                              </span>
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Add-on items display (compact & anti-clutter) */}
+                        {b.addons && b.addons.length > 0 && (
+                          <div className="mt-1 text-[10px] space-y-0.5">
+                            {/* Always show the first item */}
+                            <div
+                              className="text-slate-600 truncate flex items-center justify-between gap-1"
+                              title={`${b.addons[0].name} (${b.addons[0].qty} ${b.addons[0].unit})`}
+                            >
+                              <span className="truncate">• {b.addons[0].name}</span>
+                              <span className="font-bold text-accent shrink-0">
+                                {b.addons[0].qty} {b.addons[0].unit}
+                              </span>
+                            </div>
+
+                            {/* If more than 1 item, provide a 1-click expander */}
+                            {b.addons.length > 1 && (
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => toggleExpandAddons(b.id)}
+                                  className="text-accent hover:text-accent-dark font-semibold text-[10px] inline-flex items-center gap-1 cursor-pointer transition-colors py-0.5"
+                                >
+                                  <span>
+                                    {expandedAddonIds.has(b.id)
+                                      ? "Tutup rincian"
+                                      : `+${b.addons.length - 1} item lainnya`}
+                                  </span>
+                                  <ChevronDown
+                                    className={`w-2.5 h-2.5 transition-transform duration-200 ${
+                                      expandedAddonIds.has(b.id) ? "rotate-180" : ""
+                                    }`}
+                                  />
+                                </button>
+
+                                {expandedAddonIds.has(b.id) && (
+                                  <div className="mt-1 p-1.5 rounded-lg bg-slate-50 border border-slate-200/60 space-y-0.5 animate-fade-in shadow-2xs">
+                                    {b.addons.slice(1).map((a) => (
+                                      <div
+                                        key={a.id}
+                                        className="flex justify-between items-center text-slate-700"
+                                      >
+                                        <span className="truncate pr-1">• {a.name}</span>
+                                        <span className="font-bold text-accent shrink-0">
+                                          {a.qty} {a.unit}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </td>
 
                       {/* Stay Dates */}
@@ -1039,7 +1196,7 @@ Status: ${b.status}`;
                 {/* Open in new tab */}
                 {selectedProofBooking.paymentProofUrl && (
                   <a
-                    href={selectedProofBooking.paymentProofUrl}
+                    href={normalizeMediaUrl(selectedProofBooking.paymentProofUrl)}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 rounded-xl text-gray-500 hover:text-primary hover:bg-gray-100 transition-colors"
@@ -1083,7 +1240,7 @@ Status: ${b.status}`;
                       <span>Unduh Dokumen PDF</span>
                     </button>
                     <a
-                      href={selectedProofBooking.paymentProofUrl}
+                      href={normalizeMediaUrl(selectedProofBooking.paymentProofUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-xs font-semibold"
@@ -1096,9 +1253,10 @@ Status: ${b.status}`;
               ) : (
                 <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 flex items-center justify-center">
                   <Image
-                    src={selectedProofBooking.paymentProofUrl || ""}
+                    src={normalizeMediaUrl(selectedProofBooking.paymentProofUrl) || ""}
                     alt="Bukti Transfer"
                     fill
+                    unoptimized
                     className="object-contain"
                   />
                 </div>
@@ -1138,6 +1296,59 @@ Status: ${b.status}`;
                 </div>
               </div>
 
+              {/* Add-ons Ordered if any */}
+              {selectedProofBooking.addons && selectedProofBooking.addons.length > 0 && (
+                <div className="mt-3.5 w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-gray-800">
+                    <span className="flex items-center gap-1.5 text-accent">
+                      <Package className="w-4 h-4" />
+                      Add-on / Fasilitas Ekstra Dipesan ({selectedProofBooking.addons.length}):
+                    </span>
+                    <span className="text-gray-500 font-semibold">
+                      Total {formatIDR(selectedProofBooking.addons.reduce((sum, a) => sum + a.subtotal, 0))}
+                    </span>
+                  </div>
+                  <div className="divide-y divide-gray-200/60 text-xs">
+                    {selectedProofBooking.addons.map((a) => (
+                      <div key={a.id} className="py-1.5 flex justify-between items-center text-gray-700">
+                        <span>
+                          <strong className="text-primary">{a.name}</strong> × {a.qty} {a.unit}
+                        </span>
+                        <span className="font-semibold text-accent tabular-nums">
+                          {formatIDR(a.subtotal)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Guest Notes if any */}
+              {selectedProofBooking.notes && (
+                <div className="mt-3 w-full p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-xs">
+                  <span className="font-bold text-amber-900 flex items-center gap-1.5 mb-1">
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                    Catatan / Permintaan Khusus Tamu:
+                  </span>
+                  <p className="text-amber-800 italic leading-relaxed">
+                    &ldquo;{selectedProofBooking.notes}&rdquo;
+                  </p>
+                </div>
+              )}
+
+              {/* Rejection Reason if Cancelled */}
+              {selectedProofBooking.status === "CANCELLED" && selectedProofBooking.rejectionReason && (
+                <div className="mt-3 w-full p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-xs">
+                  <span className="font-bold text-rose-900 flex items-center gap-1.5 mb-1">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
+                    Alasan Pembatalan / Penolakan Bukti:
+                  </span>
+                  <p className="text-rose-700 font-medium">
+                    {selectedProofBooking.rejectionReason}
+                  </p>
+                </div>
+              )}
+
               {/* Action Buttons Footer */}
               <div className="mt-5 w-full flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-100">
                 {/* Secondary Download Button */}
@@ -1167,17 +1378,11 @@ Status: ${b.status}`;
                         type="button"
                         disabled={updatingId === selectedProofBooking.id}
                         onClick={() => {
-                          if (
-                            confirm(
-                              `Tolak bukti pembayaran untuk ${selectedProofBooking.code}? Status akan menjadi Dibatalkan.`
-                            )
-                          ) {
-                            handleUpdateStatus(
-                              selectedProofBooking.id,
-                              "CANCELLED",
-                              "Bukti transfer tidak valid/ditolak oleh manajer"
-                            );
-                          }
+                          setRejectModal({
+                            isOpen: true,
+                            booking: selectedProofBooking,
+                            reason: "",
+                          });
                         }}
                         className="px-3.5 py-2.5 rounded-xl border border-rose-200 text-rose-600 text-xs font-semibold hover:bg-rose-50 transition-colors cursor-pointer"
                       >
@@ -1254,6 +1459,33 @@ Status: ${b.status}`;
 
             {/* Body */}
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Add-ons Ordered if any */}
+              {statusModal.booking.addons && statusModal.booking.addons.length > 0 && (
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2">
+                  <div className="flex items-center justify-between text-xs font-bold text-gray-700">
+                    <span className="flex items-center gap-1.5 text-accent">
+                      <Package className="w-4 h-4" />
+                      Add-on / Fasilitas Ekstra Dipesan:
+                    </span>
+                    <span className="text-gray-500 font-semibold">
+                      Total {statusModal.booking.addons.length} item
+                    </span>
+                  </div>
+                  <div className="divide-y divide-gray-200/60 text-xs">
+                    {statusModal.booking.addons.map((a) => (
+                      <div key={a.id} className="py-1.5 flex justify-between items-center text-gray-700">
+                        <span>
+                          <strong className="text-primary">{a.name}</strong> × {a.qty} {a.unit}
+                        </span>
+                        <span className="font-semibold text-accent tabular-nums">
+                          {formatIDR(a.subtotal)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-2">
                   Pilih Status Baru
@@ -1353,19 +1585,33 @@ Status: ${b.status}`;
                 </div>
               </div>
 
-              {/* Notes input */}
+              {/* Notes or Rejection Reason input */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Catatan Internal Manajer (opsional)
+                  {statusModal.targetStatus === "CANCELLED" ? (
+                    <span className="text-rose-700 font-bold">
+                      Alasan Pembatalan / Penolakan * (Akan ditampilkan ke Tamu)
+                    </span>
+                  ) : (
+                    "Catatan Internal Manajer (opsional)"
+                  )}
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Contoh: Bukti transfer BCA telah dicek mutasi rekening, sudah valid."
+                  placeholder={
+                    statusModal.targetStatus === "CANCELLED"
+                      ? "Contoh: Bukti transfer buram / nominal tidak sesuai / salah rekening tujuan..."
+                      : "Contoh: Bukti transfer BCA telah dicek mutasi rekening, sudah valid."
+                  }
                   value={statusModal.notes}
                   onChange={(e) =>
                     setStatusModal((prev) => ({ ...prev, notes: e.target.value }))
                   }
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs focus:outline-none focus:ring-1 ${
+                    statusModal.targetStatus === "CANCELLED"
+                      ? "border-rose-300 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/20"
+                      : "border-gray-200 focus:ring-accent"
+                  }`}
                 />
               </div>
 
@@ -1382,20 +1628,28 @@ Status: ${b.status}`;
                 </button>
                 <button
                   type="button"
-                  disabled={updatingId === statusModal.booking.id}
+                  disabled={
+                    updatingId === statusModal.booking.id ||
+                    (statusModal.targetStatus === "CANCELLED" && !statusModal.notes.trim())
+                  }
                   onClick={async () => {
                     await handleUpdateStatus(
                       statusModal.booking!.id,
                       statusModal.targetStatus,
-                      statusModal.notes.trim() || undefined
+                      statusModal.targetStatus !== "CANCELLED" ? statusModal.notes.trim() || undefined : undefined,
+                      statusModal.targetStatus === "CANCELLED" ? statusModal.notes.trim() : undefined
                     );
                   }}
-                  className="px-5 py-2.5 rounded-xl bg-accent text-white text-xs font-semibold hover:bg-accent-light transition-colors flex items-center gap-2 shadow-md shadow-accent/20 cursor-pointer disabled:opacity-50"
+                  className={`px-5 py-2.5 rounded-xl text-white text-xs font-semibold transition-colors flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50 ${
+                    statusModal.targetStatus === "CANCELLED"
+                      ? "bg-rose-600 hover:bg-rose-700 shadow-rose-200"
+                      : "bg-accent hover:bg-accent-light shadow-accent/20"
+                  }`}
                 >
                   {updatingId === statusModal.booking.id ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <span>Simpan Status</span>
+                    <span>{statusModal.targetStatus === "CANCELLED" ? "Batalkan Pesanan" : "Simpan Status"}</span>
                   )}
                 </button>
               </div>
@@ -1647,6 +1901,114 @@ Status: ${b.status}`;
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal Tolak Bukti Transfer */}
+      {rejectModal.isOpen && rejectModal.booking && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl animate-fade-in space-y-4 border border-rose-100">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2.5 text-rose-600">
+                <div className="w-10 h-10 rounded-2xl bg-rose-100 flex items-center justify-center shrink-0">
+                  <XCircle className="w-5 h-5 text-rose-600" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-base text-primary">
+                    Tolak Bukti Pembayaran
+                  </h3>
+                  <p className="text-xs text-gray-400">
+                    Kode Booking: <strong className="text-primary font-mono">{rejectModal.booking.code}</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectModal({ isOpen: false, booking: null, reason: "" })}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-600">
+              Pilih atau tuliskan alasan penolakan. Alasan ini akan <strong>langsung ditampilkan kepada tamu</strong> di halaman status reservasi mereka agar mereka dapat memperbaiki atau mengunggah ulang bukti transfer yang benar.
+            </p>
+
+            {/* Quick Chips */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                Pilihan Alasan Cepat:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "Nominal transfer tidak sesuai / kurang",
+                  "Foto bukti transfer buram atau tidak terbaca",
+                  "Rekening tujuan salah (bukan rekening resmi)",
+                  "Nama pengirim tidak cocok dengan mutasi bank",
+                  "Batas waktu pembayaran (expired) telah habis",
+                ].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => setRejectModal((prev) => ({ ...prev, reason: chip }))}
+                    className={`text-[11px] px-2.5 py-1 rounded-lg border transition-colors cursor-pointer ${
+                      rejectModal.reason === chip
+                        ? "bg-rose-100 text-rose-800 border-rose-300 font-semibold"
+                        : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                    }`}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Textarea */}
+            <div>
+              <label className="block text-xs font-semibold text-primary mb-1">
+                Keterangan / Alasan Lengkap *
+              </label>
+              <textarea
+                rows={3}
+                required
+                value={rejectModal.reason}
+                onChange={(e) => setRejectModal((prev) => ({ ...prev, reason: e.target.value }))}
+                placeholder="Tuliskan instruksi atau alasan kenapa bukti transfer ditolak..."
+                className="w-full text-xs p-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setRejectModal({ isOpen: false, booking: null, reason: "" })}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={!rejectModal.reason.trim() || updatingId === rejectModal.booking.id}
+                onClick={async () => {
+                  await handleUpdateStatus(
+                    rejectModal.booking!.id,
+                    "CANCELLED",
+                    undefined,
+                    rejectModal.reason.trim()
+                  );
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer shadow-xs"
+              >
+                {updatingId === rejectModal.booking.id ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <XCircle className="w-3.5 h-3.5" />
+                )}
+                <span>Kirim Penolakan Bukti</span>
+              </button>
+            </div>
           </div>
         </div>
       )}

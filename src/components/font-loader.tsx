@@ -68,6 +68,25 @@ export function FontLoader({
     setTheme({ bodyFont, displayFont, primaryColor, secondaryColor });
   }, [bodyFont, displayFont, primaryColor, secondaryColor]);
 
+  // Real-time event listener for instant theme changes across tabs or CMS previews
+  useEffect(() => {
+    const handleThemeChange = (e: any) => {
+      const detail = e.detail;
+      if (!detail) return;
+      setTheme((prev) => ({
+        bodyFont: detail.font_body || prev.bodyFont,
+        displayFont: detail.font_display || prev.displayFont,
+        primaryColor: detail.primary_color || prev.primaryColor,
+        secondaryColor: detail.secondary_color || prev.secondaryColor,
+      }));
+    };
+
+    window.addEventListener("theme-change", handleThemeChange);
+    return () => {
+      window.removeEventListener("theme-change", handleThemeChange);
+    };
+  }, []);
+
   // Client-side cache-buster: fetch fresh configs to bypass any stale CDN/browser cache
   useEffect(() => {
     let mounted = true;
@@ -140,8 +159,8 @@ export function FontLoader({
     // 3. Update CSS variables globally on document root
     const root = document.documentElement;
 
-    root.style.setProperty("--font-sans", theme.bodyFont);
-    root.style.setProperty("--font-display", theme.displayFont);
+    root.style.setProperty("--font-sans", `"${theme.bodyFont}", system-ui, -apple-system, sans-serif`);
+    root.style.setProperty("--font-display", `"${theme.displayFont}", Georgia, serif`);
 
     root.style.setProperty("--primary", theme.primaryColor);
     root.style.setProperty("--color-primary", theme.primaryColor);
@@ -163,7 +182,7 @@ export function FontLoader({
     accentLight,
   ]);
 
-  // Server-rendered inline style to prevent flash of default theme
+  // Server-rendered inline style to guarantee instant correct colors & typography everywhere
   const inlineStyles = `
     :root {
       --primary: ${theme.primaryColor} !important;
@@ -179,11 +198,50 @@ export function FontLoader({
       --font-sans: "${theme.bodyFont}", system-ui, -apple-system, sans-serif !important;
       --font-display: "${theme.displayFont}", Georgia, serif !important;
     }
-    body {
+    html, body {
       font-family: var(--font-sans) !important;
     }
-    .font-display {
+    .font-sans, [class*="font-sans"] {
+      font-family: var(--font-sans) !important;
+    }
+    .font-display, [class*="font-display"] {
       font-family: var(--font-display) !important;
+    }
+
+    /* Fallback and legacy hardcoded hex mapping to guarantee 100% color synchronization */
+    .bg-\\[\\#1a1a2e\\], .bg-\\[\\#1A1A2E\\] { background-color: var(--primary) !important; }
+    .text-\\[\\#1a1a2e\\], .text-\\[\\#1A1A2E\\] { color: var(--primary) !important; }
+    .border-\\[\\#1a1a2e\\], .border-\\[\\#1A1A2E\\] { border-color: var(--primary) !important; }
+
+    .bg-\\[\\#12121f\\], .bg-\\[\\#12121F\\] { background-color: var(--primary-dark) !important; }
+    .text-\\[\\#12121f\\], .text-\\[\\#12121F\\] { color: var(--primary-dark) !important; }
+    .border-\\[\\#12121f\\], .border-\\[\\#12121F\\] { border-color: var(--primary-dark) !important; }
+
+    .bg-\\[\\#C8A44E\\], .bg-\\[\\#c8a44e\\], .bg-\\[\\#C8a44e\\] { background-color: var(--accent) !important; }
+    .text-\\[\\#C8A44E\\], .text-\\[\\#c8a44e\\], .text-\\[\\#C8a44e\\] { color: var(--accent) !important; }
+    .border-\\[\\#C8A44E\\], .border-\\[\\#c8a44e\\], .border-\\[\\#C8a44e\\] { border-color: var(--accent) !important; }
+
+    .bg-\\[\\#d4b366\\], .bg-\\[\\#D4B366\\], .bg-\\[\\#d6b25a\\] { background-color: var(--accent-light) !important; }
+    .text-\\[\\#d4b366\\], .text-\\[\\#D4B366\\], .text-\\[\\#d6b25a\\] { color: var(--accent-light) !important; }
+    .border-\\[\\#d4b366\\], .border-\\[\\#D4B366\\], .border-\\[\\#d6b25a\\] { border-color: var(--accent-light) !important; }
+
+    [class*="bg-[#C8A44E]/"], [class*="bg-[#c8a44e]/"] {
+      background-color: color-mix(in srgb, var(--accent) 15%, transparent) !important;
+    }
+    [class*="text-[#C8A44E]/"], [class*="text-[#c8a44e]/"] {
+      color: color-mix(in srgb, var(--accent) 80%, transparent) !important;
+    }
+    [class*="border-[#C8A44E]/"], [class*="border-[#c8a44e]/"] {
+      border-color: color-mix(in srgb, var(--accent) 30%, transparent) !important;
+    }
+    [class*="bg-[#1a1a2e]/"], [class*="bg-[#1A1A2E]/"] {
+      background-color: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+    }
+    [class*="text-[#1a1a2e]/"], [class*="text-[#1A1A2E]/"] {
+      color: color-mix(in srgb, var(--primary) 80%, transparent) !important;
+    }
+    [class*="border-[#1a1a2e]/"], [class*="border-[#1A1A2E]/"] {
+      border-color: color-mix(in srgb, var(--primary) 30%, transparent) !important;
     }
   `;
 

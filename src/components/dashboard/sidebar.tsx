@@ -16,6 +16,7 @@ import {
   Megaphone,
   Wrench,
   Activity,
+  Info,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ interface SidebarProps {
     permissions?: string[];
   };
   siteName?: string;
+  siteLogo?: string | null;
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
 }
@@ -48,11 +50,18 @@ const navItems: NavItem[] = [
 ];
 
 const cmsItems: NavItem[] = [
-  { label: "Hero, Branding & Desain", href: "/dashboard/cms/hero", icon: Palette, permission: "cms:read" },
-  { label: "Artikel & SEO", href: "/dashboard/cms/articles", icon: Newspaper, permission: "cms:read" },
-  { label: "Pop-up Promo", href: "/dashboard/cms/popups", icon: Megaphone, permission: "cms:read" },
-  { label: "Testimoni", href: "/dashboard/cms/testimonials", icon: MessageSquare, permission: "cms:read" },
-  { label: "Kode Promo", href: "/dashboard/cms/promos", icon: Tag, permission: "cms:read" },
+  { label: "Hero, Branding & Desain", href: "/dashboard/cms/hero", icon: Palette, permission: "cms:hero" },
+  { label: "Halaman Tentang Kami", href: "/dashboard/cms/about", icon: Info, permission: "cms:about" },
+  { label: "Artikel & SEO", href: "/dashboard/cms/articles", icon: Newspaper, permission: "cms:articles" },
+  { label: "Pop-up Promo", href: "/dashboard/cms/popups", icon: Megaphone, permission: "cms:popups" },
+  { label: "Testimoni", href: "/dashboard/cms/testimonials", icon: MessageSquare, permission: "cms:testimonials" },
+  { label: "Kode Promo", href: "/dashboard/cms/promos", icon: Tag, permission: "cms:promos" },
+];
+
+const guestNavItems: NavItem[] = [
+  { label: "Portal & Pesanan", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Jelajahi Villa", href: "/villas", icon: Building2 },
+  { label: "Lacak Status Pesanan", href: "/booking/status", icon: CalendarDays },
 ];
 
 const settingsItems: NavItem[] = [
@@ -64,6 +73,7 @@ const settingsItems: NavItem[] = [
 export function DashboardSidebar({
   user,
   siteName = "singgahsana",
+  siteLogo,
   mobileOpen = false,
   onCloseMobile,
 }: SidebarProps) {
@@ -75,9 +85,23 @@ export function DashboardSidebar({
       : getPermissions(role);
 
   function filterItems(items: NavItem[]) {
-    return items.filter(
-      (item) => !item.permission || userPermissions.includes(item.permission)
-    );
+    return items.filter((item) => {
+      if (!item.permission) return true;
+      if (role === "ADMIN") return true;
+      // Direct permission match
+      if (userPermissions.includes(item.permission)) return true;
+      // General CMS read allows all CMS sub-modules
+      if (item.href.startsWith("/dashboard/cms") && userPermissions.includes("cms:read")) return true;
+      // General Settings read/update/payment allows settings page
+      if (
+        item.href === "/dashboard/settings" &&
+        (userPermissions.includes("settings:read") ||
+          userPermissions.includes("settings:update") ||
+          userPermissions.includes("settings:payment"))
+      )
+        return true;
+      return false;
+    });
   }
 
   function NavLink({ item }: { item: NavItem }) {
@@ -92,14 +116,14 @@ export function DashboardSidebar({
         className={cn(
           "flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-all duration-150",
           isActive
-            ? "bg-[#C8A44E]/15 text-[#C8A44E] font-semibold"
+            ? "bg-accent/15 text-accent font-semibold"
             : "text-white/65 hover:bg-white/5 hover:text-white"
         )}
       >
         <item.icon
           className={cn(
             "h-4 w-4 shrink-0 transition-colors",
-            isActive ? "text-[#C8A44E]" : "text-white/45"
+            isActive ? "text-accent" : "text-white/45"
           )}
         />
         <span className="truncate">{item.label}</span>
@@ -107,22 +131,30 @@ export function DashboardSidebar({
     );
   }
 
-  const filteredNav = filterItems(navItems);
-  const filteredCms = filterItems(cmsItems);
-  const filteredSettings = filterItems(settingsItems);
+  const filteredNav = role === "GUEST" ? guestNavItems : filterItems(navItems);
+  const filteredCms = role === "GUEST" ? [] : filterItems(cmsItems);
+  const filteredSettings = role === "GUEST" ? [] : filterItems(settingsItems);
 
   const initialLetter = siteName ? siteName.charAt(0).toUpperCase() : "S";
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-[#12121f] text-white">
+    <div className="flex h-full flex-col bg-primary-dark text-white">
       {/* Brand Header */}
       <div className="flex h-16 items-center justify-between border-b border-white/10 px-5 shrink-0">
-        <Link href="/dashboard" onClick={onCloseMobile} className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#C8A44E] text-[#12121f] font-black text-sm shadow-xs">
-            {initialLetter}
-          </span>
-          <span className="text-base font-bold tracking-tight font-display text-white">
-            {siteName}<span className="text-[#C8A44E]">.</span>
+        <Link href="/dashboard" onClick={onCloseMobile} className="flex items-center gap-2.5 min-w-0">
+          {siteLogo ? (
+            <img
+              src={siteLogo}
+              alt={siteName}
+              className="h-8 w-8 rounded-lg object-contain bg-white/10 p-0.5 shrink-0 shadow-xs"
+            />
+          ) : (
+            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-accent text-primary-dark font-black text-sm shadow-xs shrink-0">
+              {initialLetter}
+            </span>
+          )}
+          <span className="text-base font-bold tracking-tight font-display text-white truncate">
+            {siteName}<span className="text-accent">.</span>
           </span>
         </Link>
         {onCloseMobile && (

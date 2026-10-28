@@ -22,7 +22,11 @@ import {
 } from "lucide-react";
 import { UserFormModal, type UserFormData } from "./user-form-modal";
 import { DeleteUserModal } from "./delete-user-modal";
-import { getRoleDefaultPermissions } from "@/lib/rbac";
+import {
+  getRoleDefaultPermissions,
+  getUserPermissions,
+  ALL_PERMISSIONS,
+} from "@/lib/rbac";
 import type { Role } from "@prisma/client";
 
 export interface UserItem {
@@ -242,8 +246,8 @@ export function UsersManagementClient({
     switch (role) {
       case "ADMIN":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#1a1a2e] text-white tracking-wide">
-            <Shield className="w-3 h-3 text-[#C8A44E]" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-primary text-white tracking-wide">
+            <Shield className="w-3 h-3 text-accent" />
             <span>ADMIN</span>
           </span>
         );
@@ -315,10 +319,10 @@ export function UsersManagementClient({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#e8e6df]">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e] tracking-tight">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">
               Pengguna & Tim
             </h1>
-            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#C8A44E]/15 text-[#1a1a2e]">
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-accent/15 text-primary">
               RBAC Aktif
             </span>
           </div>
@@ -329,9 +333,9 @@ export function UsersManagementClient({
 
         <button
           onClick={handleOpenAddModal}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#1a1a2e] text-white hover:bg-[#12121f] text-xs font-semibold shadow-xs transition-colors shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white hover:bg-primary-dark text-xs font-semibold shadow-xs transition-colors shrink-0"
         >
-          <UserPlus className="w-4 h-4 text-[#C8A44E]" />
+          <UserPlus className="w-4 h-4 text-accent" />
           <span>Tambah Pengguna</span>
         </button>
       </div>
@@ -343,7 +347,7 @@ export function UsersManagementClient({
             <span>Total Pengguna</span>
             <Users className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="text-2xl font-bold font-display text-[#1a1a2e] mt-2">
+          <div className="text-2xl font-bold font-display text-primary mt-2">
             {metrics.total}
           </div>
           <div className="text-[11px] text-slate-400 mt-0.5">
@@ -367,9 +371,9 @@ export function UsersManagementClient({
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-[#e8e6df] shadow-2xs">
           <div className="flex items-center justify-between text-slate-500 text-xs font-medium">
             <span>Tamu (Guest)</span>
-            <ShieldCheck className="w-4 h-4 text-[#C8A44E]" />
+            <ShieldCheck className="w-4 h-4 text-accent" />
           </div>
-          <div className="text-2xl font-bold font-display text-[#1a1a2e] mt-2">
+          <div className="text-2xl font-bold font-display text-primary mt-2">
             {metrics.guests}
           </div>
           <div className="text-[11px] text-slate-400 mt-0.5">
@@ -401,7 +405,7 @@ export function UsersManagementClient({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Cari pengguna berdasarkan nama atau email..."
-            className="w-full h-10 pl-9 pr-8 text-xs rounded-xl border border-[#e8e6df] bg-[#faf9f6] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-[#C8A44E] transition-all"
+            className="w-full h-10 pl-9 pr-8 text-xs rounded-xl border border-[#e8e6df] bg-[#faf9f6] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#C8A44E]/30 focus:border-accent transition-all"
           />
           {searchQuery && (
             <button
@@ -424,8 +428,8 @@ export function UsersManagementClient({
                   onClick={() => setRoleFilter(r)}
                   className={`px-2.5 py-1 rounded-lg font-medium text-[11px] transition-all whitespace-nowrap ${
                     roleFilter === r
-                      ? "bg-[#1a1a2e] text-white font-semibold shadow-xs"
-                      : "text-slate-600 hover:text-[#1a1a2e] hover:bg-slate-200/50"
+                      ? "bg-primary text-white font-semibold shadow-xs"
+                      : "text-slate-600 hover:text-primary hover:bg-slate-200/50"
                   }`}
                 >
                   {r === "ALL" ? "Semua Peran" : r}
@@ -476,14 +480,15 @@ export function UsersManagementClient({
                 filteredUsers.map((user) => {
                   const isSelf = user.id === currentUser.id;
                   const defaultRolePerms = getRoleDefaultPermissions(user.role);
-                  const isDefaultMatch =
-                    user.permissions &&
-                    user.permissions.length === defaultRolePerms.length &&
-                    user.permissions.every((p) => defaultRolePerms.includes(p as any));
-                  const hasCustomPermissions = !isDefaultMatch;
-                  const effectiveCount = user.permissions
-                    ? user.permissions.length
-                    : defaultRolePerms.length;
+                  const effectivePerms = getUserPermissions(user);
+                  const hasCustomPermissions =
+                    user.role !== "ADMIN" &&
+                    Array.isArray(user.permissions) &&
+                    user.permissions.length > 0 &&
+                    !(
+                      user.permissions.length === defaultRolePerms.length &&
+                      user.permissions.every((p) => defaultRolePerms.includes(p as any))
+                    );
 
                   return (
                     <tr
@@ -493,12 +498,12 @@ export function UsersManagementClient({
                       {/* Name & Avatar */}
                       <td className="py-3.5 px-4 sm:px-6">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-[#C8A44E]/15 text-[#1a1a2e] flex items-center justify-center font-bold text-xs shrink-0">
+                          <div className="w-9 h-9 rounded-xl bg-accent/15 text-primary flex items-center justify-center font-bold text-xs shrink-0">
                             {user.name.charAt(0).toUpperCase()}
                           </div>
                           <div className="min-w-0">
                             <div className="flex items-center gap-1.5">
-                              <span className="font-semibold text-[#1a1a2e] truncate max-w-[180px] sm:max-w-xs">
+                              <span className="font-semibold text-primary truncate max-w-[180px] sm:max-w-xs">
                                 {user.name}
                               </span>
                               {isSelf && (
@@ -523,13 +528,15 @@ export function UsersManagementClient({
                           type="button"
                           onClick={() => handleOpenEditModal(user)}
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-[11px] font-medium transition-colors"
-                          title="Klik untuk melihat dan mengubah izin akses"
+                          title="Klik untuk melihat dan mengubah rincian izin akses"
                         >
-                          <Layers className="w-3 h-3 text-[#C8A44E]" />
+                          <Layers className="w-3 h-3 text-accent" />
                           <span>
-                            {hasCustomPermissions
-                              ? `${effectiveCount} Izin (Kustom)`
-                              : `${effectiveCount} Izin (Default)`}
+                            {user.role === "ADMIN"
+                              ? `${ALL_PERMISSIONS.length} Izin (Akses Penuh)`
+                              : hasCustomPermissions
+                              ? `${effectivePerms.length} Izin (Kustom)`
+                              : `${effectivePerms.length} Izin (Default)`}
                           </span>
                         </button>
                       </td>
@@ -576,7 +583,7 @@ export function UsersManagementClient({
                           <button
                             type="button"
                             onClick={() => handleOpenEditModal(user)}
-                            className="p-1.5 text-slate-500 hover:text-[#1a1a2e] hover:bg-slate-100 rounded-lg transition-colors"
+                            className="p-1.5 text-slate-500 hover:text-primary hover:bg-slate-100 rounded-lg transition-colors"
                             title="Edit Akun & Izin RBAC"
                           >
                             <Edit2 className="w-4 h-4" />
@@ -636,8 +643,8 @@ export function UsersManagementClient({
         {/* Table footer count */}
         <div className="px-4 sm:px-6 py-3 bg-[#faf9f6] border-t border-[#e8e6df] text-[11px] text-slate-500 flex items-center justify-between">
           <div>
-            Menampilkan <strong className="text-[#1a1a2e]">{filteredUsers.length}</strong> dari{" "}
-            <strong className="text-[#1a1a2e]">{users.length}</strong> akun pengguna
+            Menampilkan <strong className="text-primary">{filteredUsers.length}</strong> dari{" "}
+            <strong className="text-primary">{users.length}</strong> akun pengguna
           </div>
           <div className="text-slate-400">
             Perubahan izin & status langsung berlaku secara real-time

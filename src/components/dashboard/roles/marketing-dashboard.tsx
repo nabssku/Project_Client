@@ -7,6 +7,7 @@ import {
   ArrowUpRight,
   Percent,
   Calendar,
+  Info,
 } from "lucide-react";
 
 interface MarketingDashboardProps {
@@ -55,7 +56,7 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
       {/* Minimal Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#e8e6df]">
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e] tracking-tight">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">
             Promosi & Konten CMS
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
@@ -65,14 +66,21 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
             href="/dashboard/cms/promos"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#C8A44E] hover:text-[#12121f] transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-accent hover:text-primary-dark transition-all"
           >
             <Tag className="h-3.5 w-3.5" />
             <span>Kelola Promo</span>
           </Link>
           <Link
+            href="/dashboard/cms/about"
+            className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e8e6df] px-4 py-2 text-xs font-semibold text-primary hover:bg-slate-50 transition-colors"
+          >
+            <Info className="h-3.5 w-3.5 text-slate-500" />
+            <span>Tentang Kami</span>
+          </Link>
+          <Link
             href="/dashboard/cms/testimonials"
-            className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e8e6df] px-4 py-2 text-xs font-semibold text-[#1a1a2e] hover:bg-slate-50 transition-colors"
+            className="inline-flex items-center gap-2 rounded-xl bg-white border border-[#e8e6df] px-4 py-2 text-xs font-semibold text-primary hover:bg-slate-50 transition-colors"
           >
             <MessageSquare className="h-3.5 w-3.5 text-slate-500" />
             <span>Testimoni</span>
@@ -82,7 +90,7 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Promo Aktif
@@ -92,10 +100,10 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
             </div>
           </div>
           <div className="mt-3 flex items-baseline justify-between">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.activePromosCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.activePromosCount}</p>
             <Link
               href="/dashboard/cms/promos"
-              className="text-xs font-medium text-[#C8A44E] hover:underline inline-flex items-center"
+              className="text-xs font-medium text-accent hover:underline inline-flex items-center"
             >
               Kelola <ArrowUpRight className="h-3 w-3 ml-0.5" />
             </Link>
@@ -103,22 +111,22 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
           <p className="mt-1 text-[11px] text-slate-400">Kupon diskon berjalan</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Total Testimoni
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1a1a2e]/5 text-[#1a1a2e]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/5 text-primary">
               <MessageSquare className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.testimonialsCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.testimonialsCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Ulasan tamu terverifikasi</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Rating Rata-rata
@@ -128,7 +136,7 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
             </div>
           </div>
           <div className="mt-3 flex items-center gap-1.5">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">
               {data.averageRating ? data.averageRating.toFixed(1) : "5.0"}
             </p>
             <span className="text-amber-500 text-base">★</span>
@@ -136,17 +144,17 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
           <p className="mt-1 text-[11px] text-slate-400">Kepuasan pengalaman tamu</p>
         </div>
 
-        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-[#C8A44E]/40 transition-colors">
+        <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs hover:border-accent/40 transition-colors">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-slate-500">
               Villa Unggulan
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#C8A44E]/10 text-[#C8A44E]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/10 text-accent">
               <Sparkles className="h-4 w-4" />
             </div>
           </div>
           <div className="mt-3">
-            <p className="font-display text-2xl sm:text-3xl font-bold text-[#1a1a2e]">{data.featuredVillasCount}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-primary">{data.featuredVillasCount}</p>
           </div>
           <p className="mt-1 text-[11px] text-slate-400">Featured di beranda</p>
         </div>
@@ -158,12 +166,12 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
         <div className="rounded-2xl border border-[#e8e6df] bg-white shadow-xs lg:col-span-2 overflow-hidden">
           <div className="flex items-center justify-between border-b border-[#e8e6df] p-5">
             <div>
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Kode Promo & Diskon</h2>
+              <h2 className="font-display text-base font-bold text-primary">Kode Promo & Diskon</h2>
               <p className="text-xs text-slate-400">Kupon aktif untuk tamu saat reservasi</p>
             </div>
             <Link
               href="/dashboard/cms/promos"
-              className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E] inline-flex items-center"
+              className="text-xs font-semibold text-primary hover:text-accent inline-flex items-center"
             >
               Tambah Promo <ArrowUpRight className="h-3 w-3 ml-1" />
             </Link>
@@ -179,7 +187,7 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
                 <div key={promo.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-[#f8f7f4]/50 transition-colors">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-xs bg-[#1a1a2e] text-white px-2.5 py-0.5 rounded-lg">
+                      <span className="font-mono font-bold text-xs bg-primary text-white px-2.5 py-0.5 rounded-lg">
                         {promo.code}
                       </span>
                       <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
@@ -187,7 +195,7 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
                         Diskon {promo.discountPercent}%
                       </span>
                     </div>
-                    <p className="text-xs font-bold text-[#1a1a2e]">{promo.title}</p>
+                    <p className="text-xs font-bold text-primary">{promo.title}</p>
                     <p className="text-xs text-slate-500">{promo.description}</p>
                     <div className="flex items-center gap-1 text-[11px] text-slate-400 pt-0.5">
                       <Calendar className="h-3 w-3" />
@@ -215,10 +223,10 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
         <div className="space-y-6">
           <div className="rounded-2xl border border-[#e8e6df] bg-white p-5 shadow-xs">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-base font-bold text-[#1a1a2e]">Ulasan Tamu</h2>
+              <h2 className="font-display text-base font-bold text-primary">Ulasan Tamu</h2>
               <Link
                 href="/dashboard/cms/testimonials"
-                className="text-xs font-semibold text-[#1a1a2e] hover:text-[#C8A44E]"
+                className="text-xs font-semibold text-primary hover:text-accent"
               >
                 Kurasi
               </Link>
@@ -227,7 +235,7 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
               {data.testimonialsList.map((t) => (
                 <div key={t.id} className="p-3 rounded-xl bg-[#f8f7f4] border border-[#e8e6df] space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-bold text-[#1a1a2e]">{t.name}</p>
+                    <p className="text-xs font-bold text-primary">{t.name}</p>
                     <div className="flex text-amber-400 text-xs">
                       {"★".repeat(t.rating)}
                     </div>
@@ -236,7 +244,7 @@ export function MarketingDashboard({ user, data }: MarketingDashboardProps) {
                     &ldquo;{t.content}&rdquo;
                   </p>
                   {t.isFeatured && (
-                    <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-[#9c7827] bg-[#C8A44E]/10 px-2 py-0.5 rounded border border-[#C8A44E]/30">
+                    <span className="inline-block text-[9px] font-bold uppercase tracking-wider text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/30">
                       Featured
                     </span>
                   )}

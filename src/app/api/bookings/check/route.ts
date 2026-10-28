@@ -4,7 +4,7 @@ import { z } from "zod";
 
 const checkBookingSchema = z.object({
   code: z.string().min(3, "Kode booking wajib diisi"),
-  email: z.string().email("Format email tidak valid"),
+  email: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -19,16 +19,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const { code, email } = parsed.data;
+    const { code } = parsed.data;
 
     const booking = await prisma.bookings.findFirst({
       where: {
         code: {
           equals: code.trim(),
-          mode: "insensitive",
-        },
-        guestEmail: {
-          equals: email.trim(),
           mode: "insensitive",
         },
       },
@@ -46,6 +42,7 @@ export async function POST(request: Request) {
             mapEmbed: true,
           },
         },
+        addons: true,
       },
     });
 
@@ -53,7 +50,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Pesanan tidak ditemukan. Pastikan kode booking dan email yang dimasukkan sudah sesuai.",
+            "Pesanan tidak ditemukan. Pastikan kode booking yang dimasukkan sudah benar (contoh: BK-XXXXXX).",
         },
         { status: 404 }
       );

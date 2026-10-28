@@ -35,6 +35,7 @@ interface ReportsClientProps {
   initialBookings: ReportBookingItem[];
   villas: Array<{ id: string; name: string; slug: string }>;
   siteName: string;
+  siteLogo?: string | null;
   currentUser: {
     id: string;
     name: string;
@@ -56,6 +57,7 @@ export function ReportsClient({
   initialBookings,
   villas,
   siteName,
+  siteLogo,
   currentUser,
 }: ReportsClientProps) {
   // --- Filter State ---
@@ -279,6 +281,7 @@ export function ReportsClient({
   // --- Export Handlers ---
   const exportOptions = {
     siteName,
+    siteLogo,
     periodLabel,
     filterVillaName:
       selectedVilla !== "all"
@@ -292,8 +295,8 @@ export function ReportsClient({
     },
   };
 
-  function handleExportPDF() {
-    exportReportsToPDF(filteredBookings, summary, exportOptions);
+  async function handleExportPDF() {
+    await exportReportsToPDF(filteredBookings, summary, exportOptions);
   }
 
   function handleExportCSV() {
@@ -306,10 +309,10 @@ export function ReportsClient({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="font-display text-2xl font-bold tracking-tight text-[#1a1a2e]">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-primary">
               Laporan & Analitik Keuangan
             </h1>
-            <span className="inline-flex items-center gap-1 rounded-full bg-[#C8A44E]/15 px-2.5 py-0.5 text-xs font-semibold text-[#8a6e29]">
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-semibold text-[#8a6e29]">
               <Sparkles className="h-3 w-3" />
               Sistem RBAC
             </span>
@@ -334,10 +337,10 @@ export function ReportsClient({
           <button
             onClick={handleExportPDF}
             disabled={filteredBookings.length === 0}
-            className="inline-flex items-center gap-2 rounded-xl bg-[#1a1a2e] px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#252542] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-[#252542] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             title="Download Dokumen Cetak Resmi (.PDF)"
           >
-            <FileText className="h-4 w-4 text-[#C8A44E]" />
+            <FileText className="h-4 w-4 text-accent" />
             <span>Ekspor PDF</span>
           </button>
         </div>
@@ -367,7 +370,7 @@ export function ReportsClient({
               }}
               className={`rounded-lg px-2.5 py-1 text-xs font-medium transition cursor-pointer ${
                 datePreset === preset.id
-                  ? "bg-[#1a1a2e] text-white shadow-xs"
+                  ? "bg-primary text-white shadow-xs"
                   : "bg-gray-100/70 text-gray-600 hover:bg-gray-100"
               }`}
             >
@@ -430,7 +433,7 @@ export function ReportsClient({
                 setSelectedVilla(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
             >
               <option value="all">Semua Unit Villa</option>
               {villas.map((v) => (
@@ -452,7 +455,7 @@ export function ReportsClient({
                 setSelectedStatus(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
             >
               <option value="all">Semua Status</option>
               <option value="COMPLETED">Selesai (COMPLETED)</option>
@@ -474,7 +477,7 @@ export function ReportsClient({
                 setSelectedPayment(e.target.value);
                 setCurrentPage(1);
               }}
-              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+              className="w-full rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
             >
               <option value="all">Semua Metode</option>
               <option value="QRIS">QRIS</option>
@@ -497,7 +500,7 @@ export function ReportsClient({
                   setCurrentPage(1);
                 }}
                 placeholder="Cari tamu / kode..."
-                className="w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-[#C8A44E] focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
+                className="w-full rounded-xl border border-gray-200 bg-white pl-8 pr-3 py-1.5 text-xs text-gray-800 shadow-2xs focus:border-accent focus:outline-none focus:ring-1 focus:ring-[#C8A44E]"
               />
             </div>
           </div>
@@ -566,7 +569,7 @@ export function ReportsClient({
             <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
               Rata-rata Nilai (ADR)
             </span>
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#C8A44E]/20 text-[#8a6e29]">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/20 text-[#8a6e29]">
               <Building2 className="h-4 w-4" />
             </span>
           </div>
@@ -586,7 +589,7 @@ export function ReportsClient({
             onClick={() => setActiveTab("overview")}
             className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition cursor-pointer ${
               activeTab === "overview"
-                ? "border-[#1a1a2e] text-[#1a1a2e]"
+                ? "border-primary text-primary"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
@@ -598,7 +601,7 @@ export function ReportsClient({
             onClick={() => setActiveTab("table")}
             className={`inline-flex items-center gap-2 border-b-2 px-4 py-2.5 text-xs font-semibold transition cursor-pointer ${
               activeTab === "table"
-                ? "border-[#1a1a2e] text-[#1a1a2e]"
+                ? "border-primary text-primary"
                 : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
             }`}
           >
@@ -646,7 +649,7 @@ export function ReportsClient({
                             ({vb.bookings} reservasi)
                           </span>
                         </span>
-                        <span className="font-bold text-[#1a1a2e]">
+                        <span className="font-bold text-primary">
                           {formatPrice(vb.revenue)}
                         </span>
                       </div>
@@ -728,7 +731,7 @@ export function ReportsClient({
               {/* Quick Info Export */}
               <div className="rounded-2xl border border-gray-200/80 bg-gray-50/60 p-4 text-xs text-gray-600 space-y-2">
                 <p className="font-semibold text-gray-800 flex items-center gap-1.5">
-                  <FileText className="h-4 w-4 text-[#C8A44E]" />
+                  <FileText className="h-4 w-4 text-accent" />
                   Tentang Ekspor Dokumen
                 </p>
                 <p className="text-[11px] leading-relaxed text-gray-500">
@@ -831,7 +834,7 @@ export function ReportsClient({
                             <Link
                               href={`/villas/${b.villa.slug}`}
                               target="_blank"
-                              className="font-medium text-gray-800 hover:text-[#C8A44E] transition"
+                              className="font-medium text-gray-800 hover:text-accent transition"
                             >
                               {b.villa.name}
                             </Link>
@@ -853,7 +856,7 @@ export function ReportsClient({
                             </div>
                           </td>
                           <td className="py-3 px-4 text-right whitespace-nowrap">
-                            <div className="font-bold text-[#1a1a2e]">
+                            <div className="font-bold text-primary">
                               {formatPrice(b.totalPrice)}
                             </div>
                             {b.discountAmount > 0 && (

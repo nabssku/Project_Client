@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
-import { getUserPermissions } from "@/lib/rbac";
+import { hasUserPermission } from "@/lib/rbac";
 import { hash } from "bcryptjs";
 import { z } from "zod";
 import type { Role } from "@prisma/client";
@@ -31,8 +31,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Akun dinonaktifkan" }, { status: 403 });
     }
 
-    const perms = getUserPermissions(currentUser);
-    if (!perms.includes("user:read")) {
+    if (!hasUserPermission(currentUser, "user:read")) {
       return NextResponse.json(
         { error: "Forbidden: Anda tidak memiliki izin melihat data pengguna" },
         { status: 403 }
@@ -113,8 +112,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Akun dinonaktifkan" }, { status: 403 });
     }
 
-    const perms = getUserPermissions(currentUser);
-    if (!perms.includes("user:create")) {
+    if (!hasUserPermission(currentUser, "user:create")) {
       return NextResponse.json(
         { error: "Forbidden: Anda tidak memiliki izin membuat pengguna baru" },
         { status: 403 }

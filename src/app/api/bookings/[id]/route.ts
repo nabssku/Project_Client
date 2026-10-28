@@ -6,6 +6,7 @@ import { z } from "zod";
 const updateBookingStatusSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"]),
   notes: z.string().optional(),
+  rejectionReason: z.string().optional(),
 });
 
 interface RouteParams {
@@ -46,6 +47,7 @@ export async function GET(request: Request, { params }: RouteParams) {
             email: true,
           },
         },
+        addons: true,
       },
     });
 
@@ -107,7 +109,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
       );
     }
 
-    const { status: newStatus, notes } = parsed.data;
+    const { status: newStatus, notes, rejectionReason } = parsed.data;
 
     // Find existing booking
     const booking = await prisma.bookings.findFirst({
@@ -124,14 +126,31 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     // Update booking status
     const updated = await prisma.$transaction(async (tx) => {
+      const updateData: any = {
+        status: newStatus,
+      };
+
+      if (notes !== undefined) {
+        updateData.notes = notes;
+      }
+
+      if (newStatus === "CANCELLED") {
+        updateData.rejectionReason =
+          rejectionReason?.trim() ||
+          notes?.trim() ||
+          booking.rejectionReason ||
+          "Bukti transfer atau reservasi ditolak oleh manajer.";
+      } else if (newStatus === "CONFIRMED") {
+        // Clear rejection reason once confirmed
+        updateData.rejectionReason = null;
+      }
+
       const updatedBooking = await tx.bookings.update({
         where: { id: booking.id },
-        data: {
-          status: newStatus,
-          notes: notes ? `${booking.notes ? booking.notes + "\n" : ""}[Catatan Admin]: ${notes}` : booking.notes,
-        },
+        data: updateData,
         include: {
           villa: true,
+          addons: true,
         },
       });
 
@@ -148,6 +167,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
             oldStatus,
             newStatus,
             notes,
+            rejectionReason: updateData.rejectionReason,
             updatedBy: session.user.name || session.user.email,
           }),
         },
@@ -159,13 +179,17 @@ export async function PUT(request: Request, { params }: RouteParams) {
     // Jika status diubah menjadi CONFIRMED, kirimkan email voucher resmi kepada tamu
     if (newStatus === "CONFIRMED") {
       try {
-        const siteConfig = await prisma.site_configs.findUnique({
-          where: { key: "site_name" },
+        const configs = await prisma.site_configs.findMany({
+          where: { key: { in: ["site_name", "site_logo"] } },
         });
-        const siteName = siteConfig?.value || "Singgahsana";
+        const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
+        const siteName = configMap.site_name || "Singgahsana";
+        const siteLogo = configMap.site_logo || null;
 
         const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
         sendBookingConfirmationEmail({
+          siteName,
+          siteLogo,
           booking: {
             id: updated.id,
             code: updated.code,
@@ -191,7 +215,6 @@ export async function PUT(request: Request, { params }: RouteParams) {
               checkOutTime: updated.villa.checkOutTime,
             },
           },
-          siteName,
         }).catch((e) => console.error("Background Resend email error on booking confirm:", e));
       } catch (err) {
         console.warn("Could not trigger booking confirmation email on PUT:", err);
