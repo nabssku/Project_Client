@@ -10,53 +10,61 @@ try {
   console.warn("Could not set sharp concurrency:", e);
 }
 
-interface WatermarkOptions {
+export interface WatermarkOptions {
   text?: string;
   opacity?: number;
+  logoBuffer?: Buffer;
 }
 
 /**
- * Generates an SVG watermark buffer scaled to the image width.
+ * Generates a clean, universal SVG text watermark.
+ * Avoids any proprietary OS fonts (such as Georgia or -apple-system) to prevent
+ * missing-glyph "tofu" boxes (▯▯▯) on Linux servers (e.g. Hostinger, Docker).
  */
-function createWatermarkSvg(width: number, height: number, text: string = "Villa", opacity: number = 0.3) {
-  // Target watermark width is ~35% of image width (bounded between 240px and 700px)
-  const watermarkWidth = Math.min(Math.max(Math.round(width * 0.35), 240), 700);
-  const watermarkHeight = Math.round(watermarkWidth * 0.32);
-  const fontSize = Math.round(watermarkWidth * 0.12);
-  const iconSize = Math.round(watermarkWidth * 0.14);
-  const initialLetter = (text || "S").charAt(0).toUpperCase();
+export function createWatermarkSvg(
+  width: number,
+  height: number,
+  text: string = "VILLA",
+  opacity: number = 0.42
+): Buffer {
+  const clean = (text || "VILLA").trim();
+  // Format with elegant letter spacing for single words, or preserve multi-word phrasing
+  const formatted = clean.includes(" ")
+    ? clean.toUpperCase()
+    : clean.toUpperCase().split("").join(" ");
+
+  // Target watermark width is ~38% of image width (bounded between 260px and 720px)
+  const watermarkWidth = Math.min(Math.max(Math.round(width * 0.38), 260), 720);
+  const watermarkHeight = Math.round(watermarkWidth * 0.22);
+
+  // Dynamic font sizing to prevent overflowing on long text
+  const baseSize = Math.round(watermarkWidth * 0.08);
+  const maxChars = Math.floor(watermarkWidth / (baseSize * 0.8));
+  const fontSize =
+    formatted.length > maxChars
+      ? Math.max(Math.round(watermarkWidth / (formatted.length * 0.85)), 12)
+      : baseSize;
 
   return Buffer.from(`
     <svg width="${watermarkWidth}" height="${watermarkHeight}" viewBox="0 0 ${watermarkWidth} ${watermarkHeight}" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000000" flood-opacity="0.6"/>
+        <filter id="wm-shadow" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="2" stdDeviation="5" flood-color="#000000" flood-opacity="0.85"/>
         </filter>
       </defs>
-      <g filter="url(#shadow)" opacity="${opacity}">
-        <!-- Monogram Box -->
-        <rect x="10" y="${(watermarkHeight - iconSize) / 2}" width="${iconSize}" height="${iconSize}" rx="${iconSize * 0.25}" fill="#C8A44E" />
-        <text 
-          x="${10 + iconSize / 2}" 
-          y="${watermarkHeight / 2 + iconSize * 0.35}" 
-          font-family="system-ui, -apple-system, sans-serif" 
-          font-weight="900" 
-          font-size="${iconSize * 0.65}" 
-          fill="#12121f" 
-          text-anchor="middle"
-        >${initialLetter}</text>
-
-        <!-- Brand Text -->
-        <text 
-          x="${iconSize + 24}" 
-          y="${watermarkHeight / 2 + fontSize * 0.35}" 
-          font-family="Georgia, serif" 
-          font-weight="bold" 
-          font-size="${fontSize}" 
-          fill="#ffffff" 
-          letter-spacing="1"
-        >${text}<tspan fill="#C8A44E">.</tspan></text>
-      </g>
+      <text 
+        x="${watermarkWidth / 2}" 
+        y="${watermarkHeight / 2}" 
+        text-anchor="middle" 
+        dominant-baseline="central"
+        font-family="DejaVu Sans, FreeSans, Liberation Sans, Arial, Helvetica, sans-serif" 
+        font-weight="bold" 
+        font-size="${fontSize}" 
+        letter-spacing="6" 
+        fill="#ffffff" 
+        opacity="${opacity}"
+        filter="url(#wm-shadow)"
+      >${formatted}</text>
     </svg>
   `);
 }
@@ -86,21 +94,56 @@ export async function applyCenterWatermark(
       });
     }
 
-    // Generate SVG watermark buffer
     const effectiveWidth = Math.min(originalWidth, 1920);
     const effectiveHeight = Math.min(originalHeight, 1920);
-    const watermarkSvg = createWatermarkSvg(
-      effectiveWidth,
-      effectiveHeight,
-      options?.text || "Villa",
-      options?.opacity || 0.32
-    );
+    const opacity = options?.opacity ?? 0.42;
+
+    let watermarkInput: Buffer;
+
+    if (options?.logoBuffer) {
+      try {
+        const logoSharp = sharp(options.logoBuffer, { failOn: "none" });
+        const logoMeta = await logoSharp.metadata();
+        const targetWidth = Math.min(Math.round(effectiveWidth * 0.32), 420);
+        const targetHeight = Math.round(
+          ((logoMeta.height || 1) * targetWidth) / (logoMeta.width || 1)
+        );
+
+        watermarkInput = await logoSharp
+          .resize(targetWidth, targetHeight)
+          .composite([
+            {
+              input: Buffer.from([0, 0, 0, Math.round(255 * opacity)]),
+              raw: { width: 1, height: 1, channels: 4 },
+              tile: true,
+              blend: "dest-in",
+            },
+          ])
+          .png()
+          .toBuffer();
+      } catch (logoErr) {
+        console.warn("Could not process logoBuffer, falling back to text SVG:", logoErr);
+        watermarkInput = createWatermarkSvg(
+          effectiveWidth,
+          effectiveHeight,
+          options?.text || "Villa",
+          opacity
+        );
+      }
+    } else {
+      watermarkInput = createWatermarkSvg(
+        effectiveWidth,
+        effectiveHeight,
+        options?.text || "Villa",
+        opacity
+      );
+    }
 
     // Composite watermark in the center
     const outputBuffer = await pipeline
       .composite([
         {
-          input: watermarkSvg,
+          input: watermarkInput,
           gravity: "center",
         },
       ])

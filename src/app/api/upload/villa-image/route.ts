@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     try {
       const result = await applyCenterWatermark(inputBuffer, {
         text: watermarkText,
-        opacity: 0.32,
+        opacity: 0.4,
       });
       processedBuffer = result.buffer;
       width = result.width;
