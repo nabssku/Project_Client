@@ -2,12 +2,12 @@ import { prisma } from "@/lib/prisma";
 
 /**
  * Calculates the exact check-in deadline for a booking in Western Indonesia Time (WIB / Asia/Jakarta).
- * For example: if check-in is 2026-10-30 and villa checkInTime is "14:00",
- * the deadline is 2026-10-30 14:00:00 WIB (+07:00).
+ * Directly uses the villa's check-in time (`checkInTime`) from the database (e.g. "15:00", "13:00", etc.).
+ * Defaults to "14:00" only as a safety fallback if checkInTime is empty/null.
  */
 export function getBookingCheckInDeadline(
   checkIn: Date | string,
-  checkInTime: string = "14:00"
+  checkInTime?: string | null
 ): Date {
   const d = typeof checkIn === "string" ? new Date(checkIn) : checkIn;
 
@@ -20,7 +20,7 @@ export function getBookingCheckInDeadline(
   });
   const dateStr = formatter.format(d);
 
-  // Normalize check-in time (e.g. "14:00" -> "14:00:00")
+  // Normalize check-in time from database (e.g. "15:00" -> "15:00:00")
   const rawTime = (checkInTime || "14:00").trim();
   const timeFormatted = rawTime.includes(":")
     ? rawTime.length === 5
@@ -33,11 +33,11 @@ export function getBookingCheckInDeadline(
 
 /**
  * Checks whether a booking has expired based on current time.
- * A booking is expired if current time >= check-in deadline.
+ * Compares against the villa's checkInTime from the database.
  */
 export function isBookingExpired(
   checkIn: Date | string,
-  checkInTime: string = "14:00",
+  checkInTime?: string | null,
   now: Date = new Date()
 ): boolean {
   const deadline = getBookingCheckInDeadline(checkIn, checkInTime);
@@ -46,11 +46,12 @@ export function isBookingExpired(
 
 /**
  * Formats the check-in deadline into a human-friendly string in Indonesian.
- * Example: "Jumat, 30 Oktober 2026 pukul 14:00 WIB"
+ * Directly reflects the villa's check-in time from the database.
+ * Example: "Jumat, 30 Oktober 2026 pukul 15:00 WIB"
  */
 export function formatBookingDeadline(
   checkIn: Date | string,
-  checkInTime: string = "14:00"
+  checkInTime?: string | null
 ): string {
   const deadline = getBookingCheckInDeadline(checkIn, checkInTime);
 
