@@ -3,16 +3,18 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 
+const holidayPriceSchema = z.object({
+  startDate: z.string().min(10, "Format tanggal mulai: YYYY-MM-DD"),
+  endDate: z.string().min(10, "Format tanggal selesai: YYYY-MM-DD"),
+  price: z.coerce.number().min(10000, "Harga minimal Rp 10.000"),
+  reason: z.string().optional().nullable(),
+});
+
 const setPricingSchema = z.object({
   priceWeekend: z.coerce.number().min(0).optional().nullable(),
-  newHolidayPrice: z
-    .object({
-      startDate: z.string().min(10, "Format tanggal mulai: YYYY-MM-DD"),
-      endDate: z.string().min(10, "Format tanggal selesai: YYYY-MM-DD"),
-      price: z.coerce.number().min(10000, "Harga minimal Rp 10.000"),
-      reason: z.string().optional(),
-    })
-    .optional(),
+  dailyRates: z.record(z.string(), z.coerce.number().nullable().optional()).optional().nullable(),
+  newHolidayPrice: holidayPriceSchema.optional(),
+  customPrice: holidayPriceSchema.optional(), // alias to prevent frontend mismatch
 });
 
 export async function GET(
@@ -31,6 +33,7 @@ export async function GET(
         slug: true,
         pricePerNight: true,
         priceWeekend: true,
+        dailyRates: true,
         customPrices: {
           orderBy: { startDate: "asc" },
         },
@@ -41,7 +44,16 @@ export async function GET(
       return NextResponse.json({ error: "Villa tidak ditemukan" }, { status: 404 });
     }
 
-    return NextResponse.json(villa);
+    return NextResponse.json({
+      success: true,
+      ...villa,
+      pricing: {
+        pricePerNight: villa.pricePerNight,
+        priceWeekend: villa.priceWeekend,
+        dailyRates: villa.dailyRates,
+        customPrices: villa.customPrices,
+      },
+    });
   } catch (error) {
     console.error("Error fetching villa pricing:", error);
     return NextResponse.json({ error: "Gagal memuat tarif villa" }, { status: 500 });
@@ -85,17 +97,29 @@ export async function POST(
       return NextResponse.json({ error: "Villa tidak ditemukan" }, { status: 404 });
     }
 
+    const updateData: any = {};
+
     // 1. Update weekend price if provided
     if (validated.data.priceWeekend !== undefined) {
+      updateData.priceWeekend = validated.data.priceWeekend;
+    }
+
+    // 2. Update daily rates if provided
+    if (validated.data.dailyRates !== undefined) {
+      updateData.dailyRates = validated.data.dailyRates;
+    }
+
+    if (Object.keys(updateData).length > 0) {
       await prisma.villas.update({
         where: { id: villa.id },
-        data: { priceWeekend: validated.data.priceWeekend },
+        data: updateData,
       });
     }
 
-    // 2. Add holiday/peak season price override if provided
-    if (validated.data.newHolidayPrice) {
-      const { startDate, endDate, price, reason } = validated.data.newHolidayPrice;
+    // 3. Add holiday/peak season price override if provided
+    const holidayInput = validated.data.newHolidayPrice || validated.data.customPrice;
+    if (holidayInput) {
+      const { startDate, endDate, price, reason } = holidayInput;
       const start = new Date(startDate);
       const end = new Date(endDate);
 
@@ -112,7 +136,7 @@ export async function POST(
           startDate: start,
           endDate: end,
           price,
-          reason: reason || "Hari Besar / High Season",
+          reason: reason || "Hari Libur / High Season",
         },
       });
     }
@@ -126,6 +150,7 @@ export async function POST(
         slug: true,
         pricePerNight: true,
         priceWeekend: true,
+        dailyRates: true,
         customPrices: {
           orderBy: { startDate: "asc" },
         },
@@ -139,11 +164,21 @@ export async function POST(
         action: "UPDATE_VILLA_PRICING",
         entity: "villas",
         entityId: villa.id,
-        details: `Memperbarui tarif dynamic pricing untuk "${villa.name}" (Weekend: Rp ${validated.data.priceWeekend || "default"})`,
+        details: `Memperbarui tarif dynamic pricing untuk "${villa.name}"`,
       },
     });
 
-    return NextResponse.json(updated);
+    return NextResponse.json({
+      success: true,
+      message: "Tarif villa berhasil diperbarui",
+      ...updated,
+      pricing: {
+        pricePerNight: updated?.pricePerNight,
+        priceWeekend: updated?.priceWeekend,
+        dailyRates: updated?.dailyRates,
+        customPrices: updated?.customPrices,
+      },
+    });
   } catch (error: any) {
     console.error("Error setting pricing:", error);
     return NextResponse.json(
@@ -172,7 +207,16 @@ export async function DELETE(
     }
 
     const { searchParams } = new URL(request.url);
-    const customPriceId = searchParams.get("customPriceId");
+    let customPriceId = searchParams.get("customPriceId");
+
+    if (!customPriceId) {
+      try {
+        const body = await request.json();
+        customPriceId = body?.customPriceId;
+      } catch {
+        // body parsing optional
+      }
+    }
 
     if (!customPriceId) {
       return NextResponse.json(

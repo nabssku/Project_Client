@@ -56,6 +56,7 @@ model villas {
   description   String      @db.Text
   pricePerNight Int
   priceWeekend  Int?
+  dailyRates    Json?
   capacity      Int
   bedrooms      Int
   bathrooms     Int

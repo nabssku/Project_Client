@@ -8,9 +8,41 @@ export interface CustomPriceRange {
   reason?: string | null;
 }
 
+export interface DailyRates {
+  sunday?: number | null;
+  monday?: number | null;
+  tuesday?: number | null;
+  wednesday?: number | null;
+  thursday?: number | null;
+  friday?: number | null;
+  saturday?: number | null;
+  [key: string]: number | null | undefined;
+}
+
+export const DAY_KEYS = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
+
+export const DAY_NAMES_ID: Record<string, string> = {
+  sunday: "Minggu",
+  monday: "Senin",
+  tuesday: "Selasa",
+  wednesday: "Rabu",
+  thursday: "Kamis",
+  friday: "Jumat",
+  saturday: "Sabtu",
+};
+
 export interface VillaPricingInput {
   pricePerNight: number;
   priceWeekend?: number | null;
+  dailyRates?: DailyRates | Record<string, any> | any;
   customPrices?: CustomPriceRange[];
 }
 
@@ -58,7 +90,23 @@ export function getDailyPrice(
     }
   }
 
-  // 2. Check weekend rate (Friday night & Saturday night)
+  // 2. Check dailyRates for specific day of week (Minggu, Senin, Selasa, Rabu, Kamis, Jumat, Sabtu)
+  const dayIndex = targetDate.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const dayKey = DAY_KEYS[dayIndex];
+  const customDayPrice = villa.dailyRates ? Number(villa.dailyRates[dayKey]) : null;
+
+  if (customDayPrice && customDayPrice > 0) {
+    const isWeekendDay = dayIndex === 0 || dayIndex === 5 || dayIndex === 6;
+    return {
+      date: dateStr,
+      dayName,
+      price: customDayPrice,
+      type: isWeekendDay ? "WEEKEND" : "REGULAR",
+      label: `Tarif Hari ${DAY_NAMES_ID[dayKey]}`,
+    };
+  }
+
+  // 3. Fallback to weekend rate (Friday night & Saturday night) if configured
   if (isFriday(targetDate) || isSaturday(targetDate)) {
     if (villa.priceWeekend && villa.priceWeekend > 0) {
       return {
@@ -71,7 +119,7 @@ export function getDailyPrice(
     }
   }
 
-  // 3. Fallback to regular weekday rate
+  // 4. Fallback to regular weekday rate
   return {
     date: dateStr,
     dayName,

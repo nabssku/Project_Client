@@ -56,6 +56,7 @@ export default async function EditVillaPage({
         slug: villa.slug,
         description: villa.description,
         pricePerNight: villa.pricePerNight,
+        priceWeekend: villa.priceWeekend,
         capacity: villa.capacity,
         bedrooms: villa.bedrooms,
         bathrooms: villa.bathrooms,

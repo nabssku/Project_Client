@@ -8,6 +8,8 @@ const updateVillaSchema = z.object({
   slug: z.string().min(2).optional(),
   description: z.string().min(10).optional(),
   pricePerNight: z.coerce.number().min(0).optional(),
+  priceWeekend: z.coerce.number().min(0).optional().nullable(),
+  dailyRates: z.record(z.string(), z.coerce.number().nullable().optional()).optional().nullable(),
   capacity: z.coerce.number().min(1).optional(),
   bedrooms: z.coerce.number().min(1).optional(),
   bathrooms: z.coerce.number().min(1).optional(),
@@ -120,7 +122,7 @@ export async function PUT(
 
     const updatedVilla = await prisma.villas.update({
       where: { id },
-      data: validated.data,
+      data: validated.data as any,
     });
 
     // Audit log

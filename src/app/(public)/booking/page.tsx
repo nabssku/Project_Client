@@ -83,6 +83,7 @@ export default async function BookingPage({ searchParams }: BookingPageProps) {
         location: villa.location,
         pricePerNight: villa.pricePerNight,
         priceWeekend: villa.priceWeekend,
+        dailyRates: (villa as any).dailyRates,
         capacity: villa.capacity,
         images: villa.images,
         checkInTime: villa.checkInTime,

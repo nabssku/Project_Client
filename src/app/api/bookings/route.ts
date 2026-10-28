@@ -189,7 +189,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Pricing Calculation using Dynamic Pricing Engine
-    const stay = calculateStayBreakdown(villa, checkInDate, checkOutDate);
+    const stay = calculateStayBreakdown(villa as any, checkInDate, checkOutDate);
     let discountAmount = 0;
     let validPromoCode: string | null = null;
 

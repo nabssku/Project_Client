@@ -25,6 +25,7 @@ export async function GET(request: Request) {
         slug: true,
         pricePerNight: true,
         priceWeekend: true,
+        dailyRates: true,
         capacity: true,
         customPrices: {
           orderBy: { startDate: "asc" },
@@ -74,6 +75,7 @@ export async function GET(request: Request) {
         slug: villa.slug,
         pricePerNight: villa.pricePerNight,
         priceWeekend: villa.priceWeekend,
+        dailyRates: (villa as any).dailyRates,
         capacity: villa.capacity,
         customPrices: villa.customPrices.map((cp) => ({
           id: cp.id,

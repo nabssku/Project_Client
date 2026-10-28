@@ -33,6 +33,7 @@ interface VillaData {
   location: string;
   pricePerNight: number;
   priceWeekend?: number | null;
+  dailyRates?: any;
   capacity: number;
   images: string[];
   checkInTime: string;
@@ -128,6 +129,7 @@ export function BookingFlowClient({
         {
           pricePerNight: villa.pricePerNight,
           priceWeekend: villa.priceWeekend,
+          dailyRates: villa.dailyRates,
           customPrices: villa.customPrices,
         },
         initialCheckIn,

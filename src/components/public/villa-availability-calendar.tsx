@@ -60,6 +60,7 @@ export function VillaAvailabilityCalendar() {
   const pricingInput = {
     pricePerNight: villa.price,
     priceWeekend: villa.priceWeekend,
+    dailyRates: (villa as any).dailyRates,
     customPrices,
   };
 

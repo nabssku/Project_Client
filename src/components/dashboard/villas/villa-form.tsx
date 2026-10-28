@@ -34,6 +34,7 @@ interface VillaFormProps {
     slug: string;
     description: string;
     pricePerNight: number;
+    priceWeekend?: number | null;
     capacity: number;
     bedrooms: number;
     bathrooms: number;
@@ -86,6 +87,7 @@ export function VillaForm({ initialData }: VillaFormProps) {
     slug: initialData?.slug || "",
     description: initialData?.description || "",
     pricePerNight: initialData?.pricePerNight || 1500000,
+    priceWeekend: initialData?.priceWeekend ?? "",
     capacity: initialData?.capacity || 10,
     bedrooms: initialData?.bedrooms || 3,
     bathrooms: initialData?.bathrooms || 2,
@@ -201,10 +203,18 @@ export function VillaForm({ initialData }: VillaFormProps) {
 
       const method = isEditing ? "PUT" : "POST";
 
+      const payload = {
+        ...formData,
+        priceWeekend:
+          formData.priceWeekend !== "" && formData.priceWeekend !== null && Number(formData.priceWeekend) > 0
+            ? Number(formData.priceWeekend)
+            : null,
+      };
+
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const result = await res.json();
@@ -647,10 +657,10 @@ export function VillaForm({ initialData }: VillaFormProps) {
           <p className="text-xs text-slate-400">Penetapan tarif sewa per malam dan status unit</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           <div>
             <label className="block text-xs font-semibold text-primary mb-1.5">
-              Harga Sewa per Malam (Rp) *
+              Harga Sewa Reguler / Malam (Rp) *
             </label>
             <div className="relative">
               <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">
@@ -666,6 +676,28 @@ export function VillaForm({ initialData }: VillaFormProps) {
                 className="w-full rounded-xl border border-[#e8e6df] pl-10 pr-3.5 py-2.5 text-xs sm:text-sm font-bold text-primary focus:outline-hidden focus:border-accent focus:ring-1 focus:ring-accent"
               />
             </div>
+            <p className="text-[11px] text-slate-400 mt-1">Tarif dasar (Senin - Kamis & Minggu jika tidak diatur khusus)</p>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-primary mb-1.5">
+              Harga Weekend (Rp) <span className="text-slate-400 font-normal">(Opsional)</span>
+            </label>
+            <div className="relative">
+              <span className="absolute left-3.5 top-2.5 text-xs font-bold text-slate-400">
+                Rp
+              </span>
+              <input
+                type="number"
+                min={0}
+                step={50000}
+                value={formData.priceWeekend ?? ""}
+                onChange={(e) => setFormData({ ...formData, priceWeekend: e.target.value })}
+                placeholder={`Default: ${formData.pricePerNight || 0}`}
+                className="w-full rounded-xl border border-[#e8e6df] pl-10 pr-3.5 py-2.5 text-xs sm:text-sm font-bold text-primary focus:outline-hidden focus:border-accent focus:ring-1 focus:ring-accent"
+              />
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1">Jumat & Sabtu malam. Pengaturan per hari dapat diatur di Dynamic Pricing.</p>
           </div>
 
           <div>

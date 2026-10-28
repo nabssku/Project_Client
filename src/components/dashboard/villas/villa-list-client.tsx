@@ -33,6 +33,8 @@ interface VillaItem {
   slug: string;
   description: string;
   pricePerNight: number;
+  priceWeekend?: number | null;
+  dailyRates?: any;
   capacity: number;
   bedrooms: number;
   bathrooms: number;
@@ -668,6 +670,7 @@ export function VillaListClient({ initialVillas, userRole }: VillaListClientProp
               villaId={pricingModalVilla.id}
               villaName={pricingModalVilla.name}
               basePrice={pricingModalVilla.pricePerNight}
+              initialPriceWeekend={pricingModalVilla.priceWeekend}
               onClose={() => setPricingModalVilla(null)}
             />
           </div>

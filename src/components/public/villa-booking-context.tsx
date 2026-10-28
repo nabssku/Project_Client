@@ -30,6 +30,7 @@ interface VillaBookingContextType {
     name: string;
     price: number;
     priceWeekend?: number | null;
+    dailyRates?: any;
     capacity: number;
     ownerPhone?: string;
   };
@@ -67,6 +68,7 @@ export function VillaBookingProvider({
     name: string;
     price: number;
     priceWeekend?: number | null;
+    dailyRates?: any;
     capacity: number;
     ownerPhone?: string;
   };
@@ -143,9 +145,10 @@ export function VillaBookingProvider({
     () => ({
       pricePerNight: villa.price,
       priceWeekend: villa.priceWeekend,
+      dailyRates: villa.dailyRates,
       customPrices: initialCustomPrices,
     }),
-    [villa.price, villa.priceWeekend, initialCustomPrices]
+    [villa.price, villa.priceWeekend, villa.dailyRates, initialCustomPrices]
   );
 
   // Check if a specific day is booked

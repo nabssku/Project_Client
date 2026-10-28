@@ -267,6 +267,7 @@ export default async function VillaDetailPage({
             name: villa.name,
             price: villa.pricePerNight,
             priceWeekend: villa.priceWeekend,
+            dailyRates: (villa as any).dailyRates,
             capacity: villa.capacity,
             ownerPhone,
           }}
