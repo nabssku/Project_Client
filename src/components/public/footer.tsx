@@ -48,7 +48,7 @@ export async function Footer() {
   const siteName = c["site_name"] || "Singgahsana";
   const siteLogo = c["site_logo"] || null;
   const companyName = c["company_name"] || "PT Singgahsana Villa Management";
-  const phone1 = c["contact_phone_1"] || "(+62) 811-1141-052";
+  const phone1 = c["contact_phone_1"] || "(+62) 811-1141-888";
   const phone2 = c["contact_phone_2"] || "(+62) 8521-9949-626";
   const email = c["contact_email"] || "singgahsana.id@gmail.com";
   const address = c["contact_address"] || "Jl. Alternatif Puncak\nCisarua – Bogor 16750";

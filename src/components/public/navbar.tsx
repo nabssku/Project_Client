@@ -13,7 +13,7 @@ interface NavbarProps {
 }
 
 export function Navbar({
-  contactPhone = "628111141052",
+  contactPhone = "628111141888",
   siteName = "Singgahsana",
   siteLogo,
 }: NavbarProps) {
@@ -28,7 +28,7 @@ export function Navbar({
   const isDarkBackground = isHome || (scrolled && !isSolidNav);
   const { data: session, status } = useSession();
 
-  const waNumber = (contactPhone || "628111141052").replace(/\D/g, "").replace(/^0/, "62");
+  const waNumber = (contactPhone || "628111141888").replace(/\D/g, "").replace(/^0/, "62");
 
   useEffect(() => {
     const handleScroll = () => {

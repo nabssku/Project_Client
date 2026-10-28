@@ -19,7 +19,7 @@ export async function CTA() {
     {}
   );
 
-  const phone1 = c["contact_phone_1"] || "628111141052";
+  const phone1 = c["contact_phone_1"] || "628111141888";
   const ctaTitle = c["cta_title"] || "Siap Untuk Liburan?";
   const ctaSubtitle =
     c["cta_subtitle"] ||

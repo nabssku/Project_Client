@@ -97,11 +97,13 @@ export function BookingPaymentClient({
   bankAccounts = DEFAULT_BANK_ACCOUNTS,
   siteName = "Singgahsana",
   siteLogo = "/logo.png",
+  contactPhone,
 }: {
   initialBooking: BookingData;
   bankAccounts?: BankAccount[];
   siteName?: string;
   siteLogo?: string | null;
+  contactPhone?: string | null;
 }) {
   const [booking, setBooking] = useState<BookingData>(initialBooking);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -203,7 +205,8 @@ export function BookingPaymentClient({
           },
         },
         siteName,
-        siteLogo
+        siteLogo,
+        contactPhone
       );
     } catch (err) {
       console.error("Gagal mengunduh PDF:", err);
@@ -319,8 +322,8 @@ export function BookingPaymentClient({
     }
   };
 
-  // WhatsApp verification message
-  const waPhone = "628111141052";
+  // WhatsApp verification message directed to Admin / CS
+  const waPhone = (contactPhone || "628111141888").replace(/\D/g, "").replace(/^0/, "62");
   const waText = `Halo Admin ${siteName}, saya telah melakukan pembayaran untuk Booking Code: *${booking.code}* atas nama *${booking.guestName}* (${booking.villa.name}). Mohon dibantu verifikasi. Terima kasih!`;
   const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 

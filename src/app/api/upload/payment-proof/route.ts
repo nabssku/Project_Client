@@ -119,16 +119,18 @@ export async function POST(request: Request) {
     // Kirim notifikasi bukti bayar via Resend beserta PDF invoice
     try {
       const configs = await prisma.site_configs.findMany({
-        where: { key: { in: ["site_name", "site_logo"] } },
+        where: { key: { in: ["site_name", "site_logo", "contact_phone_1"] } },
       });
       const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
       const siteName = configMap.site_name || "Singgahsana";
       const siteLogo = configMap.site_logo || null;
+      const contactPhone = configMap.contact_phone_1 || "(+62) 811-1141-888";
 
       const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
       sendBookingConfirmationEmail({
         siteName,
         siteLogo,
+        contactPhone,
         booking: {
           id: updated.id,
           code: updated.code,

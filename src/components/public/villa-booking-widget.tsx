@@ -68,7 +68,7 @@ export function VillaBookingWidget({
       : `#availability-calendar`;
 
   // WhatsApp Message
-  const ownerPhone = villa.ownerPhone || "628111141052";
+  const ownerPhone = (villa.ownerPhone || "628111141888").replace(/\D/g, "").replace(/^0/, "62");
   const waDatesText =
     checkIn && checkOut
       ? `untuk tanggal ${formattedCheckIn} - ${formattedCheckOut}`

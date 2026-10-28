@@ -9,6 +9,7 @@ export interface SendBookingEmailOptions {
   booking: BookingPDFData;
   siteName?: string;
   siteLogo?: string | null;
+  contactPhone?: string | null;
   appBaseUrl?: string;
   type?: "CONFIRMATION" | "RECEIPT" | "REMINDER";
 }
@@ -20,7 +21,8 @@ function buildBookingEmailHtml(
   booking: BookingPDFData,
   siteName: string,
   appBaseUrl: string,
-  siteLogo?: string | null
+  siteLogo?: string | null,
+  contactPhone?: string | null
 ): string {
   const checkInDate = new Date(booking.checkIn);
   const checkOutDate = new Date(booking.checkOut);
@@ -199,7 +201,9 @@ function buildBookingEmailHtml(
               <!-- Assistance Note -->
               <p style="margin: 0; font-size: 12px; color: #94a3b8; text-align: center; line-height: 1.5;">
                 Butuh bantuan perjalanan? Hubungi Concierge WhatsApp kami di
-                <a href="https://wa.me/628111141888" style="color: #C8A44E; text-decoration: underline; font-weight: 600;">+62 811-1141-888</a>
+                <a href="https://wa.me/${(contactPhone || "628111141888").replace(/\D/g, "").replace(/^0/, "62")}" style="color: #C8A44E; text-decoration: underline; font-weight: 600;">
+                  ${contactPhone || "(+62) 811-1141-888"}
+                </a>
               </p>
             </td>
           </tr>
@@ -244,7 +248,13 @@ export async function sendBookingConfirmationEmail(
     const pdfFilename = `Voucher-${siteName.toLowerCase().replace(/\s+/g, "-")}-${booking.code}.pdf`;
 
     // 2. Generate HTML Email Body
-    const htmlBody = buildBookingEmailHtml(booking, siteName, appBaseUrl, options.siteLogo);
+    const htmlBody = buildBookingEmailHtml(
+      booking,
+      siteName,
+      appBaseUrl,
+      options.siteLogo,
+      options.contactPhone
+    );
 
     // Subject
     const isConfirmed = booking.status === "CONFIRMED" || booking.status === "COMPLETED";

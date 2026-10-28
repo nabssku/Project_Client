@@ -189,7 +189,7 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
         },
       };
 
-      await downloadBookingPDF(pdfData, siteName, siteLogo);
+      await downloadBookingPDF(pdfData, siteName, siteLogo, contactPhone);
     } catch (err) {
       console.error("Failed to generate PDF voucher:", err);
       alert("Gagal mengunduh dokumen voucher. Silakan coba beberapa saat lagi.");
@@ -322,7 +322,7 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
     };
   };
 
-  const cleanPhone = (contactPhone || "628111141052").replace(/\D/g, "").replace(/^0/, "62");
+  const cleanPhone = (contactPhone || "628111141888").replace(/\D/g, "").replace(/^0/, "62");
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in duration-300">

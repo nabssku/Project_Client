@@ -67,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function AboutPublicPage() {
   const configs = await getAboutConfigs();
 
-  const phone = (configs.contact_phone_1 || "628111141052").replace(/\D/g, "").replace(/^0/, "62");
+  const phone = (configs.contact_phone_1 || "628111141888").replace(/\D/g, "").replace(/^0/, "62");
 
   const stats = [
     {

@@ -194,7 +194,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 
     let siteName = "Singgahsana";
     let siteLogo: string | null = null;
-    let contactPhone = "628111141052";
+    let contactPhone = "628111141888";
 
     siteConfigs.forEach((c) => {
       if (c.key === "site_name" && c.value) siteName = c.value;

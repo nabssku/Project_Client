@@ -5,6 +5,7 @@ import { BookingPaymentClient } from "@/components/public/booking-payment-client
 import { getPaymentTransferBanks } from "@/lib/payment-config";
 import { normalizeMediaUrl } from "@/lib/media";
 import { isBookingExpired } from "@/lib/booking-expiration";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 export const instant = false;
 
@@ -67,25 +68,13 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
   }
 
   const bankAccounts = await getPaymentTransferBanks();
-
-  let siteName = "Singgahsana";
-  let siteLogo: string | null = null;
-  try {
-    const configs = await prisma.site_configs.findMany({
-      where: { key: { in: ["site_name", "site_logo"] } },
-    });
-    configs.forEach((c) => {
-      if (c.key === "site_name" && c.value) siteName = c.value;
-      if (c.key === "site_logo" && c.value) siteLogo = c.value;
-    });
-  } catch (err) {
-    console.warn("Failed to load site configs for booking payment page:", err);
-  }
+  const siteContact = await getSiteContactConfig();
 
   return (
     <BookingPaymentClient
-      siteName={siteName}
-      siteLogo={siteLogo}
+      siteName={siteContact.siteName}
+      siteLogo={siteContact.siteLogo}
+      contactPhone={siteContact.contactPhone1}
       initialBooking={{
         id: booking.id,
         code: booking.code,

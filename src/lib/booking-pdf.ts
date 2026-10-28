@@ -95,7 +95,9 @@ export async function resolveImageToDataUri(url: string): Promise<string | null>
 export function buildBookingPDFDocument(
   booking: BookingPDFData,
   siteName: string = "Singgahsana",
-  siteLogoDataUri?: string | null
+  siteLogoDataUri?: string | null,
+  contactPhone?: string | null,
+  contactEmail?: string | null
 ): jsPDF {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -536,7 +538,9 @@ export function buildBookingPDFDocument(
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(gold[0], gold[1], gold[2]);
-  doc.text("+62 811-1141-888  |  support@singgahsana.com", 82, footerY + 3);
+  const phoneText = contactPhone || "+62 811-1141-888";
+  const emailText = contactEmail || `support@${siteName.toLowerCase().replace(/\s+/g, "")}.com`;
+  doc.text(`${phoneText}  |  ${emailText}`, 82, footerY + 3);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
@@ -556,13 +560,21 @@ export function buildBookingPDFDocument(
 export async function downloadBookingPDF(
   booking: BookingPDFData,
   siteName: string = "Singgahsana",
-  siteLogo?: string | null
+  siteLogo?: string | null,
+  contactPhone?: string | null,
+  contactEmail?: string | null
 ) {
   let logoDataUri: string | null = null;
   if (siteLogo) {
     logoDataUri = await resolveImageToDataUri(siteLogo);
   }
-  const doc = buildBookingPDFDocument(booking, siteName, logoDataUri);
+  const doc = buildBookingPDFDocument(
+    booking,
+    siteName,
+    logoDataUri,
+    contactPhone,
+    contactEmail
+  );
   const filename = `Voucher-${siteName.toLowerCase().replace(/\s+/g, "-")}-${booking.code}.pdf`;
   doc.save(filename);
 }
@@ -573,13 +585,21 @@ export async function downloadBookingPDF(
 export async function generateBookingPDFBuffer(
   booking: BookingPDFData,
   siteName: string = "Singgahsana",
-  siteLogo?: string | null
+  siteLogo?: string | null,
+  contactPhone?: string | null,
+  contactEmail?: string | null
 ): Promise<Buffer> {
   let logoDataUri: string | null = null;
   if (siteLogo) {
     logoDataUri = await resolveImageToDataUri(siteLogo);
   }
-  const doc = buildBookingPDFDocument(booking, siteName, logoDataUri);
+  const doc = buildBookingPDFDocument(
+    booking,
+    siteName,
+    logoDataUri,
+    contactPhone,
+    contactEmail
+  );
   const arrayBuf = doc.output("arraybuffer");
   return Buffer.from(arrayBuf);
 }

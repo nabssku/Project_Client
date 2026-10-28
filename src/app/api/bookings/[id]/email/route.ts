@@ -41,13 +41,15 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Ambil nama situs & logo dari database
     let siteName = "Singgahsana";
     let siteLogo: string | null = null;
+    let contactPhone: string | null = null;
     try {
       const configs = await prisma.site_configs.findMany({
-        where: { key: { in: ["site_name", "site_logo"] } },
+        where: { key: { in: ["site_name", "site_logo", "contact_phone_1"] } },
       });
       configs.forEach((c) => {
         if (c.key === "site_name" && c.value) siteName = c.value;
         if (c.key === "site_logo" && c.value) siteLogo = c.value;
+        if (c.key === "contact_phone_1" && c.value) contactPhone = c.value;
       });
     } catch {
       // fallback
@@ -57,6 +59,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const result = await sendBookingConfirmationEmail({
       siteName,
       siteLogo,
+      contactPhone,
       booking: {
         id: booking.id,
         code: booking.code,

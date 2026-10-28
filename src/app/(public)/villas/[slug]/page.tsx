@@ -14,6 +14,7 @@ import { VillaBookingProvider } from "@/components/public/villa-booking-context"
 import { VillaBookingWidget } from "@/components/public/villa-booking-widget";
 import { VillaAvailabilityCalendar } from "@/components/public/villa-availability-calendar";
 import { VillaMobileBookingBar } from "@/components/public/villa-mobile-booking-bar";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 async function getVilla(slug: string) {
   'use cache'
@@ -139,7 +140,8 @@ export default async function VillaDetailPage({
     return new Intl.NumberFormat("id-ID").format(price);
   };
 
-  const ownerPhone = "628111141052";
+  const siteContact = await getSiteContactConfig();
+  const ownerPhone = siteContact.waNumber1;
 
   return (
     <main className="min-h-screen bg-warm-white pb-32 lg:pb-24">
