@@ -30,6 +30,9 @@ import {
   Download,
   Mail,
   XCircle,
+  HelpCircle,
+  Smartphone,
+  X,
 } from "lucide-react";
 import { type BankAccount, DEFAULT_BANK_ACCOUNTS } from "@/lib/payment-config";
 import { downloadBookingPDF } from "@/lib/booking-pdf";
@@ -100,6 +103,10 @@ export function BookingPaymentClient({
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedAmount, setCopiedAmount] = useState(false);
   const [copiedBank, setCopiedBank] = useState<string | null>(null);
+
+  // Tutorial Modal state
+  const [showTutorialModal, setShowTutorialModal] = useState(false);
+  const [tutorialTab, setTutorialTab] = useState<"mbanking" | "bifast" | "atm">("mbanking");
 
   // Active bank accounts from site_configs
   const activeBankAccounts =
@@ -736,9 +743,19 @@ export function BookingPaymentClient({
 
             {/* Payment Details Card */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
-              <h2 className="text-base font-bold font-display text-primary mb-4">
-                Total Tagihan Pembayaran
-              </h2>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-bold font-display text-primary">
+                  Total Tagihan Pembayaran
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setShowTutorialModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent font-semibold text-xs transition-colors cursor-pointer border border-accent/20"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>Tutorial Bayar</span>
+                </button>
+              </div>
 
               <div className="p-4 rounded-2xl bg-cream border border-gray-200/70 flex items-center justify-between mb-6">
                 <div>
@@ -768,48 +785,72 @@ export function BookingPaymentClient({
                   </span>
                 </div>
 
-                  {activeBankAccounts.map((bank) => {
-                    const cleanNumber = bank.accountNumber.replace(/\s+/g, "");
-                    const isCopied = copiedBank === bank.id;
+                {activeBankAccounts.map((bank) => {
+                  const cleanNumber = bank.accountNumber.replace(/\s+/g, "");
+                  const isCopied = copiedBank === bank.id;
 
-                    return (
-                      <div
-                        key={bank.id}
-                        className="p-4 rounded-2xl border border-gray-100 bg-[#fafafa] flex items-center justify-between hover:border-gray-200 transition-colors"
-                      >
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Building className="w-4 h-4 text-accent shrink-0" />
-                            <span className="font-bold text-sm text-primary">
-                              {bank.bankName}
-                            </span>
-                          </div>
-                          <span className="font-mono text-base font-bold text-gray-900 block mt-1 tracking-wide">
-                            {bank.accountNumber}
+                  return (
+                    <div
+                      key={bank.id}
+                      className="p-4 rounded-2xl border border-gray-100 bg-[#fafafa] flex items-center justify-between hover:border-gray-200 transition-colors"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Building className="w-4 h-4 text-accent shrink-0" />
+                          <span className="font-bold text-sm text-primary">
+                            {bank.bankName}
                           </span>
-                          <span className="text-[11px] text-gray-500 block">
-                            a.n. {bank.accountHolder}
-                          </span>
-                          {bank.instructions && (
-                            <span className="text-[10px] text-accent/90 block mt-0.5">
-                              {bank.instructions}
-                            </span>
-                          )}
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={() => copyToClipboard(cleanNumber, bank.id)}
-                          className="px-3.5 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 ml-3"
-                          title="Salin Nomor Rekening"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                          <span>{isCopied ? "Tersalin!" : "Salin"}</span>
-                        </button>
+                        <span className="font-mono text-base font-bold text-gray-900 block mt-1 tracking-wide">
+                          {bank.accountNumber}
+                        </span>
+                        <span className="text-[11px] text-gray-500 block">
+                          a.n. {bank.accountHolder}
+                        </span>
+                        {bank.instructions && (
+                          <span className="text-[10px] text-accent/90 block mt-0.5">
+                            {bank.instructions}
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
+
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(cleanNumber, bank.id)}
+                        className="px-3.5 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 ml-3"
+                        title="Salin Nomor Rekening"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{isCopied ? "Tersalin!" : "Salin"}</span>
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Tutorial Banner Prompt */}
+                <div className="mt-4 p-4 rounded-2xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0">
+                      <Smartphone className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-900 block">
+                        Belum tahu cara bayar via transfer bank?
+                      </span>
+                      <span className="text-gray-500 text-[11px]">
+                        Lihat panduan lengkap langkah demi langkah via m-Banking, BI-FAST, atau ATM.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowTutorialModal(true)}
+                    className="px-3.5 py-1.5 rounded-xl bg-accent hover:bg-accent-light text-white font-semibold text-xs transition-colors shrink-0 shadow-2xs cursor-pointer"
+                  >
+                    Buka Panduan
+                  </button>
                 </div>
+              </div>
             </div>
 
             {/* Proof Upload Card */}
@@ -1111,6 +1152,304 @@ export function BookingPaymentClient({
           </div>
         </div>
       </div>
+
+      {/* --- Pop-up Modal: Tutorial Pembayaran Transfer Bank --- */}
+      {showTutorialModal && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-fade-in"
+          onClick={() => setShowTutorialModal(false)}
+        >
+          <div
+            className="relative w-full max-w-xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden max-h-[92vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-cream/60 via-white to-cream/30">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-accent/15 border border-accent/25 flex items-center justify-center text-accent shrink-0">
+                  <HelpCircle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-base sm:text-lg text-primary">
+                    Tutorial Pembayaran Bank Transfer
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Panduan langkah mudah transfer via m-Banking, BI-FAST, atau ATM
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTutorialModal(false)}
+                className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition cursor-pointer shrink-0"
+                title="Tutup Panduan"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Total & Booking Code Highlight Banner */}
+            <div className="px-5 sm:px-6 py-3.5 bg-accent/5 border-b border-accent/15 flex flex-wrap items-center justify-between gap-3 text-xs">
+              <div>
+                <span className="text-gray-500 block text-[11px] font-medium">Nominal Tepat yang Ditransfer:</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="font-display font-bold text-base sm:text-lg text-accent tabular-nums">
+                    {formatIDR(booking.totalPrice)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(booking.totalPrice.toString(), "amount")}
+                    className="p-1 rounded-md bg-white border border-accent/30 text-accent hover:bg-accent hover:text-white transition cursor-pointer"
+                    title="Salin Nominal"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                  {copiedAmount && <span className="text-[10px] text-emerald-600 font-semibold">Tersalin!</span>}
+                </div>
+              </div>
+
+              <div>
+                <span className="text-gray-500 block text-[11px] font-medium">Kode Booking (Keterangan/Berita):</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="font-mono font-bold text-xs sm:text-sm text-primary bg-white px-2.5 py-0.5 rounded-lg border border-gray-200">
+                    {booking.code}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(booking.code, "code")}
+                    className="p-1 rounded-md bg-white border border-gray-300 text-gray-600 hover:text-accent transition cursor-pointer"
+                    title="Salin Kode Booking"
+                  >
+                    <Copy className="w-3 h-3" />
+                  </button>
+                  {copiedCode && <span className="text-[10px] text-emerald-600 font-semibold">Tersalin!</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Tab Navigation */}
+            <div className="px-5 sm:px-6 pt-3 pb-2 border-b border-gray-100 bg-white">
+              <div className="flex p-1 bg-gray-100/80 rounded-2xl gap-1 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setTutorialTab("mbanking")}
+                  className={`flex-1 py-2 rounded-xl transition text-center cursor-pointer ${
+                    tutorialTab === "mbanking"
+                      ? "bg-white text-primary shadow-xs font-bold"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  📱 m-Banking
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTutorialTab("bifast")}
+                  className={`flex-1 py-2 rounded-xl transition text-center cursor-pointer ${
+                    tutorialTab === "bifast"
+                      ? "bg-white text-primary shadow-xs font-bold"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  ⚡ BI-FAST
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTutorialTab("atm")}
+                  className={`flex-1 py-2 rounded-xl transition text-center cursor-pointer ${
+                    tutorialTab === "atm"
+                      ? "bg-white text-primary shadow-xs font-bold"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                >
+                  🏧 Mesin ATM
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="overflow-y-auto px-5 sm:px-6 py-4 space-y-5 text-xs text-gray-700 leading-relaxed">
+              {/* Tab 1: m-Banking */}
+              {tutorialTab === "mbanking" && (
+                <div className="space-y-3 animate-fade-in">
+                  <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-2">
+                    <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+                    <span className="text-[11px] leading-relaxed">
+                      Direkomendasikan! Transfer melalui aplikasi Mobile Banking (BCA Mobile, Livin&apos; by Mandiri, BRImo, BNI Mobile, Seabank, dll) berlangsung instan dan tanpa repot.
+                    </span>
+                  </div>
+
+                  <ol className="list-decimal pl-4 space-y-2.5">
+                    <li>
+                      Buka aplikasi <strong>Mobile Banking</strong> di ponsel Anda dan masukkan kode akses/sidik jari untuk masuk.
+                    </li>
+                    <li>
+                      Pilih menu <strong>Transfer</strong> &rarr; pilih <strong>Antar Rekening</strong> (jika bank sama) atau <strong>Antar Bank / Rekening Bank Lain</strong> (jika beda bank).
+                    </li>
+                    <li>
+                      Salin salah satu nomor rekening resmi <strong>{siteName}</strong> yang ada di bawah ini dan tempelkan ke aplikasi m-Banking Anda.
+                    </li>
+                    <li>
+                      Pastikan <strong>Nama Pemilik Rekening</strong> yang muncul di layar m-Banking sesuai dengan nama rekening tujuan resmi kami.
+                    </li>
+                    <li>
+                      Masukkan nominal transfer tepat sebesar <strong className="text-accent">{formatIDR(booking.totalPrice)}</strong> (tanpa dilebihkan atau dikurangi).
+                    </li>
+                    <li>
+                      Pada kolom Berita / Catatan Transaksi, cantumkan Kode Booking: <strong className="font-mono text-primary bg-gray-100 px-1 py-0.5 rounded">{booking.code}</strong>.
+                    </li>
+                    <li>
+                      Periksa kembali data transfer, lalu masukkan <strong>PIN m-Banking</strong> Anda untuk menyelesaikan proses pembayaran.
+                    </li>
+                    <li>
+                      <strong className="text-emerald-700">Simpan bukti transfer (tangkapan layar / screenshot)</strong> yang berhasil, lalu unggah pada form <strong>Unggah Bukti Transfer</strong> di halaman ini.
+                    </li>
+                  </ol>
+                </div>
+              )}
+
+              {/* Tab 2: BI-FAST */}
+              {tutorialTab === "bifast" && (
+                <div className="space-y-3 animate-fade-in">
+                  <div className="p-3 rounded-2xl bg-sky-50 border border-sky-200 text-sky-800 flex items-start gap-2">
+                    <Sparkles className="w-4 h-4 shrink-0 text-sky-600 mt-0.5" />
+                    <span className="text-[11px] leading-relaxed">
+                      Gunakan layanan <strong>BI-FAST</strong> di aplikasi m-Banking jika rekening bank Anda berbeda dengan rekening tujuan. Biaya admin hanya <strong>Rp 2.500</strong> dan transfer diterima secara seketika (real-time 24/7).
+                    </span>
+                  </div>
+
+                  <ol className="list-decimal pl-4 space-y-2.5">
+                    <li>
+                      Buka aplikasi <strong>Mobile Banking</strong> bank apa saja yang Anda gunakan.
+                    </li>
+                    <li>
+                      Pilih menu <strong>Transfer</strong> &rarr; <strong>Transfer Antar Bank</strong>.
+                    </li>
+                    <li>
+                      Pada pilihan Jenis / Layanan Transfer, pilih opsi <strong>BI-FAST</strong>.
+                    </li>
+                    <li>
+                      Pilih Bank Tujuan (contoh: Bank BCA, Bank Mandiri, Bank BRI, dll) sesuai rekening kami di bawah.
+                    </li>
+                    <li>
+                      Masukkan nomor rekening tujuan resmi dan nominal pembayaran tepat <strong className="text-accent">{formatIDR(booking.totalPrice)}</strong>.
+                    </li>
+                    <li>
+                      Tuliskan Kode Booking <strong className="font-mono text-primary bg-gray-100 px-1 py-0.5 rounded">{booking.code}</strong> pada catatan/berita transfer.
+                    </li>
+                    <li>
+                      Konfirmasi rincian pembayaran, masukkan PIN m-Banking Anda hingga transaksi sukses.
+                    </li>
+                    <li>
+                      <strong className="text-emerald-700">Simpan / screenshot resi pembayaran sukses</strong> dan unggah di formulir bukti pembayaran.
+                    </li>
+                  </ol>
+                </div>
+              )}
+
+              {/* Tab 3: ATM */}
+              {tutorialTab === "atm" && (
+                <div className="space-y-3 animate-fade-in">
+                  <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 flex items-start gap-2">
+                    <Building className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+                    <span className="text-[11px] leading-relaxed">
+                      Jika Anda melakukan pembayaran via mesin ATM, pastikan Anda <strong>menyimpan struk bukti fisik</strong> dan memfotonya dengan jelas.
+                    </span>
+                  </div>
+
+                  <ol className="list-decimal pl-4 space-y-2.5">
+                    <li>
+                      Kunjungi gerai <strong>mesin ATM terdekat</strong> (ATM Bersama, Prima, atau ATM bank Anda).
+                    </li>
+                    <li>
+                      Masukkan kartu debit/ATM dan 6 digit PIN ATM Anda dengan aman.
+                    </li>
+                    <li>
+                      Pilih menu <strong>Transaksi Lainnya</strong> &rarr; <strong>Transfer</strong>.
+                    </li>
+                    <li>
+                      Pilih <strong>Ke Rekening Bank Sama</strong> atau <strong>Ke Rekening Bank Lain</strong> (masukkan kode bank 3 angka terlebih dahulu jika antar bank).
+                    </li>
+                    <li>
+                      Masukkan nomor rekening tujuan resmi {siteName}.
+                    </li>
+                    <li>
+                      Masukkan jumlah transfer tepat sejumlah <strong className="text-accent">{formatIDR(booking.totalPrice)}</strong>.
+                    </li>
+                    <li>
+                      Periksa data yang tampil di layar mesin ATM (Nama Penerima, No. Rekening, dan Nominal). Jika sudah sesuai, tekan <strong>YA / Benar</strong>.
+                    </li>
+                    <li>
+                      <strong className="text-emerald-700">Ambil kertas struk transfer yang keluar dari mesin ATM</strong>, kemudian ambil foto yang jelas dari struk tersebut untuk diunggah di web ini.
+                    </li>
+                  </ol>
+                </div>
+              )}
+
+              {/* Quick Copy Rekening inside Modal */}
+              <div className="pt-3 border-t border-gray-100 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-primary text-[11px] uppercase tracking-wider block">
+                    Pilihan Rekening Resmi {siteName}:
+                  </span>
+                  <span className="text-[10px] text-gray-400">Klik &quot;Salin&quot; untuk menyalin nomor</span>
+                </div>
+
+                <div className="space-y-2">
+                  {activeBankAccounts.map((bank) => {
+                    const cleanNum = bank.accountNumber.replace(/\s+/g, "");
+                    const isCopied = copiedBank === `modal-${bank.id}`;
+
+                    return (
+                      <div
+                        key={`modal-${bank.id}`}
+                        className="p-3 rounded-2xl bg-gray-50/80 border border-gray-200/70 flex items-center justify-between hover:bg-gray-100/60 transition"
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <Building className="w-3.5 h-3.5 text-accent shrink-0" />
+                            <span className="font-bold text-primary text-xs">{bank.bankName}</span>
+                          </div>
+                          <span className="font-mono text-sm font-bold text-gray-900 tracking-wide block mt-0.5">
+                            {bank.accountNumber}
+                          </span>
+                          <span className="text-[11px] text-gray-500 block">
+                            a.n. {bank.accountHolder}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(cleanNum, `modal-${bank.id}`)}
+                          className="px-3 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0 ml-2"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>{isCopied ? "Tersalin!" : "Salin"}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 sm:px-6 py-3.5 bg-gray-50 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="text-[11px] text-gray-500 flex items-center gap-1.5 w-full sm:w-auto">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Setelah transfer, langsung unggah bukti bayar Anda di bawah.</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTutorialModal(false)}
+                className="w-full sm:w-auto px-5 py-2 rounded-xl bg-primary hover:bg-primary-dark text-white font-semibold text-xs transition cursor-pointer shadow-xs text-center"
+              >
+                Saya Mengerti, Tutup Panduan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
