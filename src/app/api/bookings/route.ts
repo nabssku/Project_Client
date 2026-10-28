@@ -7,6 +7,7 @@ import { hash } from "bcryptjs";
 import { calculateStayBreakdown } from "@/lib/pricing";
 import { generateBookingCode } from "@/lib/booking";
 import { parseISO, startOfDay } from "date-fns";
+import { autoCancelExpiredBookings } from "@/lib/booking-expiration";
 
 const createBookingSchema = z.object({
   villaId: z.string().optional(),
@@ -38,6 +39,9 @@ const createBookingSchema = z.object({
 
 export async function GET(request: Request) {
   try {
+    // Automatically cancel any pending bookings past their check-in deadline
+    await autoCancelExpiredBookings();
+
     const session = await auth();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -279,6 +283,9 @@ export async function POST(request: Request) {
     if (isManagerOrAdmin && data.directBookingStatus) {
       initialStatus = data.directBookingStatus;
     }
+
+    // Auto-cancel past pending bookings before checking collisions
+    await autoCancelExpiredBookings();
 
     // 5. ATOMIC Collision Guard & Booking Creation inside Transaction
     const newBooking = await prisma.$transaction(async (tx) => {

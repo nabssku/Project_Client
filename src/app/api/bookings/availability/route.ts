@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { format, startOfDay } from "date-fns";
+import { autoCancelExpiredBookings } from "@/lib/booking-expiration";
 
 export async function GET(request: Request) {
   try {
@@ -34,6 +35,9 @@ export async function GET(request: Request) {
     if (!villa) {
       return NextResponse.json({ error: "Villa tidak ditemukan" }, { status: 404 });
     }
+
+    // Auto-cancel any pending bookings whose check-in deadline has expired
+    await autoCancelExpiredBookings();
 
     // Fetch active bookings starting from today onwards (or recent)
     const today = startOfDay(new Date());

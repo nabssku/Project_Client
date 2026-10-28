@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadBufferToR2 } from "@/lib/r2";
+import { isBookingExpired } from "@/lib/booking-expiration";
 
 export async function POST(request: Request) {
   try {
@@ -24,10 +25,38 @@ export async function POST(request: Request) {
           { id: bookingCode.trim() },
         ],
       },
+      include: {
+        villa: {
+          select: {
+            checkInTime: true,
+          },
+        },
+      },
     });
 
     if (!booking) {
       return NextResponse.json({ error: "Booking tidak ditemukan" }, { status: 404 });
+    }
+
+    // Check if payment deadline has expired
+    if (isBookingExpired(booking.checkIn, booking.villa?.checkInTime)) {
+      if (booking.status === "PENDING") {
+        await prisma.bookings.update({
+          where: { id: booking.id },
+          data: {
+            status: "CANCELLED",
+            rejectionReason:
+              "Dibatalkan otomatis oleh sistem: Batas waktu pembayaran telah kedaluwarsa karena telah melewati jadwal check-in.",
+          },
+        });
+      }
+      return NextResponse.json(
+        {
+          error:
+            "Batas waktu pembayaran telah kedaluwarsa. Pesanan dibatalkan otomatis karena telah melewati batas jadwal check-in.",
+        },
+        { status: 400 }
+      );
     }
 
     // Validate mime type

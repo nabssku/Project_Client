@@ -285,29 +285,57 @@ export default function BookingStatusPage() {
 
             {/* Cancelled / Rejected Banner */}
             {booking.status === "CANCELLED" ? (
-              <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs space-y-2">
-                <div className="flex items-center gap-2 text-rose-800 font-bold">
-                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                  <span>Bukti Pembayaran Ditolak / Reservasi Dibatalkan</span>
-                </div>
-                <p className="text-rose-700 pl-6 leading-relaxed">
-                  <strong>Alasan:</strong> {booking.rejectionReason || "Bukti transfer tidak sesuai atau tidak terbaca."}
-                </p>
-                <div className="pl-6 pt-1">
-                  <Link
-                    href={`/booking/${booking.code}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 transition-colors"
-                  >
-                    <span>Unggah Ulang Bukti Pembayaran</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
+              (() => {
+                const isExpiredCancel =
+                  booking.rejectionReason?.toLowerCase().includes("otomatis") ||
+                  booking.rejectionReason?.toLowerCase().includes("kedaluwarsa") ||
+                  booking.rejectionReason?.toLowerCase().includes("check-in") ||
+                  booking.rejectionReason?.toLowerCase().includes("expired");
+
+                return (
+                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-xs space-y-2">
+                    <div className="flex items-center gap-2 text-rose-800 font-bold">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>
+                        {isExpiredCancel
+                          ? "Pesanan Kedaluwarsa & Dibatalkan Otomatis"
+                          : "Bukti Pembayaran Ditolak / Reservasi Dibatalkan"}
+                      </span>
+                    </div>
+                    <p className="text-rose-700 pl-6 leading-relaxed">
+                      <strong>Alasan:</strong>{" "}
+                      {booking.rejectionReason ||
+                        (isExpiredCancel
+                          ? "Batas waktu pembayaran telah kedaluwarsa karena telah melewati jadwal check-in."
+                          : "Bukti transfer tidak sesuai atau tidak terbaca.")}
+                    </p>
+                    <div className="pl-6 pt-1">
+                      {isExpiredCancel ? (
+                        <Link
+                          href={`/villas/${booking.villa.slug}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-white font-semibold text-xs hover:bg-primary-dark transition-colors"
+                        >
+                          <span>Cari Jadwal Baru di Villa Ini</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      ) : (
+                        <Link
+                          href={`/booking/${booking.code}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 transition-colors"
+                        >
+                          <span>Unggah Ulang Bukti Pembayaran</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()
             ) : booking.paymentProofUrl ? (
               <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
                 <div className="flex items-center gap-2 text-emerald-800">
                   <FileCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Bukti pembayaran sudah diunggah.</span>
+                  <span>Bukti pembayaran sudah diunggah (sedang diverifikasi).</span>
                 </div>
                 <a
                   href={normalizeMediaUrl(booking.paymentProofUrl)}
@@ -319,16 +347,18 @@ export default function BookingStatusPage() {
                 </a>
               </div>
             ) : (
-              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs flex items-center justify-between">
+              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div className="flex items-center gap-2 text-amber-800">
-                  <Clock className="w-4 h-4 text-amber-600" />
-                  <span>Bukti transfer belum diunggah.</span>
+                  <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>
+                    Bukti transfer belum diunggah &bull; Batas bayar sebelum check-in ({booking.villa.checkInTime} WIB).
+                  </span>
                 </div>
                 <Link
                   href={`/booking/${booking.code}`}
-                  className="font-semibold text-accent hover:underline"
+                  className="font-semibold text-accent hover:underline shrink-0"
                 >
-                  Unggah Sekarang
+                  Bayar &amp; Unggah Sekarang &rarr;
                 </Link>
               </div>
             )}

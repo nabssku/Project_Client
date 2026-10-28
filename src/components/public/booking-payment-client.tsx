@@ -37,6 +37,10 @@ import {
 import { type BankAccount, DEFAULT_BANK_ACCOUNTS } from "@/lib/payment-config";
 import { downloadBookingPDF } from "@/lib/booking-pdf";
 import { normalizeMediaUrl } from "@/lib/media";
+import {
+  isBookingExpired,
+  formatBookingDeadline,
+} from "@/lib/booking-expiration";
 
 interface BookingData {
   id: string;
@@ -107,6 +111,20 @@ export function BookingPaymentClient({
   // Tutorial Modal state
   const [showTutorialModal, setShowTutorialModal] = useState(false);
   const [tutorialTab, setTutorialTab] = useState<"mbanking" | "bifast" | "atm">("mbanking");
+
+  // Booking payment expiration state
+  const deadlineFormatted = formatBookingDeadline(
+    booking.checkIn,
+    booking.villa.checkInTime
+  );
+  const isExpired = isBookingExpired(booking.checkIn, booking.villa.checkInTime);
+  const isExpiredCancelled =
+    booking.status === "CANCELLED" &&
+    (isExpired ||
+      booking.rejectionReason?.toLowerCase().includes("otomatis") ||
+      booking.rejectionReason?.toLowerCase().includes("kedaluwarsa") ||
+      booking.rejectionReason?.toLowerCase().includes("check-in") ||
+      booking.rejectionReason?.toLowerCase().includes("expired"));
 
   // Active bank accounts from site_configs
   const activeBankAccounts =
@@ -337,7 +355,9 @@ export function BookingPaymentClient({
           )}
 
           <h1 className="text-2xl sm:text-3xl font-bold font-display text-primary">
-            {booking.status === "CANCELLED"
+            {isExpiredCancelled
+              ? "Pesanan Kedaluwarsa & Dibatalkan Otomatis"
+              : booking.status === "CANCELLED"
               ? "Bukti Pembayaran Ditolak / Dibatalkan"
               : booking.status === "COMPLETED"
               ? "Masa Menginap Selesai"
@@ -351,7 +371,9 @@ export function BookingPaymentClient({
           </h1>
 
           <p className="text-sm text-gray-500 max-w-md mx-auto mt-2">
-            {booking.status === "CANCELLED"
+            {isExpiredCancelled
+              ? `Batas waktu pembayaran untuk reservasi ini telah habis karena telah melewati batas jadwal check-in (${deadlineFormatted}). Tanggal menginap telah dirilis kembali untuk umum.`
+              : booking.status === "CANCELLED"
               ? "Pembayaran atau pesanan ini ditolak/dibatalkan oleh pengelola villa. Harap periksa alasan penolakan di bawah ini."
               : booking.status === "COMPLETED"
               ? `Terima kasih telah menginap di ${booking.villa.name}! Kami mengundang Anda untuk memberikan ulasan pengalaman liburan Anda.`
@@ -361,22 +383,66 @@ export function BookingPaymentClient({
               ? "Reservasi Anda telah berhasil dikonfirmasi. Sampai jumpa di villa!"
               : booking.paymentProofUrl
               ? `Terima kasih! Bukti transfer Anda sudah kami terima dan sedang diverifikasi oleh Tim ${siteName}.`
-              : "Selesaikan pembayaran Anda untuk mengamankan tanggal menginap di villa."}
+              : "Selesaikan pembayaran Anda sebelum jadwal check-in untuk mengamankan tanggal menginap di villa."}
           </p>
 
-          {/* Rejection Notice Banner */}
+          {/* Rejection / Expiration Notice Banner */}
           {booking.status === "CANCELLED" && (
             <div className="mt-5 max-w-xl mx-auto p-4 sm:p-5 rounded-2xl bg-rose-50 border border-rose-200 text-left space-y-2 animate-fade-in shadow-xs">
               <div className="flex items-center gap-2 text-rose-800 font-bold text-xs sm:text-sm">
                 <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
-                <span>Alasan Penolakan dari Pengelola Villa:</span>
+                <span>
+                  {isExpiredCancelled
+                    ? "Alasan Pembatalan Otomatis Sistem:"
+                    : "Alasan Penolakan dari Pengelola Villa:"}
+                </span>
               </div>
               <p className="text-xs sm:text-sm text-rose-700 pl-6 font-semibold leading-relaxed bg-white/70 p-3 rounded-xl border border-rose-100">
-                &ldquo;{booking.rejectionReason || "Bukti transfer tidak sesuai, foto tidak jelas, atau nominal kurang. Silakan unggah bukti yang benar."}&rdquo;
+                &ldquo;
+                {booking.rejectionReason ||
+                  (isExpiredCancelled
+                    ? "Batas waktu pembayaran telah kedaluwarsa karena telah melewati jadwal check-in."
+                    : "Bukti transfer tidak sesuai, foto tidak jelas, atau nominal kurang. Silakan unggah bukti yang benar.")}
+                &rdquo;
               </p>
-              <div className="pl-6 pt-1 text-[11px] text-rose-600 flex items-center gap-1.5">
-                <span>💡</span>
-                <span><strong>Solusi:</strong> Anda dapat mengunggah ulang bukti pembayaran yang valid pada formulir di bawah ini agar pesanan Anda dapat diproses kembali.</span>
+              <div className="pl-6 pt-1 text-[11px] text-rose-600 flex items-center justify-between flex-wrap gap-2">
+                {isExpiredCancelled ? (
+                  <div className="flex items-center gap-1.5">
+                    <span>💡</span>
+                    <span>
+                      Jadwal menginap telah dibuka kembali. Anda dapat memilih tanggal baru untuk memesan ulang.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <span>💡</span>
+                    <span>
+                      <strong>Solusi:</strong> Anda dapat mengunggah ulang bukti pembayaran yang valid pada formulir di bawah ini agar pesanan Anda dapat diproses kembali.
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Payment Deadline Info Banner for PENDING bookings */}
+          {booking.status === "PENDING" && !booking.paymentProofUrl && (
+            <div className="mt-5 max-w-xl mx-auto p-4 rounded-2xl bg-amber-50/90 border border-amber-200 text-left flex items-start gap-3 shadow-xs animate-fade-in">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                <Clock className="w-4 h-4" />
+              </div>
+              <div className="text-xs space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-amber-950">Batas Waktu Pembayaran:</span>
+                  <span className="px-2 py-0.5 rounded-full bg-amber-200/60 font-semibold text-amber-900 text-[10px]">
+                    Sebelum Check-In
+                  </span>
+                </div>
+                <p className="text-amber-800 leading-relaxed text-[11px]">
+                  Pembayaran dan bukti transfer wajib dikirim sebelum{" "}
+                  <strong>{deadlineFormatted}</strong>. Jika melewati batas waktu jadwal check-in, pesanan akan{" "}
+                  <strong className="text-rose-700">dibatalkan secara otomatis</strong> oleh sistem.
+                </p>
               </div>
             </div>
           )}
@@ -741,282 +807,326 @@ export function BookingPaymentClient({
               </div>
             )}
 
-            {/* Payment Details Card */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-bold font-display text-primary">
-                  Total Tagihan Pembayaran
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setShowTutorialModal(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent font-semibold text-xs transition-colors cursor-pointer border border-accent/20"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                  <span>Tutorial Bayar</span>
-                </button>
-              </div>
-
-              <div className="p-4 rounded-2xl bg-cream border border-gray-200/70 flex items-center justify-between mb-6">
+            {/* Payment Details & Proof Upload */}
+            {isExpiredCancelled ? (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 border border-rose-100 shadow-sm space-y-5 text-center animate-fade-in">
+                <div className="w-16 h-16 rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center mx-auto shadow-2xs">
+                  <Clock className="w-8 h-8" />
+                </div>
                 <div>
-                  <span className="text-xs text-gray-500 block">Jumlah yang harus ditransfer</span>
-                  <span className="text-2xl font-display font-bold text-accent tabular-nums">
-                    {formatIDR(booking.totalPrice)}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(booking.totalPrice.toString(), "amount")}
-                  className="px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5"
-                >
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>{copiedAmount ? "Tersalin!" : "Salin"}</span>
-                </button>
-              </div>
-
-              {/* Bank Transfer Accounts (Dynamically loaded from site_configs) */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-2">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    Pilihan Rekening Resmi {siteName}
+                  <h2 className="text-lg sm:text-xl font-bold font-display text-gray-900">
+                    Batas Waktu Pembayaran Telah Berakhir
+                  </h2>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto mt-1 leading-relaxed">
+                    Pesanan dengan kode <strong className="font-mono text-primary">{booking.code}</strong> telah dibatalkan otomatis oleh sistem karena melewati jadwal batas check-in ({deadlineFormatted}).
                   </p>
-                  <span className="text-[11px] text-gray-400">
-                    {activeBankAccounts.length} Rekening Aktif
-                  </span>
                 </div>
 
-                {activeBankAccounts.map((bank) => {
-                  const cleanNumber = bank.accountNumber.replace(/\s+/g, "");
-                  const isCopied = copiedBank === bank.id;
+                <div className="p-4 rounded-2xl bg-[#faf9f5] border border-gray-200/80 text-left space-y-2 text-xs">
+                  <span className="font-bold text-gray-800 block">Keterangan Sistem:</span>
+                  <ul className="list-disc pl-4 text-gray-600 space-y-1.5 text-[11px] leading-relaxed">
+                    <li>Sesi pembayaran dan pengunggahan bukti transfer telah dinonaktifkan.</li>
+                    <li>Jadwal tanggal villa telah dirilis dan tersedia kembali untuk tamu lain.</li>
+                    <li>Jika Anda masih berencana menginap, silakan lakukan reservasi baru dengan memilih jadwal tanggal yang tersedia.</li>
+                  </ul>
+                </div>
 
-                  return (
-                    <div
-                      key={bank.id}
-                      className="p-4 rounded-2xl border border-gray-100 bg-[#fafafa] flex items-center justify-between hover:border-gray-200 transition-colors"
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+                  <Link
+                    href={`/villas/${booking.villa.slug}`}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-primary hover:bg-primary-dark text-white font-semibold text-xs transition shadow-xs"
+                  >
+                    <span>Cari Jadwal Menginap Baru</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </Link>
+                  <Link
+                    href="/booking/status"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-4 py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-xs transition"
+                  >
+                    Cek Status Pesanan Lain
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Payment Details Card */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-base font-bold font-display text-primary">
+                      Total Tagihan Pembayaran
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setShowTutorialModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent/10 hover:bg-accent/20 text-accent font-semibold text-xs transition-colors cursor-pointer border border-accent/20"
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <Building className="w-4 h-4 text-accent shrink-0" />
-                          <span className="font-bold text-sm text-primary">
-                            {bank.bankName}
+                      <HelpCircle className="w-3.5 h-3.5" />
+                      <span>Tutorial Bayar</span>
+                    </button>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-cream border border-gray-200/70 flex items-center justify-between mb-6">
+                    <div>
+                      <span className="text-xs text-gray-500 block">Jumlah yang harus ditransfer</span>
+                      <span className="text-2xl font-display font-bold text-accent tabular-nums">
+                        {formatIDR(booking.totalPrice)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(booking.totalPrice.toString(), "amount")}
+                      className="px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{copiedAmount ? "Tersalin!" : "Salin"}</span>
+                    </button>
+                  </div>
+
+                  {/* Bank Transfer Accounts (Dynamically loaded from site_configs) */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                        Pilihan Rekening Resmi {siteName}
+                      </p>
+                      <span className="text-[11px] text-gray-400">
+                        {activeBankAccounts.length} Rekening Aktif
+                      </span>
+                    </div>
+
+                    {activeBankAccounts.map((bank) => {
+                      const cleanNumber = bank.accountNumber.replace(/\s+/g, "");
+                      const isCopied = copiedBank === bank.id;
+
+                      return (
+                        <div
+                          key={bank.id}
+                          className="p-4 rounded-2xl border border-gray-100 bg-[#fafafa] flex items-center justify-between hover:border-gray-200 transition-colors"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <Building className="w-4 h-4 text-accent shrink-0" />
+                              <span className="font-bold text-sm text-primary">
+                                {bank.bankName}
+                              </span>
+                            </div>
+                            <span className="font-mono text-base font-bold text-gray-900 block mt-1 tracking-wide">
+                              {bank.accountNumber}
+                            </span>
+                            <span className="text-[11px] text-gray-500 block">
+                              a.n. {bank.accountHolder}
+                            </span>
+                            {bank.instructions && (
+                              <span className="text-[10px] text-accent/90 block mt-0.5">
+                                {bank.instructions}
+                              </span>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(cleanNumber, bank.id)}
+                            className="px-3.5 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 ml-3"
+                            title="Salin Nomor Rekening"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{isCopied ? "Tersalin!" : "Salin"}</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+
+                    {/* Tutorial Banner Prompt */}
+                    <div className="mt-4 p-4 rounded-2xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0">
+                          <Smartphone className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <span className="font-semibold text-gray-900 block">
+                            Belum tahu cara bayar via transfer bank?
+                          </span>
+                          <span className="text-gray-500 text-[11px]">
+                            Lihat panduan lengkap langkah demi langkah via m-Banking, BI-FAST, atau ATM.
                           </span>
                         </div>
-                        <span className="font-mono text-base font-bold text-gray-900 block mt-1 tracking-wide">
-                          {bank.accountNumber}
-                        </span>
-                        <span className="text-[11px] text-gray-500 block">
-                          a.n. {bank.accountHolder}
-                        </span>
-                        {bank.instructions && (
-                          <span className="text-[10px] text-accent/90 block mt-0.5">
-                            {bank.instructions}
-                          </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowTutorialModal(true)}
+                        className="px-3.5 py-1.5 rounded-xl bg-accent hover:bg-accent-light text-white font-semibold text-xs transition-colors shrink-0 shadow-2xs cursor-pointer"
+                      >
+                        Buka Panduan
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Proof Upload Card */}
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
+                  <h2 className="text-base font-bold font-display text-primary mb-2">
+                    Unggah Bukti Transfer
+                  </h2>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Unggah tangkapan layar (screenshot) bukti transfer sukses atau resi bank Anda.
+                  </p>
+
+                  {uploadError && (
+                    <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{uploadError}</span>
+                    </div>
+                  )}
+
+                  {uploadSuccess && (
+                    <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>Bukti pembayaran berhasil diunggah!</span>
+                    </div>
+                  )}
+
+                  {booking.status === "CANCELLED" ? (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600">
+                            <XCircle className="w-6 h-6" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-rose-900 block truncate">
+                              Bukti Pembayaran Ditolak
+                            </span>
+                            <span className="text-[11px] text-rose-700 block line-clamp-1">
+                              Alasan: {booking.rejectionReason || "Bukti tidak valid"}
+                            </span>
+                          </div>
+                        </div>
+                        {booking.paymentProofUrl && (
+                          <a
+                            href={normalizeMediaUrl(booking.paymentProofUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 hover:underline shrink-0 bg-white/80 px-2.5 py-1.5 rounded-lg border border-rose-200"
+                          >
+                            <span>Lihat Bukti Ditolak</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
                         )}
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => copyToClipboard(cleanNumber, bank.id)}
-                        className="px-3.5 py-1.5 rounded-xl bg-white border border-gray-200 text-xs font-medium text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer shrink-0 ml-3"
-                        title="Salin Nomor Rekening"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                        <span>{isCopied ? "Tersalin!" : "Salin"}</span>
-                      </button>
-                    </div>
-                  );
-                })}
-
-                {/* Tutorial Banner Prompt */}
-                <div className="mt-4 p-4 rounded-2xl bg-amber-50/70 border border-amber-200/60 flex items-center justify-between gap-3 text-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-700 flex items-center justify-center shrink-0">
-                      <Smartphone className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-semibold text-gray-900 block">
-                        Belum tahu cara bayar via transfer bank?
-                      </span>
-                      <span className="text-gray-500 text-[11px]">
-                        Lihat panduan lengkap langkah demi langkah via m-Banking, BI-FAST, atau ATM.
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowTutorialModal(true)}
-                    className="px-3.5 py-1.5 rounded-xl bg-accent hover:bg-accent-light text-white font-semibold text-xs transition-colors shrink-0 shadow-2xs cursor-pointer"
-                  >
-                    Buka Panduan
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Proof Upload Card */}
-            <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
-              <h2 className="text-base font-bold font-display text-primary mb-2">
-                Unggah Bukti Transfer
-              </h2>
-              <p className="text-xs text-gray-500 mb-4">
-                Unggah tangkapan layar (screenshot) bukti transfer sukses atau resi bank Anda.
-              </p>
-
-              {uploadError && (
-                <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{uploadError}</span>
-                </div>
-              )}
-
-              {uploadSuccess && (
-                <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>Bukti pembayaran berhasil diunggah!</span>
-                </div>
-              )}
-
-              {booking.status === "CANCELLED" ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center shrink-0 text-rose-600">
-                        <XCircle className="w-6 h-6" />
-                      </div>
-                      <div className="min-w-0">
-                        <span className="text-xs font-bold text-rose-900 block truncate">
-                          Bukti Pembayaran Ditolak
-                        </span>
-                        <span className="text-[11px] text-rose-700 block line-clamp-1">
-                          Alasan: {booking.rejectionReason || "Bukti tidak valid"}
-                        </span>
-                      </div>
-                    </div>
-                    {booking.paymentProofUrl && (
-                      <a
-                        href={normalizeMediaUrl(booking.paymentProofUrl)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 hover:underline shrink-0 bg-white/80 px-2.5 py-1.5 rounded-lg border border-rose-200"
-                      >
-                        <span>Lihat Bukti Ditolak</span>
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="border-2 border-dashed border-rose-300 hover:border-rose-500 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-rose-50/20">
-                      <UploadCloud className="w-8 h-8 text-rose-500 mb-2" />
-                      <span className="text-xs font-bold text-rose-900">
-                        {uploading ? "Sedang Mengunggah Bukti Baru..." : "Unggah Ulang Bukti Pembayaran yang Benar"}
-                      </span>
-                      <span className="text-[11px] text-rose-600 mt-1">
-                        Format JPG, PNG, WebP atau PDF (Maks. 10MB)
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,application/pdf"
-                        onChange={handleFileUpload}
-                        disabled={uploading}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                </div>
-              ) : booking.paymentProofUrl ? (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                      {booking.paymentProofUrl.endsWith(".pdf") ? (
-                        <div className="w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700">
-                          <FileCheck className="w-6 h-6" />
-                        </div>
-                      ) : (
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-emerald-100 border border-emerald-200 shrink-0 shadow-2xs">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={normalizeMediaUrl(booking.paymentProofUrl)}
-                            alt="Bukti Transfer"
-                            className="w-full h-full object-cover"
+                      <div>
+                        <label className="border-2 border-dashed border-rose-300 hover:border-rose-500 rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-rose-50/20">
+                          <UploadCloud className="w-8 h-8 text-rose-500 mb-2" />
+                          <span className="text-xs font-bold text-rose-900">
+                            {uploading ? "Sedang Mengunggah Bukti Baru..." : "Unggah Ulang Bukti Pembayaran yang Benar"}
+                          </span>
+                          <span className="text-[11px] text-rose-600 mt-1">
+                            Format JPG, PNG, WebP atau PDF (Maks. 10MB)
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            onChange={handleFileUpload}
+                            disabled={uploading}
+                            className="hidden"
                           />
-                        </div>
-                      )}
-                      <div className="min-w-0">
-                        <span className="text-xs font-bold text-emerald-900 block truncate">
-                          Bukti Berhasil Diunggah
-                        </span>
-                        <span className="text-[11px] text-emerald-700 block">
-                          {booking.paymentProofUploadedAt
-                            ? `Diunggah pada ${format(
-                                new Date(booking.paymentProofUploadedAt),
-                                "d MMM yyyy, HH:mm",
-                                { locale: localeId }
-                              )} WIB`
-                            : `Siap diperiksa staf ${siteName}`}
-                        </span>
+                        </label>
                       </div>
                     </div>
+                  ) : booking.paymentProofUrl ? (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          {booking.paymentProofUrl.endsWith(".pdf") ? (
+                            <div className="w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700">
+                              <FileCheck className="w-6 h-6" />
+                            </div>
+                          ) : (
+                            <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-emerald-100 border border-emerald-200 shrink-0 shadow-2xs">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={normalizeMediaUrl(booking.paymentProofUrl)}
+                                alt="Bukti Transfer"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-emerald-900 block truncate">
+                              Bukti Berhasil Diunggah
+                            </span>
+                            <span className="text-[11px] text-emerald-700 block">
+                              {booking.paymentProofUploadedAt
+                                ? `Diunggah pada ${format(
+                                    new Date(booking.paymentProofUploadedAt),
+                                    "d MMM yyyy, HH:mm",
+                                    { locale: localeId }
+                                  )} WIB`
+                                : `Siap diperiksa staf ${siteName}`}
+                            </span>
+                          </div>
+                        </div>
+                        <a
+                          href={normalizeMediaUrl(booking.paymentProofUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline shrink-0 bg-white/70 px-2.5 py-1.5 rounded-lg border border-emerald-200"
+                        >
+                          <span>Lihat File</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+
+                      {/* Re-upload button */}
+                      <div>
+                        <label className="inline-flex items-center gap-2 text-xs font-semibold text-accent hover:underline cursor-pointer">
+                          <UploadCloud className="w-4 h-4" />
+                          <span>Unggah ulang jika ada revisi bukti</span>
+                          <input
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            onChange={handleFileUpload}
+                            disabled={uploading}
+                            className="hidden"
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="border-2 border-dashed border-gray-200 hover:border-accent rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-[#fafafa]">
+                        <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
+                        <span className="text-xs font-semibold text-gray-700">
+                          {uploading ? "Sedang Mengunggah..." : "Pilih foto bukti pembayaran"}
+                        </span>
+                        <span className="text-[11px] text-gray-400 mt-1">
+                          JPG, PNG, WebP atau PDF (Maks. 10MB)
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          onChange={handleFileUpload}
+                          disabled={uploading}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {/* WhatsApp confirmation button */}
+                  <div className="mt-6 pt-5 border-t border-gray-100">
                     <a
-                      href={normalizeMediaUrl(booking.paymentProofUrl)}
+                      href={waUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline shrink-0 bg-white/70 px-2.5 py-1.5 rounded-lg border border-emerald-200"
+                      className="w-full flex items-center justify-center gap-2 bg-green-500 text-white px-5 py-3 rounded-2xl text-sm font-semibold hover:bg-green-600 transition-colors"
                     >
-                      <span>Lihat File</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Konfirmasi Cepat via WhatsApp</span>
                     </a>
                   </div>
-
-                  {/* Re-upload button */}
-                  <div>
-                    <label className="inline-flex items-center gap-2 text-xs font-semibold text-accent hover:underline cursor-pointer">
-                      <UploadCloud className="w-4 h-4" />
-                      <span>Unggah ulang jika ada revisi bukti</span>
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,application/pdf"
-                        onChange={handleFileUpload}
-                        disabled={uploading}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
                 </div>
-              ) : (
-                <div>
-                  <label className="border-2 border-dashed border-gray-200 hover:border-accent rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-[#fafafa]">
-                    <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-xs font-semibold text-gray-700">
-                      {uploading ? "Sedang Mengunggah..." : "Pilih foto bukti pembayaran"}
-                    </span>
-                    <span className="text-[11px] text-gray-400 mt-1">
-                      JPG, PNG, WebP atau PDF (Maks. 10MB)
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp,application/pdf"
-                      onChange={handleFileUpload}
-                      disabled={uploading}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              )}
-
-              {/* WhatsApp confirmation button */}
-              <div className="mt-6 pt-5 border-t border-gray-100">
-                <a
-                  href={waUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-green-500 text-white px-5 py-3 rounded-2xl text-sm font-semibold hover:bg-green-600 transition-colors"
-                >
-                  <MessageCircle className="w-4 h-4" />
-                  <span>Konfirmasi Cepat via WhatsApp</span>
-                </a>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Right Column: Reservation Detail Card */}

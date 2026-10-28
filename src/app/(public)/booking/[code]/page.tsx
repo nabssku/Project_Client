@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { BookingPaymentClient } from "@/components/public/booking-payment-client";
 import { getPaymentTransferBanks } from "@/lib/payment-config";
 import { normalizeMediaUrl } from "@/lib/media";
+import { isBookingExpired } from "@/lib/booking-expiration";
 
 export const instant = false;
 
@@ -41,6 +42,28 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
 
   if (!booking || !booking.villa) {
     notFound();
+  }
+
+  // Auto-cancel if booking is still PENDING and check-in deadline has passed
+  if (
+    booking.status === "PENDING" &&
+    isBookingExpired(booking.checkIn, booking.villa.checkInTime)
+  ) {
+    const expiredReason =
+      "Dibatalkan otomatis oleh sistem: Batas waktu pembayaran telah kedaluwarsa karena telah melewati jadwal check-in.";
+    try {
+      await prisma.bookings.update({
+        where: { id: booking.id },
+        data: {
+          status: "CANCELLED",
+          rejectionReason: expiredReason,
+        },
+      });
+      booking.status = "CANCELLED";
+      booking.rejectionReason = expiredReason;
+    } catch (updateErr) {
+      console.error("Failed to auto-cancel expired booking:", updateErr);
+    }
   }
 
   const bankAccounts = await getPaymentTransferBanks();

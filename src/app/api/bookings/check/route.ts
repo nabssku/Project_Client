@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { isBookingExpired } from "@/lib/booking-expiration";
 
 const checkBookingSchema = z.object({
   code: z.string().min(3, "Kode booking wajib diisi"),
@@ -54,6 +55,28 @@ export async function POST(request: Request) {
         },
         { status: 404 }
       );
+    }
+
+    // Auto-cancel if pending and check-in deadline has passed
+    if (
+      booking.status === "PENDING" &&
+      isBookingExpired(booking.checkIn, booking.villa?.checkInTime)
+    ) {
+      const expiredReason =
+        "Dibatalkan otomatis oleh sistem: Batas waktu pembayaran telah kedaluwarsa karena telah melewati jadwal check-in.";
+      try {
+        await prisma.bookings.update({
+          where: { id: booking.id },
+          data: {
+            status: "CANCELLED",
+            rejectionReason: expiredReason,
+          },
+        });
+        booking.status = "CANCELLED";
+        booking.rejectionReason = expiredReason;
+      } catch (err) {
+        console.error("Failed to auto-cancel expired booking in check route:", err);
+      }
     }
 
     return NextResponse.json({
