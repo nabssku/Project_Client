@@ -26,6 +26,17 @@ export async function generateMetadata(): Promise<Metadata> {
     alternates: {
       canonical: "/artikel",
     },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
     openGraph: {
       title,
       description,
@@ -102,8 +113,32 @@ export default async function ArtikelPublicPage({ searchParams }: ArtikelPagePro
     ])
   );
 
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Beranda",
+        item: "https://villaqoe.com",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Artikel & Panduan",
+        item: "https://villaqoe.com/artikel",
+      },
+    ],
+  };
+
   return (
-    <main className="min-h-screen bg-[#fcfbf9] pt-28 pb-20">
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+      <main className="min-h-screen bg-[#fcfbf9] pt-28 pb-20">
       <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         {/* Editorial Header Banner */}
         <div className="text-center max-w-3xl mx-auto mb-12">
@@ -234,5 +269,6 @@ export default async function ArtikelPublicPage({ searchParams }: ArtikelPagePro
         )}
       </div>
     </main>
+  </>
   );
 }

@@ -23,6 +23,23 @@ interface ArticleDetailPageProps {
   }>;
 }
 
+function getBaseUrl(): string {
+  const url =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "https://villaqoe.com"
+      : process.env.AUTH_URL || "http://localhost:3000");
+  return url.replace(/\/+$/, "");
+}
+
+function toAbsoluteUrl(url?: string | null, base: string = "https://villaqoe.com"): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  return `${base}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
+}
+
 export async function generateMetadata({
   params,
 }: ArticleDetailPageProps): Promise<Metadata> {
@@ -31,9 +48,18 @@ export async function generateMetadata({
   cacheLife('minutes');
 
   const { slug } = await params;
-  const [article, siteConfig] = await Promise.all([
-    prisma.articles.findUnique({ where: { slug } }),
-    prisma.site_configs.findUnique({ where: { key: "site_name" } }),
+  const [article, siteConfigs] = await Promise.all([
+    prisma.articles.findUnique({
+      where: { slug },
+      include: {
+        author: {
+          select: { name: true },
+        },
+      },
+    }),
+    prisma.site_configs.findMany({
+      where: { key: { in: ["site_name", "site_logo"] } },
+    }),
   ]);
 
   if (!article || !article.isPublished) {
@@ -42,7 +68,11 @@ export async function generateMetadata({
     };
   }
 
-  const siteName = siteConfig?.value || "Villa Luxury Stay";
+  const siteName =
+    siteConfigs.find((c) => c.key === "site_name")?.value || "Villa Luxury Stay";
+  const baseUrl = getBaseUrl();
+  const absoluteCoverImage = toAbsoluteUrl(article.coverImage, baseUrl);
+
   const metaTitle = article.metaTitle
     ? `${article.metaTitle} | ${siteName}`
     : `${article.title} | ${siteName}`;
@@ -52,28 +82,57 @@ export async function generateMetadata({
     article.excerpt ||
     article.content.substring(0, 160);
 
+  const keywords =
+    article.tags && article.tags.length > 0
+      ? article.tags
+      : [article.category, "villa bandung", "villa bogor", "tips liburan", "sewa villa"];
+
   return {
     title: metaTitle,
     description: metaDescription,
+    keywords,
+    authors: [{ name: article.author?.name || "Redaksi Villa" }],
     alternates: {
       canonical: `/artikel/${slug}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
     openGraph: {
       title: metaTitle,
       description: metaDescription,
       url: `/artikel/${slug}`,
       type: "article",
+      siteName,
       publishedTime: article.publishedAt
         ? new Date(article.publishedAt).toISOString()
         : new Date(article.createdAt).toISOString(),
-      authors: article.authorId ? [article.authorId] : undefined,
-      images: article.coverImage ? [{ url: article.coverImage }] : undefined,
+      modifiedTime: new Date(article.updatedAt).toISOString(),
+      section: article.category,
+      tags: article.tags || [],
+      authors: [article.author?.name || "Redaksi Villa"],
+      images: absoluteCoverImage
+        ? [
+            {
+              url: absoluteCoverImage,
+              alt: article.title,
+            },
+          ]
+        : undefined,
     },
     twitter: {
       card: "summary_large_image",
       title: metaTitle,
       description: metaDescription,
-      images: article.coverImage ? [article.coverImage] : undefined,
+      images: absoluteCoverImage ? [absoluteCoverImage] : undefined,
     },
   };
 }
@@ -81,7 +140,7 @@ export async function generateMetadata({
 export default async function ArticleDetailPage({ params }: ArticleDetailPageProps) {
   const { slug } = await params;
 
-  const [article, siteConfig] = await Promise.all([
+  const [article, siteConfigs] = await Promise.all([
     prisma.articles.findUnique({
       where: { slug },
       include: {
@@ -94,8 +153,8 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
         },
       },
     }),
-    prisma.site_configs.findUnique({
-      where: { key: "site_name" },
+    prisma.site_configs.findMany({
+      where: { key: { in: ["site_name", "site_logo"] } },
     }),
   ]);
 
@@ -103,7 +162,12 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     notFound();
   }
 
-  const siteName = siteConfig?.value || "Villa Luxury Stay";
+  const siteName =
+    siteConfigs.find((c) => c.key === "site_name")?.value || "Villa Luxury Stay";
+  const siteLogo = siteConfigs.find((c) => c.key === "site_logo")?.value;
+  const baseUrl = getBaseUrl();
+  const absoluteCoverImage = toAbsoluteUrl(article.coverImage, baseUrl);
+  const absoluteSiteLogo = toAbsoluteUrl(siteLogo, baseUrl);
 
   // Estimated reading time
   const wordCount = article.content.split(/\s+/).length;
@@ -120,15 +184,19 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     orderBy: { createdAt: "desc" },
   });
 
-  // JSON-LD Schema for Google SEO
-  const jsonLd = {
+  // 1. JSON-LD BlogPosting Schema for Google SEO & Discover
+  const articleSchema = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${baseUrl}/artikel/${slug}`,
+    },
     headline: article.title,
     description: article.metaDescription || article.excerpt,
-    image: article.coverImage ? [article.coverImage] : [],
-    datePublished: article.publishedAt || article.createdAt,
-    dateModified: article.updatedAt,
+    image: absoluteCoverImage ? [absoluteCoverImage] : [],
+    datePublished: new Date(article.publishedAt || article.createdAt).toISOString(),
+    dateModified: new Date(article.updatedAt).toISOString(),
     author: {
       "@type": "Person",
       name: article.author?.name || "Redaksi Villa",
@@ -136,14 +204,55 @@ export default async function ArticleDetailPage({ params }: ArticleDetailPagePro
     publisher: {
       "@type": "Organization",
       name: siteName,
+      ...(absoluteSiteLogo
+        ? {
+            logo: {
+              "@type": "ImageObject",
+              url: absoluteSiteLogo,
+            },
+          }
+        : {}),
     },
+    keywords: article.tags?.join(", ") || article.category,
+    articleSection: article.category,
+    wordCount: wordCount,
+  };
+
+  // 2. JSON-LD BreadcrumbList Schema for Google Rich Breadcrumbs
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Beranda",
+        item: baseUrl,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Artikel & Panduan",
+        item: `${baseUrl}/artikel`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: article.title,
+        item: `${baseUrl}/artikel/${article.slug}`,
+      },
+    ],
   };
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
       <main className="min-h-screen bg-[#fcfbf9] pt-28 pb-24">
