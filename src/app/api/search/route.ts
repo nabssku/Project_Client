@@ -80,61 +80,19 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const q = (searchParams.get("q") || "").trim();
 
+    // Sebelum diinput kosong (minimalis)
     if (!q) {
-      // Rekomendasi bawaan saat kotak pencarian baru dibuka
-      const [featuredVillas, recentArticles] = await Promise.all([
-        prisma.villas.findMany({
-          where: { status: "AVAILABLE" },
-          orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
-          take: 4,
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            location: true,
-            pricePerNight: true,
-            bedrooms: true,
-            capacity: true,
-            images: true,
-          },
-        }),
-        prisma.articles.findMany({
-          where: { isPublished: true },
-          orderBy: { createdAt: "desc" },
-          take: 3,
-          select: {
-            id: true,
-            title: true,
-            slug: true,
-            category: true,
-            excerpt: true,
-            coverImage: true,
-          },
-        }),
-      ]);
-
       return NextResponse.json({
         query: "",
-        villas: featuredVillas.map((v) => ({
-          ...v,
-          type: "villa" as const,
-          url: `/villas/${v.slug}`,
-          image: v.images?.[0] || null,
-        })),
-        articles: recentArticles.map((a) => ({
-          ...a,
-          type: "article" as const,
-          url: `/artikel/${a.slug}`,
-          image: a.coverImage || null,
-        })),
-        pages: PUBLIC_PAGES,
-        isDefault: true,
+        villas: [],
+        articles: [],
+        pages: [],
       });
     }
 
     const { clean, tokens } = expandSearchTokens(q);
 
-    // Ambil data aktif dari database untuk pencarian cerdas & komprehensif
+    // Ambil data aktif dari database untuk pencarian
     const [allVillas, allArticles] = await Promise.all([
       prisma.villas.findMany({
         where: { status: { not: "UNAVAILABLE" } },
@@ -184,12 +142,10 @@ export async function GET(req: NextRequest) {
           .join(" ")
           .toLowerCase();
 
-        // Jika pencariannya "villa", "sewa", atau langsung mengandung string pencarian
         if (clean === "villa" || clean === "sewa" || clean === "sewa villa" || textToSearch.includes(clean)) {
           return true;
         }
 
-        // Atau salah satu token/sinonim cocok
         return tokens.some((t) => textToSearch.includes(t));
       })
       .slice(0, 6)
@@ -204,9 +160,6 @@ export async function GET(req: NextRequest) {
         image: v.images?.[0] || null,
         type: "villa" as const,
         url: `/villas/${v.slug}`,
-        matchedAmenities: (v.amenities || []).filter((a) =>
-          tokens.some((t) => a.toLowerCase().includes(t)) || a.toLowerCase().includes(clean)
-        ),
       }));
 
     // Filter Artikel: Judul, slug, kategori, kutipan, isi, dan tag
@@ -251,7 +204,6 @@ export async function GET(req: NextRequest) {
       villas: matchedVillas,
       articles: matchedArticles,
       pages: matchedPages,
-      isDefault: false,
     });
   } catch (error) {
     console.error("Global search error:", error);
