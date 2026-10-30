@@ -4,9 +4,10 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const updateBookingStatusSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"]),
+  status: z.enum(["PENDING", "DP_50", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"]),
   notes: z.string().optional(),
   rejectionReason: z.string().optional(),
+  settlementProofUrl: z.string().optional().nullable(),
 });
 
 interface RouteParams {
@@ -134,6 +135,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
         updateData.notes = notes;
       }
 
+      if (parsed.data.settlementProofUrl) {
+        updateData.settlementProofUrl = parsed.data.settlementProofUrl;
+        updateData.settlementProofUploadedAt = new Date();
+      }
+
       if (newStatus === "CANCELLED") {
         updateData.rejectionReason =
           rejectionReason?.trim() ||
@@ -143,6 +149,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
       } else if (newStatus === "CONFIRMED") {
         // Clear rejection reason once confirmed
         updateData.rejectionReason = null;
+      } else if (newStatus === "DP_50") {
+        updateData.rejectionReason = null;
+        if (!booking.dpAmount || booking.dpAmount <= 0) {
+          updateData.dpAmount = Math.round(booking.totalPrice * 0.5);
+        }
       }
 
       const updatedBooking = await tx.bookings.update({

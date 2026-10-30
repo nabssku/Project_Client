@@ -103,7 +103,7 @@ export default async function VillaDetailPage({
     prisma.bookings.findMany({
       where: {
         villaId: villa.id,
-        status: { in: ["PENDING", "CONFIRMED", "CHECKED_IN"] },
+        status: { in: ["PENDING", "DP_50", "CONFIRMED", "CHECKED_IN"] },
       },
       select: {
         id: true,

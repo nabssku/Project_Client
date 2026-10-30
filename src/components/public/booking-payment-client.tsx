@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { formatIDR } from "@/lib/pricing";
 import {
@@ -56,10 +56,13 @@ interface BookingData {
   totalPrice: number;
   discountAmount: number;
   promoCode?: string | null;
-  status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
   paymentMethod: string;
   paymentProofUrl?: string | null;
   paymentProofUploadedAt?: string | Date | null;
+  settlementProofUrl?: string | null;
+  settlementProofUploadedAt?: string | Date | null;
+  dpAmount?: number | null;
   notes?: string | null;
   rejectionReason?: string | null;
   createdAt: string | Date;
@@ -128,6 +131,20 @@ export function BookingPaymentClient({
       booking.rejectionReason?.toLowerCase().includes("check-in") ||
       booking.rejectionReason?.toLowerCase().includes("expired"));
 
+  // DP 50% & Settlement calculations
+  const checkInDate =
+    typeof booking.checkIn === "string"
+      ? parseISO(booking.checkIn)
+      : new Date(booking.checkIn);
+  const settlementDeadlineDate = subDays(checkInDate, 1);
+  const settlementDeadlineFormatted = `${format(
+    settlementDeadlineDate,
+    "EEEE, d MMMM yyyy",
+    { locale: localeId }
+  )} pukul ${booking.villa.checkInTime} WIB`;
+  const dpPaid = booking.dpAmount || Math.round(booking.totalPrice * 0.5);
+  const remainingBalance = Math.max(0, booking.totalPrice - dpPaid);
+
   // Active bank accounts from site_configs
   const activeBankAccounts =
     bankAccounts && bankAccounts.length > 0
@@ -187,6 +204,10 @@ export function BookingPaymentClient({
           promoCode: booking.promoCode,
           status: booking.status,
           paymentMethod: booking.paymentMethod,
+          paymentProofUrl: booking.paymentProofUrl,
+          settlementProofUrl: booking.settlementProofUrl,
+          settlementProofUploadedAt: booking.settlementProofUploadedAt,
+          dpAmount: booking.dpAmount,
           notes: booking.notes,
           rejectionReason: booking.rejectionReason,
           createdAt: booking.createdAt,
@@ -249,6 +270,9 @@ export function BookingPaymentClient({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bookingCode", booking.code);
+      if (booking.status === "DP_50") {
+        formData.append("proofType", "SETTLEMENT");
+      }
 
       const res = await fetch("/api/upload/payment-proof", {
         method: "POST",
@@ -264,9 +288,12 @@ export function BookingPaymentClient({
       setBooking((prev) => ({
         ...prev,
         ...data.booking,
-        paymentProofUrl: data.url || data.booking?.paymentProofUrl,
+        paymentProofUrl: data.booking?.paymentProofUrl || prev.paymentProofUrl,
         paymentProofUploadedAt:
-          data.booking?.paymentProofUploadedAt || new Date().toISOString(),
+          data.booking?.paymentProofUploadedAt || prev.paymentProofUploadedAt,
+        settlementProofUrl: data.booking?.settlementProofUrl || prev.settlementProofUrl,
+        settlementProofUploadedAt:
+          data.booking?.settlementProofUploadedAt || prev.settlementProofUploadedAt,
         villa: {
           ...prev.villa,
           ...(data.booking?.villa || {}),
@@ -327,7 +354,6 @@ export function BookingPaymentClient({
   const waText = `Halo Admin ${siteName}, saya telah melakukan pembayaran untuk Booking Code: *${booking.code}* atas nama *${booking.guestName}* (${booking.villa.name}). Mohon dibantu verifikasi. Terima kasih!`;
   const waUrl = `https://wa.me/${waPhone}?text=${encodeURIComponent(waText)}`;
 
-  const checkInDate = typeof booking.checkIn === "string" ? parseISO(booking.checkIn) : new Date(booking.checkIn);
   const checkOutDate = typeof booking.checkOut === "string" ? parseISO(booking.checkOut) : new Date(booking.checkOut);
 
   return (
@@ -346,6 +372,10 @@ export function BookingPaymentClient({
           ) : booking.status === "CONFIRMED" ? (
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
               <CheckCircle2 className="w-8 h-8" />
+            </div>
+          ) : booking.status === "DP_50" ? (
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 text-sky-700 mb-4 shadow-xs">
+              <CreditCard className="w-8 h-8" />
             </div>
           ) : booking.status === "PENDING" ? (
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-100 text-amber-600 mb-4 animate-pulse">
@@ -367,7 +397,11 @@ export function BookingPaymentClient({
               : booking.status === "CHECKED_IN"
               ? "Sedang Menginap di Villa"
               : booking.status === "CONFIRMED"
-              ? "Pembayaran Terverifikasi!"
+              ? "Pembayaran Terverifikasi (Lunas)!"
+              : booking.status === "DP_50"
+              ? booking.settlementProofUrl
+                ? "Bukti Pelunasan Terkirim — Menunggu Verifikasi"
+                : "DP 50% Diterima — Menunggu Pelunasan (H-1)"
               : booking.paymentProofUrl
               ? "Bukti Terkirim — Menunggu Verifikasi"
               : "Instruksi Pembayaran Reservasi"}
@@ -383,7 +417,11 @@ export function BookingPaymentClient({
               : booking.status === "CHECKED_IN"
               ? `Selamat menikmati waktu liburan Anda di ${booking.villa.name}!`
               : booking.status === "CONFIRMED"
-              ? "Reservasi Anda telah berhasil dikonfirmasi. Sampai jumpa di villa!"
+              ? "Reservasi Anda telah berhasil dikonfirmasi dan lunas. Sampai jumpa di villa!"
+              : booking.status === "DP_50"
+              ? booking.settlementProofUrl
+                ? `Terima kasih! Bukti transfer pelunasan Anda sebesar ${formatIDR(remainingBalance)} sedang diverifikasi oleh Tim ${siteName}.`
+                : `Pembayaran DP 50% (${formatIDR(dpPaid)}) telah terkonfirmasi. Sisa pelunasan sebesar ${formatIDR(remainingBalance)} wajib diselesaikan paling lambat H-1 sebelum check-in.`
               : booking.paymentProofUrl
               ? `Terima kasih! Bukti transfer Anda sudah kami terima dan sedang diverifikasi oleh Tim ${siteName}.`
               : "Selesaikan pembayaran Anda sebelum jadwal check-in untuk mengamankan tanggal menginap di villa."}
@@ -445,6 +483,27 @@ export function BookingPaymentClient({
                   Pembayaran dan bukti transfer wajib dikirim sebelum{" "}
                   <strong>{deadlineFormatted}</strong>. Jika melewati batas waktu jadwal check-in, pesanan akan{" "}
                   <strong className="text-rose-700">dibatalkan secara otomatis</strong> oleh sistem.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Deadline Info Banner for DP_50 bookings */}
+          {booking.status === "DP_50" && !booking.settlementProofUrl && (
+            <div className="mt-5 max-w-xl mx-auto p-4 rounded-2xl bg-sky-50/90 border border-sky-200 text-left flex items-start gap-3 shadow-xs animate-fade-in">
+              <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-700 flex items-center justify-center shrink-0 mt-0.5">
+                <Calendar className="w-4 h-4" />
+              </div>
+              <div className="text-xs space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sky-950">Batas Waktu Pelunasan (H-1 Check-In):</span>
+                  <span className="px-2 py-0.5 rounded-full bg-sky-200/60 font-semibold text-sky-900 text-[10px]">
+                    H-1 Check-In
+                  </span>
+                </div>
+                <p className="text-sky-900 leading-relaxed text-[11px]">
+                  Sisa tagihan pelunasan sebesar <strong>{formatIDR(remainingBalance)}</strong> wajib ditransfer dan bukti diunggah paling lambat{" "}
+                  <strong>{settlementDeadlineFormatted}</strong>.
                 </p>
               </div>
             </div>
@@ -850,13 +909,154 @@ export function BookingPaymentClient({
                   </Link>
                 </div>
               </div>
+            ) : booking.status === "CONFIRMED" ? (
+              /* Confirmed / Lunas View */
+              <div className="space-y-6">
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-emerald-100 shadow-sm space-y-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider block">
+                        Status Pembayaran
+                      </span>
+                      <h2 className="text-lg sm:text-xl font-bold font-display text-primary">
+                        Pembayaran Lunas &amp; Terkonfirmasi
+                      </h2>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    Terima kasih! Seluruh tagihan reservasi untuk villa ini telah diverifikasi dan lunas. Voucher dan kode booking Anda sudah aktif untuk digunakan saat jadwal check-in tiba.
+                  </p>
+
+                  <div className="p-4 rounded-2xl bg-cream border border-gray-200/70 space-y-2 text-xs">
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span>Total Biaya Reservasi</span>
+                      <span className="font-bold text-primary text-sm tabular-nums">
+                        {formatIDR(booking.totalPrice)}
+                      </span>
+                    </div>
+                    {booking.dpAmount && booking.dpAmount > 0 && (
+                      <>
+                        <div className="flex justify-between items-center text-emerald-700">
+                          <span>DP 50% (Diterima)</span>
+                          <span className="font-semibold tabular-nums">
+                            {formatIDR(dpPaid)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center text-emerald-700 border-b border-gray-200/70 pb-2">
+                          <span>Pelunasan 50% (Lunas)</span>
+                          <span className="font-semibold tabular-nums">
+                            {formatIDR(remainingBalance)}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                    <div className="flex justify-between items-center pt-1 text-emerald-800 font-bold">
+                      <span>Status Akhir</span>
+                      <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-[11px]">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        LUNAS
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Payment proofs archive */}
+                  <div className="space-y-2.5 pt-2">
+                    <span className="text-xs font-bold text-gray-500 uppercase tracking-wider block">
+                      Arsip Bukti Transfer
+                    </span>
+
+                    {booking.paymentProofUrl && (
+                      <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <FileCheck className="w-4 h-4 text-emerald-600" />
+                          <div>
+                            <span className="font-semibold text-gray-800 block">
+                              {booking.dpAmount && booking.dpAmount > 0
+                                ? "Bukti Transfer DP 50%"
+                                : "Bukti Pembayaran"}
+                            </span>
+                            <span className="text-[11px] text-gray-400">
+                              {booking.paymentProofUploadedAt
+                                ? format(
+                                    new Date(booking.paymentProofUploadedAt),
+                                    "d MMM yyyy, HH:mm",
+                                    { locale: localeId }
+                                  ) + " WIB"
+                                : "Tervalidasi"}
+                            </span>
+                          </div>
+                        </div>
+                        <a
+                          href={normalizeMediaUrl(booking.paymentProofUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs"
+                        >
+                          <span>Lihat Bukti</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    )}
+
+                    {booking.settlementProofUrl && (
+                      <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2.5">
+                          <FileCheck className="w-4 h-4 text-emerald-600" />
+                          <div>
+                            <span className="font-semibold text-gray-800 block">
+                              Bukti Transfer Pelunasan
+                            </span>
+                            <span className="text-[11px] text-gray-400">
+                              {booking.settlementProofUploadedAt
+                                ? format(
+                                    new Date(booking.settlementProofUploadedAt),
+                                    "d MMM yyyy, HH:mm",
+                                    { locale: localeId }
+                                  ) + " WIB"
+                                : "Tervalidasi"}
+                            </span>
+                          </div>
+                        </div>
+                        <a
+                          href={normalizeMediaUrl(booking.settlementProofUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline bg-white px-3 py-1.5 rounded-xl border border-gray-200 shadow-2xs"
+                        >
+                          <span>Lihat Bukti</span>
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* WhatsApp quick contact */}
+                  <div className="pt-2">
+                    <a
+                      href={waUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 bg-green-500 text-white px-5 py-3 rounded-2xl text-xs sm:text-sm font-semibold hover:bg-green-600 transition-colors shadow-2xs"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span>Hubungi Pengelola via WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
             ) : (
               <>
                 {/* Payment Details Card */}
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-bold font-display text-primary">
-                      Total Tagihan Pembayaran
+                      {booking.status === "DP_50"
+                        ? "Rincian Pelunasan Tagihan (50%)"
+                        : "Total Tagihan Pembayaran"}
                     </h2>
                     <button
                       type="button"
@@ -868,22 +1068,56 @@ export function BookingPaymentClient({
                     </button>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-cream border border-gray-200/70 flex items-center justify-between mb-6">
-                    <div>
-                      <span className="text-xs text-gray-500 block">Jumlah yang harus ditransfer</span>
-                      <span className="text-2xl font-display font-bold text-accent tabular-nums">
-                        {formatIDR(booking.totalPrice)}
-                      </span>
+                  {booking.status === "DP_50" ? (
+                    <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-200/80 mb-6 space-y-2 text-xs">
+                      <div className="flex justify-between items-center text-gray-600">
+                        <span>Total Tagihan Reservasi:</span>
+                        <span className="font-semibold text-gray-900">{formatIDR(booking.totalPrice)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-emerald-700 font-semibold">
+                        <span>DP 50% Telah Diterima:</span>
+                        <span>- {formatIDR(dpPaid)}</span>
+                      </div>
+                      <div className="pt-2 border-t border-sky-200/80 flex items-center justify-between">
+                        <div>
+                          <span className="text-[11px] text-sky-900 font-bold block">
+                            Jumlah Sisa Pelunasan Yang Harus Ditransfer:
+                          </span>
+                          <span className="text-2xl font-display font-bold text-accent tabular-nums">
+                            {formatIDR(remainingBalance)}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(remainingBalance.toString(), "amount")}
+                          className="px-3.5 py-2 rounded-xl bg-white border border-sky-300 text-xs font-semibold text-sky-900 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>{copiedAmount ? "Tersalin!" : "Salin"}</span>
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-sky-800 pt-1 leading-relaxed">
+                        💡 Batas pelunasan paling lambat <strong>{settlementDeadlineFormatted}</strong> (H-1 sebelum check-in).
+                      </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => copyToClipboard(booking.totalPrice.toString(), "amount")}
-                      className="px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>{copiedAmount ? "Tersalin!" : "Salin"}</span>
-                    </button>
-                  </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-cream border border-gray-200/70 flex items-center justify-between mb-6">
+                      <div>
+                        <span className="text-xs text-gray-500 block">Jumlah yang harus ditransfer</span>
+                        <span className="text-2xl font-display font-bold text-accent tabular-nums">
+                          {formatIDR(booking.totalPrice)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(booking.totalPrice.toString(), "amount")}
+                        className="px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-xs font-semibold text-gray-700 hover:border-accent hover:text-accent transition-colors flex items-center gap-1.5"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>{copiedAmount ? "Tersalin!" : "Salin"}</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Bank Transfer Accounts (Dynamically loaded from site_configs) */}
                   <div className="space-y-3">
@@ -967,10 +1201,14 @@ export function BookingPaymentClient({
                 {/* Proof Upload Card */}
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
                   <h2 className="text-base font-bold font-display text-primary mb-2">
-                    Unggah Bukti Transfer
+                    {booking.status === "DP_50"
+                      ? "Unggah Bukti Transfer Pelunasan (Sisa 50%)"
+                      : "Unggah Bukti Transfer"}
                   </h2>
                   <p className="text-xs text-gray-500 mb-4">
-                    Unggah tangkapan layar (screenshot) bukti transfer sukses atau resi bank Anda.
+                    {booking.status === "DP_50"
+                      ? "Unggah tangkapan layar bukti transfer pelunasan Anda paling lambat H-1 sebelum jadwal check-in."
+                      : "Unggah tangkapan layar (screenshot) bukti transfer sukses atau resi bank Anda."}
                   </p>
 
                   {uploadError && (
@@ -983,7 +1221,7 @@ export function BookingPaymentClient({
                   {uploadSuccess && (
                     <div className="mb-4 p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5" />
-                      <span>Bukti pembayaran berhasil diunggah!</span>
+                      <span>Bukti transfer berhasil diunggah!</span>
                     </div>
                   )}
 
@@ -1034,6 +1272,108 @@ export function BookingPaymentClient({
                           />
                         </label>
                       </div>
+                    </div>
+                  ) : booking.status === "DP_50" ? (
+                    /* Specific Section for DP_50 Settlement Proof */
+                    <div className="space-y-4">
+                      {booking.settlementProofUrl ? (
+                        <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            {booking.settlementProofUrl.endsWith(".pdf") ? (
+                              <div className="w-12 h-12 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-700">
+                                <FileCheck className="w-6 h-6" />
+                              </div>
+                            ) : (
+                              <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-emerald-100 border border-emerald-200 shrink-0 shadow-2xs">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={normalizeMediaUrl(booking.settlementProofUrl)}
+                                  alt="Bukti Transfer Pelunasan"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-emerald-900 block truncate">
+                                Bukti Pelunasan Berhasil Diunggah
+                              </span>
+                              <span className="text-[11px] text-emerald-700 block">
+                                {booking.settlementProofUploadedAt
+                                  ? `Diunggah pada ${format(
+                                      new Date(booking.settlementProofUploadedAt),
+                                      "d MMM yyyy, HH:mm",
+                                      { locale: localeId }
+                                    )} WIB`
+                                  : `Sedang diverifikasi staf ${siteName}`}
+                              </span>
+                            </div>
+                          </div>
+                          <a
+                            href={normalizeMediaUrl(booking.settlementProofUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:underline shrink-0 bg-white/70 px-2.5 py-1.5 rounded-lg border border-emerald-200"
+                          >
+                            <span>Lihat File</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="border-2 border-dashed border-sky-300 hover:border-accent rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-colors bg-sky-50/20">
+                            <UploadCloud className="w-8 h-8 text-sky-600 mb-2" />
+                            <span className="text-xs font-semibold text-sky-950">
+                              {uploading ? "Sedang Mengunggah Bukti Pelunasan..." : "Pilih foto bukti transfer pelunasan"}
+                            </span>
+                            <span className="text-[11px] text-sky-700 mt-1">
+                              JPG, PNG, WebP atau PDF (Maks. 10MB)
+                            </span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,application/pdf"
+                              onChange={handleFileUpload}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )}
+
+                      {/* Option to re-upload settlement proof if already exists */}
+                      {booking.settlementProofUrl && (
+                        <div>
+                          <label className="inline-flex items-center gap-2 text-xs font-semibold text-accent hover:underline cursor-pointer">
+                            <UploadCloud className="w-4 h-4" />
+                            <span>Unggah ulang jika ada revisi bukti pelunasan</span>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,application/pdf"
+                              onChange={handleFileUpload}
+                              disabled={uploading}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      )}
+
+                      {/* Display reference to initial DP 50% proof */}
+                      {booking.paymentProofUrl && (
+                        <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50/70 p-3 rounded-xl border border-gray-200/60">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span>Bukti DP 50% Sebelumnya Telah Terverifikasi</span>
+                          </div>
+                          <a
+                            href={normalizeMediaUrl(booking.paymentProofUrl)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
+                          >
+                            <span>Lihat Bukti DP</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+                      )}
                     </div>
                   ) : booking.paymentProofUrl ? (
                     <div className="space-y-4">
@@ -1237,10 +1577,30 @@ export function BookingPaymentClient({
                   </div>
                 )}
 
-                <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-sm">
-                  <span className="text-primary">Total Bayar</span>
-                  <span className="text-accent">{formatIDR(booking.totalPrice)}</span>
-                </div>
+                {booking.status === "DP_50" ? (
+                  <div className="border-t border-gray-100 pt-2.5 space-y-1.5">
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Total Biaya Reservasi</span>
+                      <span className="font-semibold text-gray-900">{formatIDR(booking.totalPrice)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-emerald-700 font-semibold">
+                      <span>DP 50% (Diterima)</span>
+                      <span>- {formatIDR(dpPaid)}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-sm text-accent pt-1.5 border-t border-dashed border-gray-200">
+                      <span>Sisa Pelunasan (50%)</span>
+                      <span className="tabular-nums">{formatIDR(remainingBalance)}</span>
+                    </div>
+                    <div className="text-[10px] text-sky-800 font-medium bg-sky-50 p-2 rounded-lg border border-sky-200/60 mt-1">
+                      Batas waktu pelunasan: H-1 check-in ({format(settlementDeadlineDate, "d MMM yyyy", { locale: localeId })})
+                    </div>
+                  </div>
+                ) : (
+                  <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-sm">
+                    <span className="text-primary">Total Bayar</span>
+                    <span className="text-accent">{formatIDR(booking.totalPrice)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-gray-100 pt-3 space-y-2">

@@ -28,7 +28,7 @@ export default async function DashboardBookingsPage() {
     },
   });
 
-  // Fetch villas for the direct booking dropdown
+  // Fetch villas for the direct booking dropdown with complete pricing configuration
   const villas = await prisma.villas.findMany({
     where: { status: "AVAILABLE" },
     select: {
@@ -37,6 +37,8 @@ export default async function DashboardBookingsPage() {
       slug: true,
       pricePerNight: true,
       priceWeekend: true,
+      dailyRates: true,
+      customPrices: true,
       capacity: true,
     },
     orderBy: { name: "asc" },
@@ -80,6 +82,11 @@ export default async function DashboardBookingsPage() {
         paymentProofUploadedAt: b.paymentProofUploadedAt
           ? b.paymentProofUploadedAt.toISOString()
           : null,
+        settlementProofUrl: b.settlementProofUrl ? normalizeMediaUrl(b.settlementProofUrl) : null,
+        settlementProofUploadedAt: b.settlementProofUploadedAt
+          ? b.settlementProofUploadedAt.toISOString()
+          : null,
+        dpAmount: b.dpAmount || 0,
         notes: b.notes,
         rejectionReason: b.rejectionReason,
         createdAt: b.createdAt.toISOString(),

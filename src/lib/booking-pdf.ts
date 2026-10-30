@@ -19,6 +19,9 @@ export interface BookingPDFData {
   status: string;
   paymentMethod: string;
   paymentProofUrl?: string | null;
+  settlementProofUrl?: string | null;
+  settlementProofUploadedAt?: string | Date | null;
+  dpAmount?: number | null;
   notes?: string | null;
   rejectionReason?: string | null;
   createdAt: string | Date;
@@ -197,6 +200,9 @@ export function buildBookingPDFDocument(
   if (statusUpper === "PENDING") {
     statusBadgeColor = [217, 119, 6]; // Amber
     statusLabel = "MENUNGGU PEMBAYARAN";
+  } else if (statusUpper === "DP_50") {
+    statusBadgeColor = [2, 132, 199]; // Sky Blue
+    statusLabel = "DP 50% TERKONFIRMASI";
   } else if (statusUpper === "CHECKED_IN") {
     statusBadgeColor = [37, 99, 235]; // Blue
     statusLabel = "SEDANG MENGINAP (CHECK-IN)";
@@ -443,41 +449,96 @@ export function buildBookingPDFDocument(
 
   // Total Payment Box below table
   const finalTableY = (doc as any).lastAutoTable.finalY + 4;
-  const totalBoxWidth = 85;
+  const totalBoxWidth = 92;
   const totalBoxX = pageWidth - 16 - totalBoxWidth;
+  const isDpBooking = statusUpper === "DP_50";
+  const dpAmountVal = booking.dpAmount && booking.dpAmount > 0
+    ? booking.dpAmount
+    : Math.round(booking.totalPrice * 0.5);
+  const remainingVal = Math.max(0, booking.totalPrice - dpAmountVal);
+
+  const settlementDeadlineDate = new Date(checkInDate.getTime() - 24 * 60 * 60 * 1000);
+  const settlementDeadlineFormatted = settlementDeadlineDate.toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+
+  const totalBoxHeight = isDpBooking ? 34 : 24;
 
   doc.setFillColor(248, 247, 244);
-  doc.roundedRect(totalBoxX, finalTableY, totalBoxWidth, 24, 2, 2, "F");
+  doc.roundedRect(totalBoxX, finalTableY, totalBoxWidth, totalBoxHeight, 2, 2, "F");
   doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-  doc.roundedRect(totalBoxX, finalTableY, totalBoxWidth, 24, 2, 2, "S");
+  doc.roundedRect(totalBoxX, finalTableY, totalBoxWidth, totalBoxHeight, 2, 2, "S");
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
-  doc.text("TOTAL DIBAYARKAN:", totalBoxX + 6, finalTableY + 7);
+  if (isDpBooking) {
+    // DP 50% breakdown
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
+    doc.text("TOTAL BIAYA RESERVASI:", totalBoxX + 6, finalTableY + 6);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(navy[0], navy[1], navy[2]);
+    doc.text(formatPrice(booking.totalPrice), totalBoxX + totalBoxWidth - 6, finalTableY + 6, { align: "right" });
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.setTextColor(gold[0], gold[1], gold[2]);
-  doc.text(formatPrice(booking.totalPrice), totalBoxX + 6, finalTableY + 14);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(40, 160, 90);
+    doc.text("DP 50% Diterima (Lunas):", totalBoxX + 6, finalTableY + 12);
+    doc.setFont("helvetica", "bold");
+    doc.text(`-${formatPrice(dpAmountVal)}`, totalBoxX + totalBoxWidth - 6, finalTableY + 12, { align: "right" });
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7.5);
-  doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
-  doc.text(`Metode: ${booking.paymentMethod} • Status: ${statusLabel}`, totalBoxX + 6, finalTableY + 20);
+    // Divider
+    doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
+    doc.setLineWidth(0.2);
+    doc.line(totalBoxX + 6, finalTableY + 15, totalBoxX + totalBoxWidth - 6, finalTableY + 15);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(gold[0], gold[1], gold[2]);
+    doc.text("SISA PELUNASAN (50%):", totalBoxX + 6, finalTableY + 21);
+    doc.setFontSize(11);
+    doc.text(formatPrice(remainingVal), totalBoxX + totalBoxWidth - 6, finalTableY + 21, { align: "right" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(180, 50, 50);
+    doc.text(`Jatuh Tempo: H-1 Check-In (${settlementDeadlineFormatted})`, totalBoxX + 6, finalTableY + 28);
+  } else {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
+    doc.text("TOTAL DIBAYARKAN:", totalBoxX + 6, finalTableY + 7);
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.setTextColor(gold[0], gold[1], gold[2]);
+    doc.text(formatPrice(booking.totalPrice), totalBoxX + 6, finalTableY + 14);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(darkGray[0], darkGray[1], darkGray[2]);
+    doc.text(`Metode: ${booking.paymentMethod} • Status: ${statusLabel}`, totalBoxX + 6, finalTableY + 20);
+  }
 
   // Left note beside Total box
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(navy[0], navy[1], navy[2]);
-  doc.text("Catatan Khusus Tamu:", 16, finalTableY + 6);
+  doc.text("Catatan & Keterangan:", 16, finalTableY + 6);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
-  const notesText = booking.notes?.trim()
-    ? booking.notes.trim()
+
+  let notesText = booking.notes?.trim()
+    ? `Catatan Tamu: ${booking.notes.trim()}`
     : "Tidak ada catatan khusus yang dilampirkan.";
+
+  if (isDpBooking) {
+    notesText += `\n* Ketentuan Pelunasan: Sisa tagihan 50% wajib dilunasi paling lambat H-1 Check-In (${settlementDeadlineFormatted}) pukul 23:59 WIB melalui transfer rekening resmi.`;
+  }
+
   const splitNotes = doc.splitTextToSize(notesText, totalBoxX - 22);
   doc.text(splitNotes, 16, finalTableY + 12);
 
@@ -489,17 +550,18 @@ export function buildBookingPDFDocument(
       `Alasan Penolakan/Batal: ${booking.rejectionReason}`,
       totalBoxX - 22
     );
-    doc.text(splitRejection, 16, finalTableY + 20);
+    doc.text(splitRejection, 16, finalTableY + 22);
   }
 
   // ==========================================
   // 6. ATURAN VILLA & PANDUAN CHECK-IN
   // ==========================================
-  let rulesY = finalTableY + 30;
+  let rulesY = finalTableY + (isDpBooking ? 38 : 30);
+  const rulesBoxHeight = isDpBooking ? 47 : 42;
   doc.setFillColor(252, 251, 249);
-  doc.roundedRect(16, rulesY, pageWidth - 32, 42, 3, 3, "F");
+  doc.roundedRect(16, rulesY, pageWidth - 32, rulesBoxHeight, 3, 3, "F");
   doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
-  doc.roundedRect(16, rulesY, pageWidth - 32, 42, 3, 3, "S");
+  doc.roundedRect(16, rulesY, pageWidth - 32, rulesBoxHeight, 3, 3, "S");
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8.5);
@@ -517,6 +579,10 @@ export function buildBookingPDFDocument(
     "4. Harap menjaga ketenangan lingkungan hunian dan menghormati privasi tetangga setelah pukul 22:00 WIB.",
     "5. Informasi arah jalan atau bantuan fasilitas villa dapat menghubungi Layanan Tamu di nomor WhatsApp pengelola.",
   ];
+
+  if (isDpBooking) {
+    rules.push(`6. Batas waktu pelunasan sisa tagihan 50% adalah H-1 Check-In (${settlementDeadlineFormatted}) pukul 23:59 WIB.`);
+  }
 
   rules.forEach((rule, idx) => {
     doc.text(rule, 22, rulesY + 13 + idx * 5.2);

@@ -52,7 +52,7 @@ export interface GuestBookingItem {
   discountAmount: number;
   promoCode?: string | null;
   addonsTotal: number;
-  status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
   notes?: string | null;
   rejectionReason?: string | null;
   paymentMethod: string;
@@ -121,7 +121,7 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
   // Group Bookings into Active and Past
   const activeBookings = useMemo(() => {
     return bookings.filter(
-      (b) => b.status === "PENDING" || b.status === "CONFIRMED" || b.status === "CHECKED_IN"
+      (b) => b.status === "PENDING" || b.status === "DP_50" || b.status === "CONFIRMED" || b.status === "CHECKED_IN"
     );
   }, [bookings]);
 
@@ -277,6 +277,13 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
             <Clock className="w-3.5 h-3.5 text-amber-600 animate-pulse" />
             <span>Menunggu Pembayaran</span>
+          </span>
+        );
+      case "DP_50":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-800 border border-sky-300">
+            <Clock className="w-3.5 h-3.5 text-sky-600" />
+            <span>DP 50% Terkonfirmasi</span>
           </span>
         );
       case "CONFIRMED":

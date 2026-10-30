@@ -2,12 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { uploadBufferToR2 } from "@/lib/r2";
 import { isBookingExpired } from "@/lib/booking-expiration";
+import { auth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    const isStaff = Boolean(session?.user && ["ADMIN", "MANAJER"].includes(session.user.role));
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const bookingCode = formData.get("bookingCode") as string | null;
+    const requestedProofType = (formData.get("proofType") as string | null)?.toUpperCase();
+    const markAsConfirmed = formData.get("markAsConfirmed") === "true";
 
     if (!file) {
       return NextResponse.json({ error: "File bukti pembayaran tidak ditemukan" }, { status: 400 });
@@ -85,21 +91,50 @@ export async function POST(request: Request) {
     else if (file.type === "image/webp") ext = "webp";
     else if (file.type === "application/pdf") ext = "pdf";
 
+    const isSettlement =
+      requestedProofType === "SETTLEMENT" ||
+      (booking.status === "DP_50" && requestedProofType !== "DP");
+
     const timestamp = Date.now();
     const sanitizedCode = booking.code.replace(/[^a-zA-Z0-9_-]/g, "");
-    const key = `proofs/${sanitizedCode}_${timestamp}.${ext}`;
+    const key = isSettlement
+      ? `proofs/${sanitizedCode}_settlement_${timestamp}.${ext}`
+      : `proofs/${sanitizedCode}_${timestamp}.${ext}`;
 
     const publicUrl = await uploadBufferToR2(buffer, key, file.type);
 
-    // Update booking with payment proof URL, timestamp, reset status to PENDING, and clear rejection reason
+    // Determine updated fields
+    const updateData: any = {
+      rejectionReason: null,
+    };
+
+    if (isSettlement) {
+      updateData.settlementProofUrl = publicUrl;
+      updateData.settlementProofUploadedAt = new Date();
+      if (isStaff && markAsConfirmed) {
+        updateData.status = "CONFIRMED";
+      } else if (booking.status === "DP_50") {
+        updateData.status = "DP_50";
+      }
+    } else {
+      updateData.paymentProofUrl = publicUrl;
+      updateData.paymentProofUploadedAt = new Date();
+      if (isStaff && markAsConfirmed) {
+        updateData.status = "CONFIRMED";
+      } else if (isStaff && requestedProofType === "DP") {
+        updateData.status = "DP_50";
+        if (!booking.dpAmount || booking.dpAmount <= 0) {
+          updateData.dpAmount = Math.round(booking.totalPrice * 0.5);
+        }
+      } else if (!isStaff) {
+        updateData.status = "PENDING";
+      }
+    }
+
+    // Update booking with payment proof URL, timestamp, status, and clear rejection reason
     const updated = await prisma.bookings.update({
       where: { id: booking.id },
-      data: {
-        paymentProofUrl: publicUrl,
-        paymentProofUploadedAt: new Date(),
-        status: "PENDING",
-        rejectionReason: null,
-      },
+      data: updateData,
       include: {
         addons: true,
         villa: {

@@ -3,9 +3,9 @@
 import React, { useState, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { format, parseISO } from "date-fns";
+import { format, parseISO, subDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
-import { formatIDR } from "@/lib/pricing";
+import { formatIDR, calculateStayBreakdown } from "@/lib/pricing";
 import {
   CalendarDays,
   Search,
@@ -37,6 +37,9 @@ import {
   Package,
   XCircle,
   MessageSquare,
+  ShieldCheck,
+  UploadCloud,
+  FileCheck,
 } from "lucide-react";
 import { BankAccountsManagerModal } from "@/components/dashboard/settings/bank-accounts-manager-modal";
 import { downloadBookingPDF } from "@/lib/booking-pdf";
@@ -48,6 +51,8 @@ interface VillaOption {
   slug: string;
   pricePerNight: number;
   priceWeekend?: number | null;
+  dailyRates?: any;
+  customPrices?: any;
   capacity: number;
 }
 
@@ -65,10 +70,13 @@ interface BookingItem {
   totalPrice: number;
   discountAmount: number;
   promoCode?: string | null;
-  status: "PENDING" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
   paymentMethod: string;
   paymentProofUrl?: string | null;
   paymentProofUploadedAt?: string | null;
+  settlementProofUrl?: string | null;
+  settlementProofUploadedAt?: string | null;
+  dpAmount?: number | null;
   notes?: string | null;
   rejectionReason?: string | null;
   createdAt: string;
@@ -169,14 +177,49 @@ export function ManagerBookingsClient({
   const [directGuestPhone, setDirectGuestPhone] = useState("");
   const [directGuestCity, setDirectGuestCity] = useState("");
   const [directGuestsCount, setDirectGuestsCount] = useState(2);
-  const [directStatus, setDirectStatus] = useState<"CONFIRMED" | "PENDING">(
+  const [directStatus, setDirectStatus] = useState<"CONFIRMED" | "DP_50" | "PENDING">(
     "CONFIRMED"
   );
   const [directNotes, setDirectNotes] = useState("");
+  const [directProofFile, setDirectProofFile] = useState<File | null>(null);
   const [directError, setDirectError] = useState("");
   const [createdDirectCode, setCreatedDirectCode] = useState<string | null>(
     null
   );
+
+  // Manager Settlement Upload Modal
+  const [settlementModal, setSettlementModal] = useState<{
+    isOpen: boolean;
+    booking: BookingItem | null;
+    file: File | null;
+    markConfirmed: boolean;
+    uploading: boolean;
+    error: string;
+  }>({
+    isOpen: false,
+    booking: null,
+    file: null,
+    markConfirmed: true,
+    uploading: false,
+    error: "",
+  });
+
+  const selectedDirectVilla = useMemo(
+    () => villas.find((v) => v.id === directVillaId) || villas[0],
+    [villas, directVillaId]
+  );
+
+  const directPricingBreakdown = useMemo(() => {
+    if (!selectedDirectVilla || !directCheckIn || !directCheckOut) return null;
+    try {
+      const checkIn = parseISO(directCheckIn);
+      const checkOut = parseISO(directCheckOut);
+      if (checkOut <= checkIn) return null;
+      return calculateStayBreakdown(selectedDirectVilla, checkIn, checkOut);
+    } catch (err) {
+      return null;
+    }
+  }, [selectedDirectVilla, directCheckIn, directCheckOut]);
 
   // Status update loading state
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -226,6 +269,10 @@ Status: ${b.status}`;
           promoCode: b.promoCode,
           status: b.status,
           paymentMethod: b.paymentMethod,
+          paymentProofUrl: b.paymentProofUrl,
+          settlementProofUrl: b.settlementProofUrl,
+          settlementProofUploadedAt: b.settlementProofUploadedAt,
+          dpAmount: b.dpAmount,
           notes: b.notes,
           rejectionReason: b.rejectionReason,
           createdAt: b.createdAt,
@@ -271,10 +318,11 @@ Status: ${b.status}`;
   const metrics = useMemo(() => {
     const total = bookings.length;
     const pending = bookings.filter((b) => b.status === "PENDING").length;
+    const dp50 = bookings.filter((b) => b.status === "DP_50").length;
     const confirmed = bookings.filter((b) => b.status === "CONFIRMED").length;
     const checkedIn = bookings.filter((b) => b.status === "CHECKED_IN").length;
     const completed = bookings.filter((b) => b.status === "COMPLETED").length;
-    return { total, pending, confirmed, checkedIn, completed };
+    return { total, pending, dp50, confirmed, checkedIn, completed };
   }, [bookings]);
 
   // Filtered Bookings
@@ -435,12 +483,116 @@ Status: ${b.status}`;
         throw new Error(data.error || "Gagal membuat booking langsung");
       }
 
-      setCreatedDirectCode(data.booking.code);
-      setBookings((prev) => [data.booking, ...prev]);
+      let finalBooking = data.booking;
+
+      // If proof file attached, upload it directly
+      if (directProofFile) {
+        try {
+          const uploadFormData = new FormData();
+          uploadFormData.append("file", directProofFile);
+          uploadFormData.append("bookingCode", data.booking.code);
+          uploadFormData.append(
+            "proofType",
+            directStatus === "DP_50" ? "DP" : "FULL"
+          );
+          if (directStatus === "CONFIRMED") {
+            uploadFormData.append("markAsConfirmed", "true");
+          }
+
+          const uploadRes = await fetch("/api/upload/payment-proof", {
+            method: "POST",
+            body: uploadFormData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadRes.ok && uploadData.booking) {
+            finalBooking = {
+              ...finalBooking,
+              ...uploadData.booking,
+            };
+          }
+        } catch (uploadErr) {
+          console.warn(
+            "Failed to upload proof during direct booking creation:",
+            uploadErr
+          );
+        }
+      }
+
+      setCreatedDirectCode(finalBooking.code);
+      setBookings((prev) => [finalBooking, ...prev]);
     } catch (err: any) {
       setDirectError(err.message || "Gagal membuat booking langsung");
     } finally {
       setCreatingDirect(false);
+    }
+  };
+
+  // Upload Settlement Proof Handler (Manager)
+  const handleUploadSettlement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!settlementModal.booking || !settlementModal.file) {
+      setSettlementModal((prev) => ({
+        ...prev,
+        error: "Silakan pilih file bukti transfer pelunasan",
+      }));
+      return;
+    }
+
+    setSettlementModal((prev) => ({ ...prev, uploading: true, error: "" }));
+
+    try {
+      const formData = new FormData();
+      formData.append("file", settlementModal.file);
+      formData.append("bookingCode", settlementModal.booking.code);
+      formData.append("proofType", "SETTLEMENT");
+      if (settlementModal.markConfirmed) {
+        formData.append("markAsConfirmed", "true");
+      }
+
+      const res = await fetch("/api/upload/payment-proof", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Gagal mengunggah bukti pelunasan");
+      }
+
+      const updated = data.booking;
+      setBookings((prev) =>
+        prev.map((b) =>
+          b.id === settlementModal.booking?.id ? { ...b, ...updated } : b
+        )
+      );
+
+      if (selectedProofBooking?.id === settlementModal.booking.id) {
+        setSelectedProofBooking((prev) =>
+          prev ? { ...prev, ...updated } : null
+        );
+      }
+
+      setSettlementModal({
+        isOpen: false,
+        booking: null,
+        file: null,
+        markConfirmed: true,
+        uploading: false,
+        error: "",
+      });
+      alert(
+        "Bukti pelunasan berhasil diunggah" +
+          (settlementModal.markConfirmed
+            ? " dan status pesanan telah diubah menjadi Terkonfirmasi (LUNAS)!"
+            : "!")
+      );
+    } catch (err: any) {
+      setSettlementModal((prev) => ({
+        ...prev,
+        error: err.message || "Gagal mengunggah bukti pelunasan",
+      }));
+    } finally {
+      setSettlementModal((prev) => ({ ...prev, uploading: false }));
     }
   };
 
@@ -458,6 +610,17 @@ Status: ${b.status}`;
           >
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span>Terkonfirmasi</span>
+          </span>
+        );
+      case "DP_50":
+        return (
+          <span
+            className={`${baseClasses} bg-sky-100 text-sky-800 ${
+              isInteractive ? "hover:bg-sky-200 cursor-pointer shadow-xs" : ""
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
+            <span>DP 50%</span>
           </span>
         );
       case "CHECKED_IN":
@@ -537,7 +700,7 @@ Status: ${b.status}`;
       </div>
 
       {/* Operational Metrics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-gray-100 shadow-xs">
           <span className="text-xs text-gray-400 font-medium">Total Pesanan</span>
           <p className="text-xl sm:text-2xl font-bold text-primary mt-1">
@@ -554,6 +717,13 @@ Status: ${b.status}`;
           </div>
           <p className="text-xl sm:text-2xl font-bold text-amber-700 mt-1">
             {metrics.pending}
+          </p>
+        </div>
+
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-sky-200/70 shadow-xs bg-sky-50/20">
+          <span className="text-xs text-sky-800 font-medium">DP 50% (H-1)</span>
+          <p className="text-xl sm:text-2xl font-bold text-sky-700 mt-1">
+            {metrics.dp50}
           </p>
         </div>
 
@@ -579,6 +749,7 @@ Status: ${b.status}`;
           {[
             { id: "ALL", label: "Semua" },
             { id: "PENDING", label: `Menunggu (${metrics.pending})` },
+            { id: "DP_50", label: `DP 50% (${metrics.dp50})` },
             { id: "CONFIRMED", label: "Terkonfirmasi" },
             { id: "CHECKED_IN", label: "Check-In" },
             { id: "COMPLETED", label: "Selesai" },
@@ -818,47 +989,110 @@ Status: ${b.status}`;
                         <span className="font-bold text-accent tabular-nums block">
                           {formatIDR(b.totalPrice)}
                         </span>
-                        <span className="text-[10px] text-gray-500 block uppercase font-medium">
-                          {b.paymentMethod}
-                        </span>
+                        {b.status === "DP_50" ? (
+                          <div className="mt-0.5 space-y-0.5 text-[10px]">
+                            <span className="text-emerald-700 font-semibold block">
+                              DP: {formatIDR(b.dpAmount || Math.round(b.totalPrice * 0.5))}
+                            </span>
+                            <span className="text-sky-800 font-bold block">
+                              Sisa: {formatIDR(b.totalPrice - (b.dpAmount || Math.round(b.totalPrice * 0.5)))}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-gray-500 block uppercase font-medium">
+                            {b.paymentMethod}
+                          </span>
+                        )}
                       </td>
 
                       {/* Payment Proof with Preview & Direct Download */}
                       <td className="py-3.5 px-4">
-                        {b.paymentProofUrl ? (
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedProofBooking(b)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 font-semibold text-[11px] hover:bg-emerald-100 transition-colors cursor-pointer border border-emerald-200/50 shadow-2xs"
-                              title="Lihat Bukti Transfer"
-                            >
-                              <Eye className="w-3 h-3" />
-                              <span>Lihat</span>
-                            </button>
+                        <div className="flex flex-col gap-1.5">
+                          {b.paymentProofUrl ? (
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedProofBooking(b)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 font-semibold text-[11px] hover:bg-emerald-100 transition-colors cursor-pointer border border-emerald-200/50 shadow-2xs"
+                                title="Lihat Bukti Transfer DP / Pembayaran"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span>{b.status === "DP_50" ? "Bukti DP" : "Lihat"}</span>
+                              </button>
 
-                            <button
-                              type="button"
-                              disabled={downloadingCode === b.code}
-                              onClick={() =>
-                                handleDownloadProof(b.paymentProofUrl!, b.code)
-                              }
-                              className="p-1.5 rounded-xl bg-gray-100 text-gray-600 hover:text-primary hover:bg-gray-200 transition-colors cursor-pointer border border-gray-200/50 shadow-2xs disabled:opacity-50"
-                              title="Unduh File Bukti Transfer"
-                            >
-                              {downloadingCode === b.code ? (
-                                <Loader2 className="w-3 h-3 animate-spin text-accent" />
-                              ) : (
-                                <Download className="w-3 h-3" />
-                              )}
-                            </button>
-                          </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 italic">
-                            <Clock className="w-3 h-3 shrink-0" />
-                            <span>Belum Ada</span>
-                          </span>
-                        )}
+                              <button
+                                type="button"
+                                disabled={downloadingCode === b.code}
+                                onClick={() =>
+                                  handleDownloadProof(b.paymentProofUrl!, b.code)
+                                }
+                                className="p-1 rounded-lg bg-gray-100 text-gray-600 hover:text-primary hover:bg-gray-200 transition-colors cursor-pointer border border-gray-200/50 shadow-2xs disabled:opacity-50"
+                                title="Unduh File Bukti Transfer"
+                              >
+                                {downloadingCode === b.code ? (
+                                  <Loader2 className="w-3 h-3 animate-spin text-accent" />
+                                ) : (
+                                  <Download className="w-3 h-3" />
+                                )}
+                              </button>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 italic">
+                              <Clock className="w-3 h-3 shrink-0" />
+                              <span>{b.status === "DP_50" ? "DP Terlampir" : "Belum Ada"}</span>
+                            </span>
+                          )}
+
+                          {/* Settlement Proof indicator for DP_50 */}
+                          {b.status === "DP_50" && (
+                            b.settlementProofUrl ? (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => setSelectedProofBooking(b)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-800 font-semibold text-[11px] hover:bg-sky-100 transition-colors cursor-pointer border border-sky-200 shadow-2xs"
+                                  title="Lihat Bukti Transfer Pelunasan"
+                                >
+                                  <FileCheck className="w-3 h-3 text-sky-600" />
+                                  <span>Pelunasan</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={downloadingCode === `${b.code}-pelunasan`}
+                                  onClick={() =>
+                                    handleDownloadProof(
+                                      b.settlementProofUrl!,
+                                      `${b.code}-pelunasan`
+                                    )
+                                  }
+                                  className="p-1 rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 transition-colors cursor-pointer border border-sky-200 shadow-2xs"
+                                  title="Unduh Bukti Pelunasan"
+                                >
+                                  <Download className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setSettlementModal({
+                                    isOpen: true,
+                                    booking: b,
+                                    file: null,
+                                    markConfirmed: true,
+                                    uploading: false,
+                                    error: "",
+                                  })
+                                }
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-sky-100/80 hover:bg-sky-200 text-sky-900 font-semibold text-[10px] transition-colors cursor-pointer border border-sky-300 w-fit"
+                                title="Klik untuk mengunggah bukti pelunasan langsung"
+                              >
+                                <Plus className="w-2.5 h-2.5" />
+                                <span>+ Bukti Pelunasan</span>
+                              </button>
+                            )
+                          )}
+                        </div>
                       </td>
 
                       {/* Status - Interactive Badge (Click to open Status Modal) */}
@@ -892,6 +1126,50 @@ Status: ${b.status}`;
                                 <>
                                   <Check className="w-3.5 h-3.5" />
                                   <span>Verifikasi</span>
+                                </>
+                              )}
+                            </button>
+                          )}
+
+                          {b.status === "DP_50" && (
+                            <button
+                              type="button"
+                              disabled={updatingId === b.id}
+                              onClick={() => {
+                                if (b.settlementProofUrl) {
+                                  handleUpdateStatus(
+                                    b.id,
+                                    "CONFIRMED",
+                                    "Pelunasan telah diverifikasi oleh manajer"
+                                  );
+                                } else {
+                                  setSettlementModal({
+                                    isOpen: true,
+                                    booking: b,
+                                    file: null,
+                                    markConfirmed: true,
+                                    uploading: false,
+                                    error: "",
+                                  });
+                                }
+                              }}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-sky-600 text-white font-semibold text-xs hover:bg-sky-700 transition-all shadow-xs disabled:opacity-40 cursor-pointer"
+                              title={
+                                b.settlementProofUrl
+                                  ? "Verifikasi Pelunasan & Jadikan Lunas"
+                                  : "Unggah Bukti Pelunasan Langsung"
+                              }
+                            >
+                              {updatingId === b.id ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Check className="w-3.5 h-3.5" />
+                                  <span>
+                                    {b.settlementProofUrl
+                                      ? "Verifikasi Lunas"
+                                      : "Upload Pelunasan"}
+                                  </span>
                                 </>
                               )}
                             </button>
@@ -998,7 +1276,7 @@ Status: ${b.status}`;
                                     <span>Ubah Status & Catatan</span>
                                   </button>
 
-                                  {/* Lihat Bukti */}
+                                  {/* Lihat Bukti Transfer DP / Awal */}
                                   {b.paymentProofUrl && (
                                     <>
                                       <button
@@ -1010,7 +1288,11 @@ Status: ${b.status}`;
                                         className="w-full px-3.5 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                       >
                                         <Eye className="w-3.5 h-3.5 text-emerald-600" />
-                                        <span>Lihat Bukti Transfer</span>
+                                        <span>
+                                          {b.status === "DP_50"
+                                            ? "Lihat Bukti Transfer DP"
+                                            : "Lihat Bukti Transfer"}
+                                        </span>
                                       </button>
 
                                       <button
@@ -1028,6 +1310,62 @@ Status: ${b.status}`;
                                         <Download className="w-3.5 h-3.5 text-primary" />
                                         <span>Unduh Bukti Transfer</span>
                                       </button>
+                                    </>
+                                  )}
+
+                                  {/* Settlement options for DP_50 */}
+                                  {b.status === "DP_50" && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenActionMenuId(null);
+                                          setSettlementModal({
+                                            isOpen: true,
+                                            booking: b,
+                                            file: null,
+                                            markConfirmed: true,
+                                            uploading: false,
+                                            error: "",
+                                          });
+                                        }}
+                                        className="w-full px-3.5 py-2 text-xs text-sky-800 hover:bg-sky-50 flex items-center gap-2.5 transition-colors cursor-pointer font-medium"
+                                      >
+                                        <UploadCloud className="w-3.5 h-3.5 text-sky-600" />
+                                        <span>Upload Bukti Pelunasan</span>
+                                      </button>
+
+                                      {b.settlementProofUrl && (
+                                        <>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionMenuId(null);
+                                              setSelectedProofBooking(b);
+                                            }}
+                                            className="w-full px-3.5 py-2 text-xs text-sky-800 hover:bg-sky-50 flex items-center gap-2.5 transition-colors cursor-pointer"
+                                          >
+                                            <FileCheck className="w-3.5 h-3.5 text-sky-600" />
+                                            <span>Lihat Bukti Pelunasan</span>
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setOpenActionMenuId(null);
+                                              handleUpdateStatus(
+                                                b.id,
+                                                "CONFIRMED",
+                                                "Pelunasan telah diverifikasi oleh manajer"
+                                              );
+                                            }}
+                                            className="w-full px-3.5 py-2 text-xs text-emerald-800 hover:bg-emerald-50 flex items-center gap-2.5 transition-colors cursor-pointer font-semibold"
+                                          >
+                                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                            <span>Jadikan LUNAS (Confirmed)</span>
+                                          </button>
+                                        </>
+                                      )}
                                     </>
                                   )}
                                 </div>
@@ -1217,50 +1555,151 @@ Status: ${b.status}`;
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 overflow-y-auto flex-1 flex flex-col items-center">
-              {selectedProofBooking.paymentProofUrl?.endsWith(".pdf") ? (
-                <div className="p-8 text-center bg-gray-50 rounded-2xl w-full border border-gray-200">
-                  <FileText className="w-12 h-12 text-primary mx-auto mb-3" />
-                  <p className="text-xs text-gray-600 mb-4 font-medium">
-                    Bukti pembayaran dikirim dalam bentuk dokumen PDF.
-                  </p>
-                  <div className="flex justify-center gap-3">
-                    <button
-                      type="button"
-                      disabled={downloadingCode === selectedProofBooking.code}
-                      onClick={() =>
-                        handleDownloadProof(
-                          selectedProofBooking.paymentProofUrl!,
-                          selectedProofBooking.code
-                        )
-                      }
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-accent text-white rounded-xl text-xs font-semibold hover:bg-accent-light transition-colors cursor-pointer"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Unduh Dokumen PDF</span>
-                    </button>
-                    <a
-                      href={normalizeMediaUrl(selectedProofBooking.paymentProofUrl)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-xl text-xs font-semibold"
-                    >
-                      <span>Buka File</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+            <div className="p-5 overflow-y-auto flex-1 flex flex-col items-center w-full">
+              {/* Proof image/pdf render */}
+              <div className="w-full space-y-4">
+                {/* 1. DP / Initial Proof */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      {selectedProofBooking.status === "DP_50"
+                        ? "1. Bukti Transfer DP 50%"
+                        : "Bukti Transfer Pembayaran"}
+                    </span>
+                    {selectedProofBooking.paymentProofUrl && (
+                      <a
+                        href={normalizeMediaUrl(selectedProofBooking.paymentProofUrl)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-accent hover:underline inline-flex items-center gap-1 font-medium"
+                      >
+                        <span>Buka Tab Baru</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
                   </div>
+                  {selectedProofBooking.paymentProofUrl?.endsWith(".pdf") ? (
+                    <div className="p-6 text-center bg-gray-50 rounded-2xl w-full border border-gray-200">
+                      <FileText className="w-10 h-10 text-primary mx-auto mb-2" />
+                      <p className="text-xs text-gray-600 mb-3 font-medium">
+                        Bukti DP berupa dokumen PDF.
+                      </p>
+                      <button
+                        type="button"
+                        disabled={downloadingCode === selectedProofBooking.code}
+                        onClick={() =>
+                          handleDownloadProof(
+                            selectedProofBooking.paymentProofUrl!,
+                            `${selectedProofBooking.code}-dp`
+                          )
+                        }
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-accent text-white rounded-xl text-xs font-semibold hover:bg-accent-light transition-colors cursor-pointer"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Unduh Dokumen PDF DP</span>
+                      </button>
+                    </div>
+                  ) : selectedProofBooking.paymentProofUrl ? (
+                    <div className="relative w-full h-72 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 flex items-center justify-center">
+                      <Image
+                        src={normalizeMediaUrl(selectedProofBooking.paymentProofUrl) || ""}
+                        alt="Bukti Transfer DP"
+                        fill
+                        unoptimized
+                        className="object-contain"
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center bg-gray-50 rounded-2xl border border-gray-200 text-xs text-gray-400">
+                      Bukti transfer belum diunggah.
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="relative w-full h-80 rounded-2xl overflow-hidden bg-gray-50 border border-gray-200 flex items-center justify-center">
-                  <Image
-                    src={normalizeMediaUrl(selectedProofBooking.paymentProofUrl) || ""}
-                    alt="Bukti Transfer"
-                    fill
-                    unoptimized
-                    className="object-contain"
-                  />
-                </div>
-              )}
+
+                {/* 2. Settlement Proof for DP_50 */}
+                {selectedProofBooking.status === "DP_50" && (
+                  <div className="pt-3 border-t border-gray-200">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-bold text-sky-900 uppercase tracking-wider flex items-center gap-1.5">
+                        <FileCheck className="w-3.5 h-3.5 text-sky-600" />
+                        <span>2. Bukti Transfer Pelunasan (Sisa 50%)</span>
+                      </span>
+                      {selectedProofBooking.settlementProofUrl && (
+                        <a
+                          href={normalizeMediaUrl(selectedProofBooking.settlementProofUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] text-accent hover:underline inline-flex items-center gap-1 font-medium"
+                        >
+                          <span>Buka Tab Baru</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+
+                    {selectedProofBooking.settlementProofUrl ? (
+                      selectedProofBooking.settlementProofUrl.endsWith(".pdf") ? (
+                        <div className="p-6 text-center bg-sky-50/60 rounded-2xl w-full border border-sky-200">
+                          <FileText className="w-10 h-10 text-sky-700 mx-auto mb-2" />
+                          <p className="text-xs text-sky-900 mb-3 font-medium">
+                            Bukti pelunasan berupa dokumen PDF.
+                          </p>
+                          <button
+                            type="button"
+                            disabled={downloadingCode === `${selectedProofBooking.code}-pelunasan`}
+                            onClick={() =>
+                              handleDownloadProof(
+                                selectedProofBooking.settlementProofUrl!,
+                                `${selectedProofBooking.code}-pelunasan`
+                              )
+                            }
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 text-white rounded-xl text-xs font-semibold hover:bg-sky-700 transition-colors cursor-pointer"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Unduh Dokumen PDF Pelunasan</span>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="relative w-full h-72 rounded-2xl overflow-hidden bg-sky-50/40 border border-sky-200 flex items-center justify-center">
+                          <Image
+                            src={normalizeMediaUrl(selectedProofBooking.settlementProofUrl) || ""}
+                            alt="Bukti Transfer Pelunasan"
+                            fill
+                            unoptimized
+                            className="object-contain"
+                          />
+                        </div>
+                      )
+                    ) : (
+                      <div className="p-6 text-center bg-sky-50/40 rounded-2xl border border-sky-200 text-xs space-y-2">
+                        <p className="text-sky-900 font-semibold">
+                          Tamu belum mengunggah bukti transfer pelunasan.
+                        </p>
+                        <p className="text-[11px] text-gray-500">
+                          Pelunasan wajib diselesaikan paling lambat H-1 sebelum jadwal check-in.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSettlementModal({
+                              isOpen: true,
+                              booking: selectedProofBooking,
+                              file: null,
+                              markConfirmed: true,
+                              uploading: false,
+                              error: "",
+                            });
+                          }}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 text-white font-semibold text-xs hover:bg-sky-700 transition-colors shadow-xs cursor-pointer mt-1"
+                        >
+                          <UploadCloud className="w-3.5 h-3.5" />
+                          <span>Upload Bukti Pelunasan Sekarang (Manajer)</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Summary Card */}
               <div className="mt-4 w-full bg-cream/70 rounded-2xl p-4 border border-gray-100 grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
@@ -1274,15 +1713,22 @@ Status: ${b.status}`;
                 </div>
                 <div>
                   <span className="text-[10px] text-gray-400 font-medium block">
-                    Total Tagihan
+                    {selectedProofBooking.status === "DP_50"
+                      ? "Rincian Tagihan"
+                      : "Total Tagihan"}
                   </span>
-                  <span className="font-bold text-accent">
+                  <span className="font-bold text-accent block">
                     {formatIDR(selectedProofBooking.totalPrice)}
                   </span>
+                  {selectedProofBooking.status === "DP_50" && (
+                    <span className="text-[10px] text-emerald-700 font-semibold block">
+                      DP: {formatIDR(selectedProofBooking.dpAmount || Math.round(selectedProofBooking.totalPrice * 0.5))} &bull; Sisa: {formatIDR(selectedProofBooking.totalPrice - (selectedProofBooking.dpAmount || Math.round(selectedProofBooking.totalPrice * 0.5)))}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <span className="text-[10px] text-gray-400 font-medium block">
-                    Waktu Upload
+                    Waktu Upload DP
                   </span>
                   <span className="text-gray-700 font-medium">
                     {selectedProofBooking.paymentProofUploadedAt
@@ -1407,6 +1853,44 @@ Status: ${b.status}`;
                     </>
                   )}
 
+                  {selectedProofBooking.status === "DP_50" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettlementModal({
+                            isOpen: true,
+                            booking: selectedProofBooking,
+                            file: null,
+                            markConfirmed: true,
+                            uploading: false,
+                            error: "",
+                          });
+                        }}
+                        className="px-3.5 py-2.5 rounded-xl border border-sky-300 text-sky-700 text-xs font-semibold hover:bg-sky-50 transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <UploadCloud className="w-3.5 h-3.5" />
+                        <span>Upload Pelunasan</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={updatingId === selectedProofBooking.id}
+                        onClick={() =>
+                          handleUpdateStatus(
+                            selectedProofBooking.id,
+                            "CONFIRMED",
+                            "Pelunasan disetujui via modal preview bukti"
+                          )
+                        }
+                        className="px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                        <span>Verifikasi & Jadikan LUNAS</span>
+                      </button>
+                    </>
+                  )}
+
                   <a
                     href={`https://wa.me/${selectedProofBooking.guestPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
                       `Halo ${selectedProofBooking.guestName}, terkait bukti transfer reservasi ${selectedProofBooking.code} untuk ${selectedProofBooking.villa.name} di ${siteName}.`
@@ -1499,6 +1983,14 @@ Status: ${b.status}`;
                       badgeColor: "bg-amber-100 text-amber-800 border-amber-300",
                       activeBorder: "border-amber-500 bg-amber-50/40",
                       icon: Clock,
+                    },
+                    {
+                      id: "DP_50",
+                      label: "DP 50% (Terkonfirmasi DP)",
+                      desc: "Uang muka 50% telah diterima, pelunasan sisa 50% wajib paling lambat H-1 check-in",
+                      badgeColor: "bg-sky-100 text-sky-800 border-sky-300",
+                      activeBorder: "border-sky-500 bg-sky-50/40",
+                      icon: ShieldCheck,
                     },
                     {
                       id: "CONFIRMED",
@@ -1858,17 +2350,136 @@ Status: ${b.status}`;
                   <select
                     value={directStatus}
                     onChange={(e) =>
-                      setDirectStatus(e.target.value as "CONFIRMED" | "PENDING")
+                      setDirectStatus(
+                        e.target.value as "CONFIRMED" | "DP_50" | "PENDING"
+                      )
                     }
                     className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-accent"
                   >
                     <option value="CONFIRMED">
                       Langsung Terkonfirmasi (Lunas / Transfer Diterima)
                     </option>
+                    <option value="DP_50">
+                      DP 50% (Terkonfirmasi DP — Pelunasan H-1 Check-In)
+                    </option>
                     <option value="PENDING">
                       Menunggu Pembayaran (Tagihan Dikirim ke Tamu)
                     </option>
                   </select>
+                </div>
+
+                {/* Live Villa Pricing Breakdown */}
+                {directPricingBreakdown && (
+                  <div className="p-3.5 rounded-2xl bg-cream/70 border border-gray-200 text-xs space-y-2 animate-fade-in">
+                    <div className="flex items-center justify-between border-b border-gray-200 pb-2">
+                      <span className="font-bold text-gray-700">
+                        Kalkulasi Tarif Villa ({directPricingBreakdown.nights} malam):
+                      </span>
+                      <span className="font-bold text-accent text-sm tabular-nums">
+                        {formatIDR(directPricingBreakdown.subtotal)}
+                      </span>
+                    </div>
+
+                    {/* Breakdown per night */}
+                    <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                      {directPricingBreakdown.breakdown.map((d) => (
+                        <div key={d.date} className="flex justify-between text-[11px] text-gray-600">
+                          <span>
+                            {d.dayName} <span className="text-[10px] text-gray-400">({d.label})</span>
+                          </span>
+                          <span className="font-semibold text-gray-800 tabular-nums">
+                            {formatIDR(d.price)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Status specific financial summary */}
+                    {directStatus === "DP_50" ? (
+                      <div className="pt-2 border-t border-dashed border-gray-300 space-y-1">
+                        <div className="flex justify-between font-semibold text-emerald-700">
+                          <span>Tagihan DP 50%:</span>
+                          <span className="tabular-nums">
+                            {formatIDR(Math.round(directPricingBreakdown.subtotal * 0.5))}
+                          </span>
+                        </div>
+                        <div className="flex justify-between font-semibold text-sky-800">
+                          <span>Sisa Pelunasan (50%):</span>
+                          <span className="tabular-nums">
+                            {formatIDR(
+                              directPricingBreakdown.subtotal -
+                                Math.round(directPricingBreakdown.subtotal * 0.5)
+                            )}
+                          </span>
+                        </div>
+                        {directCheckIn && (
+                          <p className="text-[10px] text-sky-900 bg-sky-50 p-1.5 rounded-lg border border-sky-200 mt-1">
+                            Batas waktu pelunasan: H-1 check-in (
+                            {format(
+                              subDays(parseISO(directCheckIn), 1),
+                              "EEEE, d MMMM yyyy",
+                              { locale: localeId }
+                            )}
+                            ).
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="pt-2 border-t border-dashed border-gray-300 flex justify-between font-bold text-primary">
+                        <span>
+                          {directStatus === "CONFIRMED"
+                            ? "Total Lunas:"
+                            : "Total Tagihan Tamu:"}
+                        </span>
+                        <span className="text-accent text-sm tabular-nums">
+                          {formatIDR(directPricingBreakdown.subtotal)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Upload Bukti Transfer Awal */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Upload Bukti Transfer{" "}
+                    {directStatus === "DP_50" ? "DP 50%" : "Pembayaran"} (Opsional)
+                  </label>
+                  <label className="border-2 border-dashed border-gray-200 hover:border-accent rounded-xl p-3 flex items-center justify-between cursor-pointer transition-colors bg-[#fafafa]">
+                    <div className="flex items-center gap-2 text-xs text-gray-600 truncate mr-2">
+                      <UploadCloud className="w-4 h-4 text-accent shrink-0" />
+                      <span className="truncate">
+                        {directProofFile
+                          ? directProofFile.name
+                          : "Pilih file bukti transfer (JPG, PNG, PDF)"}
+                      </span>
+                    </div>
+                    {directProofFile ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setDirectProofFile(null);
+                        }}
+                        className="text-rose-600 hover:text-rose-800 text-[11px] font-semibold shrink-0"
+                      >
+                        Hapus
+                      </button>
+                    ) : (
+                      <span className="text-[11px] font-semibold text-accent shrink-0">
+                        Pilih File
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,application/pdf"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) setDirectProofFile(f);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
                 {/* Notes */}
@@ -2009,6 +2620,179 @@ Status: ${b.status}`;
                 <span>Kirim Penolakan Bukti</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Upload Pelunasan (Manajer) */}
+      {settlementModal.isOpen && settlementModal.booking && (
+        <div className="fixed inset-0 z-60 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl animate-fade-in space-y-4 border border-sky-100">
+            <div className="flex items-start justify-between border-b border-gray-100 pb-3">
+              <div className="flex items-center gap-2.5 text-sky-700">
+                <div className="w-10 h-10 rounded-2xl bg-sky-100 flex items-center justify-center shrink-0">
+                  <UploadCloud className="w-5 h-5 text-sky-700" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-base text-primary">
+                    Upload Bukti Pelunasan
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Kode:{" "}
+                    <strong className="font-mono text-primary">
+                      {settlementModal.booking.code}
+                    </strong>{" "}
+                    &bull; {settlementModal.booking.guestName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setSettlementModal({
+                    isOpen: false,
+                    booking: null,
+                    file: null,
+                    markConfirmed: true,
+                    uploading: false,
+                    error: "",
+                  })
+                }
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Financial breakdown */}
+            {(() => {
+              const b = settlementModal.booking;
+              const dp = b.dpAmount || Math.round(b.totalPrice * 0.5);
+              const remaining = b.totalPrice - dp;
+
+              return (
+                <div className="p-3.5 rounded-2xl bg-sky-50/70 border border-sky-200/80 text-xs space-y-1.5">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Total Tagihan:</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatIDR(b.totalPrice)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-emerald-700">
+                    <span>DP 50% Diterima:</span>
+                    <span className="font-semibold">- {formatIDR(dp)}</span>
+                  </div>
+                  <div className="flex justify-between pt-1 border-t border-sky-200 font-bold text-sky-950">
+                    <span>Sisa Pelunasan:</span>
+                    <span className="text-accent text-sm tabular-nums">
+                      {formatIDR(remaining)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {settlementModal.error && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{settlementModal.error}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleUploadSettlement} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                  Pilih File Bukti Transfer Pelunasan{" "}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <label className="border-2 border-dashed border-sky-300 hover:border-accent rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition-colors bg-sky-50/20 text-center">
+                  <UploadCloud className="w-7 h-7 text-sky-600 mb-1.5" />
+                  <span className="text-xs font-semibold text-sky-950">
+                    {settlementModal.file
+                      ? settlementModal.file.name
+                      : "Pilih foto bukti transfer atau resi"}
+                  </span>
+                  <span className="text-[10px] text-sky-700 mt-0.5">
+                    JPG, PNG, WebP atau PDF (Maks. 10MB)
+                  </span>
+                  <input
+                    type="file"
+                    required
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f)
+                        setSettlementModal((prev) => ({
+                          ...prev,
+                          file: f,
+                          error: "",
+                        }));
+                    }}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-gray-50 border border-gray-200">
+                <input
+                  type="checkbox"
+                  id="markConfirmedCheckbox"
+                  checked={settlementModal.markConfirmed}
+                  onChange={(e) =>
+                    setSettlementModal((prev) => ({
+                      ...prev,
+                      markConfirmed: e.target.checked,
+                    }))
+                  }
+                  className="rounded text-accent focus:ring-accent w-4 h-4 cursor-pointer"
+                />
+                <label
+                  htmlFor="markConfirmedCheckbox"
+                  className="text-xs font-medium text-gray-700 cursor-pointer select-none"
+                >
+                  Otomatis verifikasi status menjadi{" "}
+                  <strong>Terkonfirmasi (LUNAS)</strong>
+                </label>
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSettlementModal({
+                      isOpen: false,
+                      booking: null,
+                      file: null,
+                      markConfirmed: true,
+                      uploading: false,
+                      error: "",
+                    })
+                  }
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={
+                    settlementModal.uploading || !settlementModal.file
+                  }
+                  className="px-5 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-semibold hover:bg-sky-700 transition-colors cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {settlementModal.uploading ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Mengunggah...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Simpan Bukti Pelunasan</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

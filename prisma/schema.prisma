@@ -17,6 +17,7 @@ enum Role {
 
 enum BookingStatus {
   PENDING
+  DP_50
   CONFIRMED
   CHECKED_IN
   COMPLETED
@@ -133,6 +134,9 @@ model bookings {
   paymentMethod          String        @default("QRIS")
   paymentProofUrl        String?       @db.Text
   paymentProofUploadedAt DateTime?
+  settlementProofUrl     String?       @db.Text
+  settlementProofUploadedAt DateTime?
+  dpAmount               Int?          @default(0)
   userId                 String?
   assignedToId           String?
   createdAt              DateTime      @default(now())
