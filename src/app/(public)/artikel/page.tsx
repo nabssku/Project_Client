@@ -3,52 +3,47 @@ import { prisma } from "@/lib/prisma";
 import { Calendar, Clock, ArrowRight, Tag, BookOpen } from "lucide-react";
 import type { Metadata } from "next";
 import { cacheLife, cacheTag } from "next/cache";
+import { buildSmoMetadata } from "@/lib/smo";
 
 export const instant = false;
 
 export async function generateMetadata(): Promise<Metadata> {
   'use cache';
-  cacheTag('site_configs');
+  cacheTag('site_configs', 'articles');
   cacheLife('minutes');
 
-  const siteConfig = await prisma.site_configs.findUnique({
-    where: { key: "site_name" },
-  });
-  const siteName = siteConfig?.value || "Luxury Stay";
+  const [siteConfig, latestArticle] = await Promise.all([
+    prisma.site_configs.findUnique({
+      where: { key: "site_name" },
+    }),
+    prisma.articles.findFirst({
+      where: { isPublished: true },
+      orderBy: { createdAt: "desc" },
+      select: { coverImage: true },
+    }),
+  ]);
+  const siteName = siteConfig?.value || "villaqoe";
 
   const title = `Panduan Wisata & Rekomendasi Villa | ${siteName}`;
   const description =
-    "Temukan inspirasi liburan, tips menginap, kuliner terbaik, dan rekomendasi villa eksklusif di Bandung dan sekitarnya.";
+    "Temukan inspirasi liburan, tips menginap, kuliner terbaik, dan rekomendasi villa eksklusif di Puncak dan sekitarnya.";
+  const image = latestArticle?.coverImage || "/Villaqoe.png";
 
-  return {
+  return buildSmoMetadata({
     title,
     description,
-    alternates: {
-      canonical: "/artikel",
-    },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
-        index: true,
-        follow: true,
-        "max-video-preview": -1,
-        "max-image-preview": "large",
-        "max-snippet": -1,
-      },
-    },
-    openGraph: {
-      title,
-      description,
-      url: "/artikel",
-      type: "website",
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-    },
-  };
+    urlPath: "/artikel",
+    image,
+    siteName,
+    keywords: [
+      "artikel wisata",
+      "tips villa",
+      "rekomendasi liburan",
+      "panduan wisata puncak",
+      "villa bogor",
+      "villaqoe",
+    ],
+  });
 }
 
 interface ArtikelPageProps {

@@ -1,16 +1,64 @@
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { BookingPaymentClient } from "@/components/public/booking-payment-client";
 import { getPaymentTransferBanks } from "@/lib/payment-config";
 import { normalizeMediaUrl } from "@/lib/media";
 import { isBookingExpired } from "@/lib/booking-expiration";
 import { getSiteContactConfig } from "@/lib/site-config";
+import { buildSmoMetadata } from "@/lib/smo";
 
 export const instant = false;
 
 interface BookingCodePageProps {
   params: Promise<{ code: string }>;
+}
+
+export async function generateMetadata({
+  params,
+}: BookingCodePageProps): Promise<Metadata> {
+  const { code } = await params;
+  const booking = await prisma.bookings.findFirst({
+    where: {
+      code: {
+        equals: code.trim(),
+        mode: "insensitive",
+      },
+    },
+    include: {
+      villa: {
+        select: {
+          name: true,
+          location: true,
+          images: true,
+        },
+      },
+    },
+  });
+
+  if (!booking || !booking.villa) {
+    return {
+      title: "Detail Reservasi",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const siteConfig = await prisma.site_configs.findFirst({
+    where: { key: "site_name" },
+  });
+  const siteName = siteConfig?.value || "villaqoe";
+  const firstImage = booking.villa.images?.[0] || "/Villaqoe.png";
+
+  return buildSmoMetadata({
+    title: `Reservasi ${booking.villa.name} (${booking.code}) | ${siteName}`,
+    description: `Detail reservasi villa ${booking.villa.name} di ${booking.villa.location} untuk ${booking.guestName}. Periksa tagihan dan informasi check-in.`,
+    urlPath: `/booking/${booking.code}`,
+    image: firstImage,
+    imageAlt: `Reservasi ${booking.villa.name}`,
+    siteName,
+    noIndex: true,
+  });
 }
 
 export default async function BookingCodePage({ params }: BookingCodePageProps) {

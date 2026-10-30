@@ -1,9 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
+import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { BookingFlowClient } from "@/components/public/booking-flow-client";
 import { addDays, format, isValid, parseISO } from "date-fns";
+import { buildSmoMetadata } from "@/lib/smo";
 
 export const instant = false;
 
@@ -16,6 +18,52 @@ interface BookingPageProps {
     check_out?: string;
     guests?: string;
   }>;
+}
+
+export async function generateMetadata({
+  searchParams,
+}: BookingPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  const villaSlugOrId = params.property || params.villa || params.slug;
+
+  if (!villaSlugOrId) {
+    return {
+      title: "Reservasi Villa",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const [villa, siteConfig] = await Promise.all([
+    prisma.villas.findFirst({
+      where: {
+        OR: [{ slug: villaSlugOrId }, { id: villaSlugOrId }],
+      },
+      select: { name: true, location: true, images: true, description: true },
+    }),
+    prisma.site_configs.findFirst({
+      where: { key: "site_name" },
+    }),
+  ]);
+
+  if (!villa) {
+    return {
+      title: "Reservasi Villa",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const siteName = siteConfig?.value || "villaqoe";
+  const firstImage = villa.images?.[0] || "/Villaqoe.png";
+
+  return buildSmoMetadata({
+    title: `Reservasi ${villa.name} | ${siteName}`,
+    description: `Mulai reservasi ${villa.name} di ${villa.location}. Pilih tanggal menginap dan pesan sekarang dengan aman.`,
+    urlPath: `/booking?property=${villaSlugOrId}`,
+    image: firstImage,
+    imageAlt: `Reservasi ${villa.name}`,
+    siteName,
+    noIndex: true,
+  });
 }
 
 export default async function BookingPage({ searchParams }: BookingPageProps) {

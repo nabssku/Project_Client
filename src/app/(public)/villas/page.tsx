@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { prisma } from "@/lib/prisma";
 import { cacheLife } from "next/cache";
+import { buildSmoMetadata } from "@/lib/smo";
 
 async function getVillas() {
   'use cache'
@@ -22,36 +23,37 @@ async function getVillas() {
 
 export async function generateMetadata() {
   try {
-    const siteConfig = await prisma.site_configs.findFirst({
-      where: { key: "site_name" },
-    });
-    const siteName = siteConfig?.value || "Villa";
-    const title = `Katalog Villa & Resort — ${siteName}`;
-    const description = `Temukan dan booking villa & resort terbaik di ${siteName}`;
+    const [siteConfig, firstVilla] = await Promise.all([
+      prisma.site_configs.findFirst({
+        where: { key: "site_name" },
+      }),
+      prisma.villas.findFirst({
+        where: { status: "AVAILABLE" },
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+        select: { images: true },
+      }),
+    ]);
+    const siteName = siteConfig?.value || "villaqoe";
+    const title = `Katalog Villa Eksklusif & Resort | ${siteName}`;
+    const description = `Pilihan villa mewah dan private pool terbaik di Puncak dan sekitarnya. Booking mudah dengan fasilitas lengkap dan harga terbaik.`;
+    const image = firstVilla?.images?.[0] || "/Villaqoe.png";
 
-    return {
+    return buildSmoMetadata({
       title,
       description,
-      alternates: {
-        canonical: "/villas",
-      },
-      openGraph: {
-        title,
-        description,
-        url: "/villas",
-        type: "website",
-      },
-      twitter: {
-        card: "summary_large_image",
-        title,
-        description,
-      },
-    };
+      urlPath: "/villas",
+      image,
+      siteName,
+      keywords: ["katalog villa", "villa private pool", "villa puncak", "sewa villa bogor", "villa keluarga"],
+    });
   } catch {
-    return {
-      title: "Katalog Villa & Resort",
-      description: "Temukan dan booking villa & resort terbaik",
-    };
+    return buildSmoMetadata({
+      title: "Katalog Villa & Resort | villaqoe",
+      description: "Temukan dan booking villa & resort terbaik di Puncak.",
+      urlPath: "/villas",
+      image: "/Villaqoe.png",
+      siteName: "villaqoe",
+    });
   }
 }
 

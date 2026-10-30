@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { AboutRichRenderer } from "@/components/cms/about-rich-renderer";
 import { ABOUT_CONFIG_KEYS, DEFAULT_ABOUT_CONFIGS } from "@/lib/about-config";
+import { buildSmoMetadata } from "@/lib/smo";
 
 export const instant = false;
 
@@ -47,33 +48,22 @@ export async function generateMetadata(): Promise<Metadata> {
   cacheLife("minutes");
 
   const configs = await getAboutConfigs();
-  const siteName = configs.site_name || "Villa";
+  const siteName = configs.site_name || "villaqoe";
   const title = configs.about_meta_title || `${configs.about_title || "Tentang Kami"} | ${siteName}`;
   const description =
     configs.about_meta_description ||
     configs.about_subtitle ||
     `Pelajari filosofi, dedikasi pelayanan, dan komitmen kenyamanan villa peristirahatan terbaik bersama ${siteName}.`;
+  const image = configs.about_hero_image || "/Villaqoe.png";
 
-  return {
+  return buildSmoMetadata({
     title,
     description,
-    alternates: {
-      canonical: "/about",
-    },
-    openGraph: {
-      title,
-      description,
-      url: "/about",
-      type: "website",
-      images: configs.about_hero_image ? [configs.about_hero_image] : undefined,
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: configs.about_hero_image ? [configs.about_hero_image] : undefined,
-    },
-  };
+    urlPath: "/about",
+    image,
+    siteName,
+    keywords: ["tentang kami", "profil villaqoe", "pengelola villa puncak", "pelayanan villa"],
+  });
 }
 
 export default async function AboutPublicPage() {

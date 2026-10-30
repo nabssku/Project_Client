@@ -5,6 +5,7 @@ import "./globals.css";
 import { prisma } from "@/lib/prisma";
 import { TimeThemeProvider } from "@/components/public/time-theme-provider";
 import { FontLoader } from "@/components/font-loader";
+import { toAbsoluteUrl } from "@/lib/smo";
 import { cacheLife, cacheTag } from "next/cache";
 
 const dmSans = DM_Sans({
@@ -87,18 +88,19 @@ async function getSiteMetadataConfig() {
     const siteName = configs.find((c: any) => c.key === 'site_name')?.value || 'Villa Booking System';
     const siteDescription = configs.find((c: any) => c.key === 'site_description')?.value || 'Book your dream villa';
     const heroImage = configs.find((c: any) => c.key === 'hero_image')?.value || null;
+    const siteLogo = configs.find((c: any) => c.key === 'site_logo')?.value || null;
     const googleVerification =
       configs.find((c: any) => c.key === 'google_site_verification')?.value ||
       process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
       process.env.GOOGLE_SITE_VERIFICATION ||
       null;
 
-    return { siteName, siteDescription, heroImage, googleVerification };
+    return { siteName, siteDescription, heroImage: heroImage || siteLogo || '/Villaqoe.png', googleVerification };
   } catch (error) {
     return {
       siteName: 'Villa Booking System',
       siteDescription: 'Book your dream villa',
-      heroImage: null,
+      heroImage: '/Villaqoe.png',
       googleVerification:
         process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
         process.env.GOOGLE_SITE_VERIFICATION ||
@@ -110,6 +112,7 @@ async function getSiteMetadataConfig() {
 export async function generateMetadata(): Promise<Metadata> {
   const { siteName, siteDescription, heroImage, googleVerification } = await getSiteMetadataConfig();
   const baseUrl = getBaseUrl();
+  const absoluteHeroImage = toAbsoluteUrl(heroImage, '/Villaqoe.png');
 
   return {
     metadataBase: new URL(baseUrl),
@@ -121,6 +124,17 @@ export async function generateMetadata(): Promise<Metadata> {
     verification: {
       google: googleVerification || undefined,
     },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
+    },
     openGraph: {
       type: 'website',
       locale: 'id_ID',
@@ -128,13 +142,21 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: siteName,
       title: siteName,
       description: siteDescription,
-      images: heroImage ? [{ url: heroImage }] : undefined,
+      images: [
+        {
+          url: absoluteHeroImage,
+          width: 1200,
+          height: 630,
+          alt: siteName,
+          type: absoluteHeroImage.endsWith('.png') ? 'image/png' : absoluteHeroImage.endsWith('.webp') ? 'image/webp' : 'image/jpeg',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: siteName,
       description: siteDescription,
-      images: heroImage ? [heroImage] : undefined,
+      images: [absoluteHeroImage],
     },
     icons: {
       icon: [

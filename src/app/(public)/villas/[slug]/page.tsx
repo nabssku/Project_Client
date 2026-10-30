@@ -15,6 +15,7 @@ import { VillaBookingWidget } from "@/components/public/villa-booking-widget";
 import { VillaAvailabilityCalendar } from "@/components/public/villa-availability-calendar";
 import { VillaMobileBookingBar } from "@/components/public/villa-mobile-booking-bar";
 import { getSiteContactConfig } from "@/lib/site-config";
+import { buildSmoMetadata } from "@/lib/smo";
 
 async function getVilla(slug: string) {
   'use cache'
@@ -57,31 +58,28 @@ export async function generateMetadata({
   const siteConfig = await prisma.site_configs.findFirst({
     where: { key: "site_name" },
   });
-  const siteName = siteConfig?.value || "Villa";
-  const firstImage = villa.images.length > 0 ? villa.images[0] : undefined;
+  const siteName = siteConfig?.value || "villaqoe";
+  const firstImage = villa.images.length > 0 ? villa.images[0] : "/Villaqoe.png";
+  const title = `${villa.name} — ${villa.location} | ${siteName}`;
+  const cleanDesc = villa.description.replace(/\r?\n+/g, " ").trim();
+  const description = `${villa.name} di ${villa.location}. Kapasitas hingga ${villa.capacity} tamu, ${villa.bedrooms} kamar tidur, ${villa.bathrooms} kamar mandi. ${cleanDesc.substring(0, 110)}...`;
 
-  return {
-    title: `${villa.name} — ${villa.location} | ${siteName}`,
-    description: villa.description.substring(0, 160),
-    alternates: {
-      canonical: `/villas/${resolvedParams.slug}`,
-    },
-    openGraph: {
-      type: "website",
-      locale: "id_ID",
-      url: `/villas/${resolvedParams.slug}`,
-      siteName: siteName,
-      title: `${villa.name} — ${villa.location}`,
-      description: villa.description.substring(0, 160),
-      images: firstImage ? [{ url: firstImage }] : [],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: `${villa.name} — ${villa.location}`,
-      description: villa.description.substring(0, 160),
-      images: firstImage ? [firstImage] : undefined,
-    },
-  };
+  return buildSmoMetadata({
+    title,
+    description,
+    urlPath: `/villas/${resolvedParams.slug}`,
+    image: firstImage,
+    imageAlt: `${villa.name} - ${villa.location}`,
+    siteName,
+    keywords: [
+      villa.name,
+      villa.location,
+      "sewa villa puncak",
+      "villa private pool",
+      "villa keluarga",
+      "villaqoe",
+    ],
+  });
 }
 
 export default async function VillaDetailPage({

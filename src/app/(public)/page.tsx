@@ -7,6 +7,7 @@ import { HowItWorks } from "@/components/public/how-it-works";
 import { Testimonials } from "@/components/public/testimonials";
 import { CTA } from "@/components/public/cta";
 import { prisma } from "@/lib/prisma";
+import { buildSmoMetadata } from "@/lib/smo";
 
 export const instant = false;
 
@@ -16,53 +17,54 @@ export async function generateMetadata(): Promise<Metadata> {
   cacheLife("minutes");
 
   try {
-    const configs = await prisma.site_configs.findMany({
-      where: {
-        key: {
-          in: ["site_name", "site_description", "hero_image", "hero_title", "hero_subtitle"],
+    const [configs, featuredVilla] = await Promise.all([
+      prisma.site_configs.findMany({
+        where: {
+          key: {
+            in: ["site_name", "site_description", "hero_image", "hero_title", "hero_subtitle", "site_logo"],
+          },
         },
-      },
-    });
+      }),
+      prisma.villas.findFirst({
+        where: { status: "AVAILABLE" },
+        orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+        select: { images: true },
+      }),
+    ]);
 
     const map = configs.reduce(
       (acc, c) => ({ ...acc, [c.key]: c.value }),
       {} as Record<string, string>
     );
 
-    const siteName = map.site_name || "Villa Booking";
+    const siteName = map.site_name || "villaqoe";
     const title = map.hero_title && map.hero_title !== "Tittle"
       ? `${siteName} — ${map.hero_title}`
-      : `${siteName} — Sewa Villa Eksklusif & Private Vacation`;
+      : `${siteName} — Sewa Villa Eksklusif & Private Vacation di Puncak`;
     const description =
       map.site_description ||
       map.hero_subtitle ||
-      "Pilihan villa eksklusif dan privat untuk liburan tak terlupakan bersama keluarga dan orang terkasih.";
+      "Pilihan villa eksklusif dan privat untuk liburan tak terlupakan bersama keluarga dan orang terkasih di Puncak, Bogor.";
 
-    return {
+    const firstVillaImage = featuredVilla?.images?.[0] || null;
+    const previewImage = map.hero_image || map.site_logo || firstVillaImage || "/Villaqoe.png";
+
+    return buildSmoMetadata({
       title,
       description,
-      alternates: {
-        canonical: "/",
-      },
-      openGraph: {
-        title,
-        description,
-        url: "/",
-        type: "website",
-        images: map.hero_image ? [{ url: map.hero_image }] : undefined,
-      },
-      twitter: {
-        card: "summary_large_image",
-        title,
-        description,
-        images: map.hero_image ? [map.hero_image] : undefined,
-      },
-    };
+      urlPath: "/",
+      image: previewImage,
+      siteName,
+      keywords: ["sewa villa puncak", "villa bogor", "villa privat", "villa keluarga", "villaqoe", "booking villa"],
+    });
   } catch {
-    return {
-      title: "Villa Booking — Sewa Villa Eksklusif",
-      description: "Pilihan villa eksklusif dan privat untuk liburan tak terlupakan.",
-    };
+    return buildSmoMetadata({
+      title: "villaqoe — Sewa Villa Eksklusif di Puncak",
+      description: "Pilihan villa eksklusif dan privat untuk liburan tak terlupakan bersama keluarga di Puncak, Bogor.",
+      urlPath: "/",
+      image: "/Villaqoe.png",
+      siteName: "villaqoe",
+    });
   }
 }
 
