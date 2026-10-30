@@ -10,6 +10,8 @@ const apiPublicPaths = [
   "/api/villas",
   "/api/config",
   "/api/upload/payment-proof",
+  "/api/search",
+  "/api/media",
 ];
 
 export const proxy = auth((req) => {

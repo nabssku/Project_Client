@@ -10,8 +10,6 @@ import {
   BookOpen,
   FileText,
   Building2,
-  Users,
-  Bed,
   ArrowRight,
   Sparkles,
   Loader2,
@@ -61,7 +59,6 @@ interface SearchResults {
   villas: SearchVillaItem[];
   articles: SearchArticleItem[];
   pages: SearchPageItem[];
-  totalCount?: number;
   isDefault?: boolean;
 }
 
@@ -70,7 +67,7 @@ interface GlobalSearchDialogProps {
   onClose: () => void;
 }
 
-const QUICK_TAGS = [
+const POPULAR_SEARCH_TAGS = [
   "Private Pool",
   "Puncak",
   "Keluarga",
@@ -84,18 +81,17 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<"all" | "villa" | "article" | "page">("all");
   const inputRef = useRef<HTMLInputElement>(null);
   const [, startTransition] = useTransition();
 
-  // Focus input automatically on open
+  // Focus input otomatis saat dialog terbuka
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
         inputRef.current?.focus();
       }, 50);
       document.body.style.overflow = "hidden";
-      fetchResults(""); // Load defaults
+      fetchResults(""); // Memuat rekomendasi bawaan
     } else {
       document.body.style.overflow = "unset";
       setQuery("");
@@ -107,7 +103,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
     };
   }, [isOpen]);
 
-  // Handle ESC key to close
+  // Handle tombol ESC untuk keluar
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape" && isOpen) {
@@ -118,7 +114,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
-  // Fetch search results from API
+  // Fetch hasil pencarian dari API
   async function fetchResults(q: string) {
     setLoading(true);
     try {
@@ -134,7 +130,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
     }
   }
 
-  // Debounced search input handler
+  // Debounced pencarian saat user mengetik
   useEffect(() => {
     if (!isOpen) return;
     const timer = setTimeout(() => {
@@ -146,14 +142,10 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
 
   if (!isOpen) return null;
 
-  const totalResults =
-    (results?.villas?.length || 0) +
-    (results?.articles?.length || 0) +
-    (results?.pages?.length || 0);
-
-  const filteredVillas = activeFilter === "all" || activeFilter === "villa" ? results?.villas || [] : [];
-  const filteredArticles = activeFilter === "all" || activeFilter === "article" ? results?.articles || [] : [];
-  const filteredPages = activeFilter === "all" || activeFilter === "page" ? results?.pages || [] : [];
+  const villas = results?.villas || [];
+  const articles = results?.articles || [];
+  const pages = results?.pages || [];
+  const totalFound = villas.length + articles.length + pages.length;
 
   function handleNavigate(url: string) {
     onClose();
@@ -172,7 +164,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
       }}
     >
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col max-h-[82vh] animate-in zoom-in-95 duration-150">
-        {/* Top Search Input Bar */}
+        {/* Kolom Pencarian Atas */}
         <div className="relative flex items-center border-b border-gray-100 px-5 py-4 bg-gray-50/50">
           <Search className="w-5 h-5 text-accent shrink-0 mr-3" />
           <input
@@ -207,53 +199,9 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
           </div>
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center gap-1.5 px-5 py-2.5 border-b border-gray-100 bg-white text-xs overflow-x-auto no-scrollbar">
-          <button
-            onClick={() => setActiveFilter("all")}
-            className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
-              activeFilter === "all"
-                ? "bg-primary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/70"
-            }`}
-          >
-            Semua ({totalResults})
-          </button>
-          <button
-            onClick={() => setActiveFilter("villa")}
-            className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
-              activeFilter === "villa"
-                ? "bg-primary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/70"
-            }`}
-          >
-            Villa ({results?.villas?.length || 0})
-          </button>
-          <button
-            onClick={() => setActiveFilter("article")}
-            className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
-              activeFilter === "article"
-                ? "bg-primary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/70"
-            }`}
-          >
-            Artikel ({results?.articles?.length || 0})
-          </button>
-          <button
-            onClick={() => setActiveFilter("page")}
-            className={`px-3 py-1 rounded-full font-semibold transition cursor-pointer ${
-              activeFilter === "page"
-                ? "bg-primary text-white"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200/70"
-            }`}
-          >
-            Halaman ({results?.pages?.length || 0})
-          </button>
-        </div>
-
-        {/* Scrollable Results Area */}
+        {/* Konten Hasil Pencarian */}
         <div className="overflow-y-auto p-5 space-y-6 flex-1 divide-y divide-gray-100">
-          {/* Default Quick Tags when query is empty */}
+          {/* Tag Populer saat kotak pencarian kosong */}
           {results?.isDefault && (
             <div className="space-y-3 pb-2">
               <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-gray-400">
@@ -261,7 +209,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
                 <span>Pencarian Populer &amp; Topik Hangat</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {QUICK_TAGS.map((tag) => (
+                {POPULAR_SEARCH_TAGS.map((tag) => (
                   <button
                     key={tag}
                     onClick={() => setQuery(tag)}
@@ -275,8 +223,8 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
             </div>
           )}
 
-          {/* Empty state when no match is found */}
-          {!loading && results && !results.isDefault && totalResults === 0 && (
+          {/* Kondisi saat tidak ada hasil ditemukan */}
+          {!loading && results && !results.isDefault && totalFound === 0 && (
             <div className="py-12 text-center space-y-3">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 text-gray-400">
                 <Search className="w-6 h-6" />
@@ -290,13 +238,13 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
             </div>
           )}
 
-          {/* Section: Villas */}
-          {filteredVillas.length > 0 && (
+          {/* Bagian: Koleksi Villa */}
+          {villas.length > 0 && (
             <div className="space-y-3 pt-4 first:pt-0">
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-gray-400">
                 <span className="flex items-center gap-1.5 text-primary">
                   <Building2 className="w-4 h-4 text-accent" />
-                  Koleksi Villa ({filteredVillas.length})
+                  Koleksi Villa
                 </span>
                 <Link
                   href="/villas"
@@ -309,7 +257,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {filteredVillas.map((villa) => (
+                {villas.map((villa) => (
                   <div
                     key={villa.id}
                     onClick={() => handleNavigate(villa.url)}
@@ -356,13 +304,13 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
             </div>
           )}
 
-          {/* Section: Articles */}
-          {filteredArticles.length > 0 && (
+          {/* Bagian: Artikel & Panduan */}
+          {articles.length > 0 && (
             <div className="space-y-3 pt-4 first:pt-0">
               <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-gray-400">
                 <span className="flex items-center gap-1.5 text-primary">
                   <BookOpen className="w-4 h-4 text-accent" />
-                  Artikel &amp; Panduan Wisata ({filteredArticles.length})
+                  Artikel &amp; Panduan Wisata
                 </span>
                 <Link
                   href="/artikel"
@@ -375,7 +323,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
               </div>
 
               <div className="space-y-2">
-                {filteredArticles.map((article) => (
+                {articles.map((article) => (
                   <div
                     key={article.id}
                     onClick={() => handleNavigate(article.url)}
@@ -419,16 +367,16 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
             </div>
           )}
 
-          {/* Section: Public Pages & Services */}
-          {filteredPages.length > 0 && (
+          {/* Bagian: Halaman Pintas & Layanan Publik */}
+          {pages.length > 0 && (
             <div className="space-y-3 pt-4 first:pt-0">
               <div className="text-xs font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5 text-primary">
                 <Compass className="w-4 h-4 text-accent" />
-                Halaman &amp; Layanan Publik ({filteredPages.length})
+                Halaman &amp; Layanan Publik
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {filteredPages.map((page) => (
+                {pages.map((page) => (
                   <div
                     key={page.url}
                     onClick={() => handleNavigate(page.url)}
@@ -460,7 +408,7 @@ export function GlobalSearchDialog({ isOpen, onClose }: GlobalSearchDialogProps)
           )}
         </div>
 
-        {/* Footer Navigation Bar */}
+        {/* Footer Shortcut */}
         <div className="border-t border-gray-100 px-5 py-3 bg-gray-50/70 flex items-center justify-between text-[11px] text-gray-500">
           <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">

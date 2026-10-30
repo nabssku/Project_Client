@@ -176,17 +176,6 @@ export function Navbar({
               </Link>
             )}
 
-            {/* Mobile Search Button */}
-            <button
-              className={`lg:hidden p-2 rounded-full transition-colors cursor-pointer ${
-                isDarkBackground ? "text-white/80 hover:text-white" : "text-primary-dark/80 hover:text-primary-dark"
-              }`}
-              onClick={() => setIsSearchOpen(true)}
-              aria-label="Cari"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-
             {/* Mobile Toggle */}
             <button
               className={`lg:hidden transition-colors cursor-pointer ${
