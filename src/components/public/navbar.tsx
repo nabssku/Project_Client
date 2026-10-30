@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Menu, X, Phone, Search, User } from "lucide-react";
+import { GlobalSearchDialog } from "@/components/public/global-search-dialog";
 
 interface NavbarProps {
   contactPhone?: string;
@@ -18,6 +19,7 @@ export function Navbar({
   siteLogo,
 }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const isHome = pathname === "/";
@@ -39,9 +41,22 @@ export function Navbar({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Keyboard shortcut listener for Cmd + K or Ctrl + K
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+    <>
+      <header
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isSolidNav || scrolled
           ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 py-3"
           : "bg-transparent py-4"
@@ -107,10 +122,12 @@ export function Navbar({
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Search button */}
             <button
-              className={`p-2 transition-colors cursor-pointer ${
+              onClick={() => setIsSearchOpen(true)}
+              className={`p-2 rounded-full transition-colors cursor-pointer hover:bg-black/5 ${
                 isDarkBackground ? "text-white/80 hover:text-white" : "text-primary-dark/80 hover:text-primary-dark"
               }`}
-              aria-label="Cari"
+              aria-label="Cari Villa atau Artikel"
+              title="Pencarian Global (Cmd / Ctrl + K)"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -159,6 +176,17 @@ export function Navbar({
               </Link>
             )}
 
+            {/* Mobile Search Button */}
+            <button
+              className={`lg:hidden p-2 rounded-full transition-colors cursor-pointer ${
+                isDarkBackground ? "text-white/80 hover:text-white" : "text-primary-dark/80 hover:text-primary-dark"
+              }`}
+              onClick={() => setIsSearchOpen(true)}
+              aria-label="Cari"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+
             {/* Mobile Toggle */}
             <button
               className={`lg:hidden transition-colors cursor-pointer ${
@@ -194,6 +222,22 @@ export function Navbar({
                 {siteName}
               </span>
             </div>
+
+            {/* Quick Search Button in Mobile Menu */}
+            <button
+              onClick={() => {
+                setIsOpen(false);
+                setIsSearchOpen(true);
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-medium transition cursor-pointer text-left ${
+                isDarkBackground
+                  ? "bg-white/10 text-white/70 hover:bg-white/20"
+                  : "bg-gray-100 text-gray-500 hover:bg-gray-200/70"
+              }`}
+            >
+              <Search className="w-4 h-4 text-accent shrink-0" />
+              <span>Cari villa, artikel panduan, fasilitas...</span>
+            </button>
 
             <Link
               href="/"
@@ -280,5 +324,12 @@ export function Navbar({
         </div>
       )}
     </header>
+
+    {/* Global Search Dialog Modal */}
+    <GlobalSearchDialog
+      isOpen={isSearchOpen}
+      onClose={() => setIsSearchOpen(false)}
+    />
+  </>
   );
 }
