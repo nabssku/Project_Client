@@ -26,9 +26,26 @@ export async function generateMetadata() {
       where: { key: "site_name" },
     });
     const siteName = siteConfig?.value || "Villa";
+    const title = `Katalog Villa & Resort — ${siteName}`;
+    const description = `Temukan dan booking villa & resort terbaik di ${siteName}`;
+
     return {
-      title: `Katalog Villa & Resort — ${siteName}`,
-      description: `Temukan dan booking villa & resort terbaik di ${siteName}`,
+      title,
+      description,
+      alternates: {
+        canonical: "/villas",
+      },
+      openGraph: {
+        title,
+        description,
+        url: "/villas",
+        type: "website",
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+      },
     };
   } catch {
     return {

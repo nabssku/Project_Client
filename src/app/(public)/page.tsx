@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { cacheLife, cacheTag } from "next/cache";
+import type { Metadata } from "next";
 import { Hero } from "@/components/public/hero";
 import { VillaGrid } from "@/components/public/villa-grid";
 import { HowItWorks } from "@/components/public/how-it-works";
@@ -9,6 +10,62 @@ import { prisma } from "@/lib/prisma";
 
 export const instant = false;
 
+export async function generateMetadata(): Promise<Metadata> {
+  "use cache";
+  cacheTag("site_configs");
+  cacheLife("minutes");
+
+  try {
+    const configs = await prisma.site_configs.findMany({
+      where: {
+        key: {
+          in: ["site_name", "site_description", "hero_image", "hero_title", "hero_subtitle"],
+        },
+      },
+    });
+
+    const map = configs.reduce(
+      (acc, c) => ({ ...acc, [c.key]: c.value }),
+      {} as Record<string, string>
+    );
+
+    const siteName = map.site_name || "Villa Booking";
+    const title = map.hero_title && map.hero_title !== "Tittle"
+      ? `${siteName} — ${map.hero_title}`
+      : `${siteName} — Sewa Villa Eksklusif & Private Vacation`;
+    const description =
+      map.site_description ||
+      map.hero_subtitle ||
+      "Pilihan villa eksklusif dan privat untuk liburan tak terlupakan bersama keluarga dan orang terkasih.";
+
+    return {
+      title,
+      description,
+      alternates: {
+        canonical: "/",
+      },
+      openGraph: {
+        title,
+        description,
+        url: "/",
+        type: "website",
+        images: map.hero_image ? [{ url: map.hero_image }] : undefined,
+      },
+      twitter: {
+        card: "summary_large_image",
+        title,
+        description,
+        images: map.hero_image ? [map.hero_image] : undefined,
+      },
+    };
+  } catch {
+    return {
+      title: "Villa Booking — Sewa Villa Eksklusif",
+      description: "Pilihan villa eksklusif dan privat untuk liburan tak terlupakan.",
+    };
+  }
+}
+
 async function HomeContent() {
   'use cache';
   cacheTag('site_configs', 'villas', 'testimonials');
@@ -16,7 +73,7 @@ async function HomeContent() {
 
   const [villas, testimonials, configs] = await Promise.all([
     prisma.villas.findMany({
-      take: 6,
+      where: { status: "AVAILABLE" },
       orderBy: { createdAt: "desc" },
     }),
     prisma.testimonials.findMany({
@@ -41,10 +98,57 @@ async function HomeContent() {
     {} as Record<string, string>
   );
 
+  const featuredVilla = villas.find((v) => v.isFeatured) || villas[0] || null;
+
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === "production" ? "https://villaqoe.com" : "http://localhost:3000");
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${siteUrl}/#website`,
+        url: siteUrl,
+        name: config.site_name || "Villa Booking",
+        description: config.site_description || "Sewa villa dan penginapan eksklusif terbaik",
+        potentialAction: {
+          "@type": "SearchAction",
+          target: `${siteUrl}/villas?destination={search_term_string}`,
+          "query-input": "required name=search_term_string",
+        },
+        inLanguage: "id-ID",
+      },
+      {
+        "@type": "Organization",
+        "@id": `${siteUrl}/#organization`,
+        name: config.site_name || "Villa Booking",
+        url: siteUrl,
+        logo: config.site_logo
+          ? config.site_logo.startsWith("http")
+            ? config.site_logo
+            : `${siteUrl}${config.site_logo.startsWith("/") ? "" : "/"}${config.site_logo}`
+          : undefined,
+        contactPoint: {
+          "@type": "ContactPoint",
+          telephone: config.contact_phone_1 || config.wa_number_1 || "+628111141888",
+          contactType: "customer service",
+          areaServed: "ID",
+          availableLanguage: ["id", "en"],
+        },
+      },
+    ],
+  };
+
   return (
     <>
-      <Hero config={config} />
-      <section className="container mx-auto px-4 py-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <Hero config={config} featuredVilla={featuredVilla} villas={villas} />
+      <section className="container mx-auto px-4 py-16 scroll-mt-20" id="villas">
         <VillaGrid villas={villas} title="Villa Pilihan" />
       </section>
       <HowItWorks />

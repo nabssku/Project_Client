@@ -16,10 +16,27 @@ export async function generateMetadata(): Promise<Metadata> {
   });
   const siteName = siteConfig?.value || "Luxury Stay";
 
+  const title = `Panduan Wisata & Rekomendasi Villa | ${siteName}`;
+  const description =
+    "Temukan inspirasi liburan, tips menginap, kuliner terbaik, dan rekomendasi villa eksklusif di Bandung dan sekitarnya.";
+
   return {
-    title: `Panduan Wisata & Rekomendasi Villa | ${siteName}`,
-    description:
-      "Temukan inspirasi liburan, tips menginap, kuliner terbaik, dan rekomendasi villa eksklusif di Bandung dan sekitarnya.",
+    title,
+    description,
+    alternates: {
+      canonical: "/artikel",
+    },
+    openGraph: {
+      title,
+      description,
+      url: "/artikel",
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 

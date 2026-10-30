@@ -50,7 +50,7 @@ export async function generateMetadata({
 
   if (!villa) {
     return {
-      title: "Villa Not Found",
+      title: "Villa Tidak Ditemukan",
     };
   }
 
@@ -58,14 +58,28 @@ export async function generateMetadata({
     where: { key: "site_name" },
   });
   const siteName = siteConfig?.value || "Villa";
+  const firstImage = villa.images.length > 0 ? villa.images[0] : undefined;
 
   return {
     title: `${villa.name} — ${villa.location} | ${siteName}`,
     description: villa.description.substring(0, 160),
+    alternates: {
+      canonical: `/villas/${resolvedParams.slug}`,
+    },
     openGraph: {
+      type: "website",
+      locale: "id_ID",
+      url: `/villas/${resolvedParams.slug}`,
+      siteName: siteName,
       title: `${villa.name} — ${villa.location}`,
       description: villa.description.substring(0, 160),
-      images: villa.images.length > 0 ? [villa.images[0]] : [],
+      images: firstImage ? [{ url: firstImage }] : [],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${villa.name} — ${villa.location}`,
+      description: villa.description.substring(0, 160),
+      images: firstImage ? [firstImage] : undefined,
     },
   };
 }
@@ -148,8 +162,71 @@ export default async function VillaDetailPage({
   const siteContact = await getSiteContactConfig();
   const ownerPhone = siteContact.waNumber1;
 
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.NODE_ENV === "production" ? "https://villaqoe.com" : "http://localhost:3000");
+
+  const villaJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "VacationRental",
+    name: villa.name,
+    description: villa.description,
+    url: `${siteUrl}/villas/${resolvedParams.slug}`,
+    image: Array.isArray(villa.images)
+      ? villa.images.map((img) =>
+          img.startsWith("http")
+            ? img
+            : `${siteUrl}${img.startsWith("/") ? "" : "/"}${img}`
+        )
+      : [],
+    address: {
+      "@type": "PostalAddress",
+      addressLocality: villa.location,
+      addressCountry: "ID",
+    },
+    priceRange: `Rp ${formatPrice(villa.pricePerNight)} / malam`,
+    offers: {
+      "@type": "Offer",
+      price: villa.pricePerNight,
+      priceCurrency: "IDR",
+      availability:
+        villa.status === "AVAILABLE"
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+      url: `${siteUrl}/villas/${resolvedParams.slug}`,
+    },
+    ...(villa.bedrooms ? { numberOfRooms: villa.bedrooms } : {}),
+    ...(villa.capacity
+      ? { occupancy: { "@type": "QuantitativeValue", maxValue: villa.capacity } }
+      : {}),
+    ...(reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: avgRating,
+            reviewCount: reviewCount,
+          },
+        }
+      : {}),
+    ...(villa.amenities?.length
+      ? {
+          amenityFeature: villa.amenities.map((a: string) => ({
+            "@type": "LocationFeatureSpecification",
+            name: a,
+            value: true,
+          })),
+        }
+      : {}),
+  };
+
   return (
     <main className="min-h-screen bg-warm-white pb-32 lg:pb-24">
+      {/* Schema.org VacationRental Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(villaJsonLd) }}
+      />
+
       {/* Gallery Section */}
       <div className="pt-24 max-w-7xl mx-auto px-6 lg:px-8">
         <VillaGallery images={villa.images} villaName={villa.name} />

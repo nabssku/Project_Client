@@ -25,7 +25,7 @@ export function Navbar({
     ? (pathname.startsWith("/villas/") && pathname !== "/villas") ||
       pathname.startsWith("/booking")
     : false;
-  const isDarkBackground = isHome || (scrolled && !isSolidNav);
+  const isDarkBackground = false;
   const { data: session, status } = useSession();
 
   const waNumber = (contactPhone || "628111141888").replace(/\D/g, "").replace(/^0/, "62");
@@ -42,10 +42,8 @@ export function Navbar({
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isSolidNav
+        isSolidNav || scrolled
           ? "bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100 py-3"
-          : scrolled
-          ? "bg-primary-dark shadow-lg py-2"
           : "bg-transparent py-4"
       }`}
     >

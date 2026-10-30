@@ -55,9 +55,13 @@ export async function generateMetadata({
   return {
     title: metaTitle,
     description: metaDescription,
+    alternates: {
+      canonical: `/artikel/${slug}`,
+    },
     openGraph: {
       title: metaTitle,
       description: metaDescription,
+      url: `/artikel/${slug}`,
       type: "article",
       publishedTime: article.publishedAt
         ? new Date(article.publishedAt).toISOString()

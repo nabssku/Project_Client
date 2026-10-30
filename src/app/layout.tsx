@@ -59,7 +59,17 @@ async function RootThemeLoader() {
   );
 }
 
-export async function generateMetadata(): Promise<Metadata> {
+function getBaseUrl(): string {
+  const url =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "https://villaqoe.com"
+      : process.env.AUTH_URL || "http://localhost:3000");
+  return url.replace(/\/+$/, "");
+}
+
+async function getSiteMetadataConfig() {
   'use cache';
   cacheTag('site_configs');
   cacheLife('minutes');
@@ -68,7 +78,7 @@ export async function generateMetadata(): Promise<Metadata> {
     const configs = await prisma.site_configs.findMany({
       where: {
         key: {
-          in: ['site_name', 'site_description'],
+          in: ['site_name', 'site_description', 'hero_image', 'site_logo', 'google_site_verification'],
         },
       },
       orderBy: { key: 'asc' },
@@ -76,37 +86,67 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const siteName = configs.find((c: any) => c.key === 'site_name')?.value || 'Villa Booking System';
     const siteDescription = configs.find((c: any) => c.key === 'site_description')?.value || 'Book your dream villa';
+    const heroImage = configs.find((c: any) => c.key === 'hero_image')?.value || null;
+    const googleVerification =
+      configs.find((c: any) => c.key === 'google_site_verification')?.value ||
+      process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+      process.env.GOOGLE_SITE_VERIFICATION ||
+      null;
 
-    return {
-      title: siteName,
-      description: siteDescription,
-      icons: {
-        icon: [
-          { url: '/favicon.ico', sizes: 'any' },
-          { url: '/icon.png', type: 'image/png', sizes: '192x192' },
-        ],
-        shortcut: '/favicon.ico',
-        apple: [
-          { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
-        ],
-      },
-    };
+    return { siteName, siteDescription, heroImage, googleVerification };
   } catch (error) {
     return {
-      title: 'Villa Booking System',
-      description: 'Book your dream villa',
-      icons: {
-        icon: [
-          { url: '/favicon.ico', sizes: 'any' },
-          { url: '/icon.png', type: 'image/png', sizes: '192x192' },
-        ],
-        shortcut: '/favicon.ico',
-        apple: [
-          { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
-        ],
-      },
+      siteName: 'Villa Booking System',
+      siteDescription: 'Book your dream villa',
+      heroImage: null,
+      googleVerification:
+        process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ||
+        process.env.GOOGLE_SITE_VERIFICATION ||
+        null,
     };
   }
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { siteName, siteDescription, heroImage, googleVerification } = await getSiteMetadataConfig();
+  const baseUrl = getBaseUrl();
+
+  return {
+    metadataBase: new URL(baseUrl),
+    title: {
+      default: siteName,
+      template: `%s | ${siteName}`,
+    },
+    description: siteDescription,
+    verification: {
+      google: googleVerification || undefined,
+    },
+    openGraph: {
+      type: 'website',
+      locale: 'id_ID',
+      url: baseUrl,
+      siteName: siteName,
+      title: siteName,
+      description: siteDescription,
+      images: heroImage ? [{ url: heroImage }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: siteName,
+      description: siteDescription,
+      images: heroImage ? [heroImage] : undefined,
+    },
+    icons: {
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+      ],
+      shortcut: '/favicon.ico',
+      apple: [
+        { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+      ],
+    },
+  };
 }
 
 export default function RootLayout({
