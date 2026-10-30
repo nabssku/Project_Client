@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { getYouTubeBackgroundEmbedUrl } from "@/lib/youtube";
 
 interface RegisterFormProps {
   config: Record<string, string>;
@@ -299,7 +300,7 @@ export function RegisterForm({ config }: RegisterFormProps) {
         {/* Video Background */}
         <div className="absolute inset-0 overflow-hidden">
           <iframe
-            src={config.auth_video || "https://www.youtube.com/embed/_hofBX5yvfE?autoplay=1&mute=1&loop=1&playlist=_hofBX5yvfE&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&fs=0&disablekb=1&iv_load_policy=3&cc_load_policy=0"}
+            src={getYouTubeBackgroundEmbedUrl(config.auth_video)}
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.77777778vh] h-[56.25vw] min-h-full min-w-full"
             allow="autoplay; encrypted-media"
             style={{ border: 0, pointerEvents: "none" }}

@@ -40,3 +40,18 @@ export function getYouTubeThumbnail(videoId: string): string {
 export function getYouTubeEmbedUrl(videoId: string): string {
   return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
 }
+
+/**
+ * Format video background YouTube untuk autoplay, mute, dan looping tanpa gangguan
+ */
+export function getYouTubeBackgroundEmbedUrl(urlOrId?: string | null): string {
+  const fallbackId = "Y_3oJGkPM8U";
+  if (!urlOrId || !urlOrId.trim()) {
+    return `https://www.youtube.com/embed/${fallbackId}?autoplay=1&mute=1&loop=1&playlist=${fallbackId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&fs=0&disablekb=1&iv_load_policy=3&cc_load_policy=0`;
+  }
+
+  const videoId = extractYouTubeId(urlOrId) || fallbackId;
+
+  return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1&fs=0&disablekb=1&iv_load_policy=3&cc_load_policy=0`;
+}
+
