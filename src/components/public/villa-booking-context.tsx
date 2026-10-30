@@ -45,6 +45,8 @@ interface VillaBookingContextType {
   breakdown: StayBreakdown | null;
   isDateBooked: (date: Date) => boolean;
   isDateDisabled: (date: Date) => boolean;
+  hasBookedBetween: (start: Date, end: Date) => boolean;
+  hasOverlapWithBooked: (start: Date, end: Date) => boolean;
   selectDate: (date: Date) => void;
 }
 
@@ -84,8 +86,7 @@ export function VillaBookingProvider({
         return startOfDay(parseISO(initialCheckIn));
       } catch {}
     }
-    // Default to tomorrow
-    return addDays(startOfDay(new Date()), 1);
+    return null;
   });
 
   const [checkOut, setCheckOut] = useState<Date | null>(() => {
@@ -94,8 +95,7 @@ export function VillaBookingProvider({
         return startOfDay(parseISO(initialCheckOut));
       } catch {}
     }
-    // Default to 2 days from now
-    return addDays(startOfDay(new Date()), 2);
+    return null;
   });
 
   const [guests, setGuests] = useState<number>(initialGuests);
@@ -192,6 +192,12 @@ export function VillaBookingProvider({
     return false;
   };
 
+  // Check if entire range [start, end) overlaps with any booked dates
+  const hasOverlapWithBooked = (start: Date, end: Date) => {
+    if (isDateBooked(start)) return true;
+    return hasBookedBetween(start, end);
+  };
+
   // Intelligent date selection
   const selectDate = (date: Date) => {
     const target = startOfDay(date);
@@ -243,6 +249,8 @@ export function VillaBookingProvider({
         breakdown,
         isDateBooked,
         isDateDisabled,
+        hasBookedBetween,
+        hasOverlapWithBooked,
         selectDate,
       }}
     >

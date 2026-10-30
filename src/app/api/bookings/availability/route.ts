@@ -87,7 +87,10 @@ export async function GET(request: Request) {
       },
       bookedRanges,
     });
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.digest === "NEXT_PRERENDER_INTERRUPTED" || error?.message?.includes("bail out of prerendering")) {
+      throw error;
+    }
     console.error("Error fetching villa availability:", error);
     return NextResponse.json(
       { error: "Gagal memuat ketersediaan villa" },

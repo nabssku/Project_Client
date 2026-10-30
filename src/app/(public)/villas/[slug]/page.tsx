@@ -159,21 +159,21 @@ export default async function VillaDetailPage({
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-accent/15 text-accent">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5 mb-2">
+              <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-wider bg-accent/15 text-accent">
                 {villa.location}
               </span>
               {villa.isFeatured && (
-                <span className="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-primary text-white">
+                <span className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-semibold uppercase tracking-wide sm:tracking-wider bg-primary text-white">
                   Pilihan Utama
                 </span>
               )}
               {reviewCount > 0 && (
                 <a
                   href="#reviews"
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-accent transition-colors"
+                  className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-600 hover:text-accent transition-colors ml-1"
                 >
-                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star className="w-3 h-3 sm:w-3.5 sm:h-3.5 fill-amber-400 text-amber-400" />
                   <span>{avgRating}</span>
                   <span className="text-gray-400">({reviewCount} ulasan)</span>
                 </a>

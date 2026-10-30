@@ -36,6 +36,7 @@ async function RootThemeLoader() {
           in: ['font_body', 'font_display', 'primary_color', 'secondary_color'],
         },
       },
+      orderBy: { key: 'asc' },
     });
 
     configs.forEach((c: { key: string; value: string }) => {
@@ -70,6 +71,7 @@ export async function generateMetadata(): Promise<Metadata> {
           in: ['site_name', 'site_description'],
         },
       },
+      orderBy: { key: 'asc' },
     });
 
     const siteName = configs.find((c: any) => c.key === 'site_name')?.value || 'Villa Booking System';
@@ -78,11 +80,31 @@ export async function generateMetadata(): Promise<Metadata> {
     return {
       title: siteName,
       description: siteDescription,
+      icons: {
+        icon: [
+          { url: '/favicon.ico', sizes: 'any' },
+          { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+        ],
+        shortcut: '/favicon.ico',
+        apple: [
+          { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+        ],
+      },
     };
   } catch (error) {
     return {
       title: 'Villa Booking System',
       description: 'Book your dream villa',
+      icons: {
+        icon: [
+          { url: '/favicon.ico', sizes: 'any' },
+          { url: '/icon.png', type: 'image/png', sizes: '192x192' },
+        ],
+        shortcut: '/favicon.ico',
+        apple: [
+          { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+        ],
+      },
     };
   }
 }

@@ -2,11 +2,27 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
+import {
+  format,
+  startOfDay,
+  addDays,
+  isAfter,
+  isBefore,
+  isSameDay,
+  isSameMonth,
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  eachDayOfInterval,
+  addMonths,
+  subMonths,
+} from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { useVillaBooking } from "./villa-booking-context";
 import { formatIDR } from "@/lib/pricing";
 import { cn } from "@/lib/utils";
+import { AlertCircle } from "lucide-react";
 
 export function VillaBookingWidget({
   id,
@@ -19,15 +35,82 @@ export function VillaBookingWidget({
     villa,
     checkIn,
     checkOut,
+    setCheckIn,
+    setCheckOut,
     guests,
     setGuests,
     breakdown,
+    isDateBooked,
+    hasBookedBetween,
+    hasOverlapWithBooked,
   } = useVillaBooking();
+
+  const isOverlap = Boolean(
+    checkIn &&
+      checkOut &&
+      isAfter(checkOut, checkIn) &&
+      hasOverlapWithBooked &&
+      hasOverlapWithBooked(checkIn, checkOut)
+  );
 
   const [guestDropdownOpen, setGuestDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on click outside
+  // Custom Date Range Picker State (rdp)
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [pickerMode, setPickerMode] = useState<"checkIn" | "checkOut">("checkIn");
+  const [pickerMonth, setPickerMonth] = useState<Date>(() => startOfMonth(checkIn || new Date()));
+  const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
+  const pickerRef = useRef<HTMLDivElement>(null);
+
+  const openPicker = (mode: "checkIn" | "checkOut") => {
+    if (mode === "checkOut" && !checkIn) {
+      setPickerMode("checkIn");
+    } else {
+      setPickerMode(mode);
+    }
+    if (checkIn) {
+      setPickerMonth(startOfMonth(checkIn));
+    } else {
+      setPickerMonth(startOfMonth(new Date()));
+    }
+    setIsPickerOpen(true);
+  };
+
+  const prevMonth = () => {
+    const prev = subMonths(pickerMonth, 1);
+    if (!isBefore(endOfMonth(prev), startOfMonth(new Date()))) {
+      setPickerMonth(prev);
+    }
+  };
+
+  const nextMonth = () => setPickerMonth(addMonths(pickerMonth, 1));
+
+  const isPrevDisabled = isBefore(
+    subMonths(pickerMonth, 1),
+    startOfMonth(new Date())
+  );
+
+  const handleDayClick = (day: Date) => {
+    if (pickerMode === "checkIn") {
+      setCheckIn(day);
+      if (checkOut && (!isAfter(checkOut, day) || hasOverlapWithBooked(day, checkOut))) {
+        setCheckOut(null);
+      }
+      setPickerMode("checkOut");
+    } else {
+      if (checkIn && isAfter(day, checkIn)) {
+        setCheckOut(day);
+        setIsPickerOpen(false);
+      } else {
+        setCheckIn(day);
+        setCheckOut(null);
+        setPickerMode("checkOut");
+      }
+    }
+  };
+
+  // Close dropdowns on outside click
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -35,6 +118,12 @@ export function VillaBookingWidget({
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setGuestDropdownOpen(false);
+      }
+      if (
+        pickerRef.current &&
+        !pickerRef.current.contains(event.target as Node)
+      ) {
+        setIsPickerOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -78,6 +167,17 @@ export function VillaBookingWidget({
     waMessage
   )}`;
 
+  const monthStart = startOfMonth(pickerMonth);
+  const monthEnd = endOfMonth(monthStart);
+  const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+
+  const weeks: Date[][] = [];
+  for (let i = 0; i < calendarDays.length; i += 7) {
+    weeks.push(calendarDays.slice(i, i + 7));
+  }
+
   return (
     <div
       id={id}
@@ -91,7 +191,7 @@ export function VillaBookingWidget({
         <p className="text-gray-500 text-sm mb-1">
           {breakdown && breakdown.nights > 1
             ? "Rata-rata per malam"
-            : "Harga per malam"}
+            : "Harga hari ini"}
         </p>
         <p className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-accent">
           {formatIDR(averagePrice)}
@@ -103,17 +203,39 @@ export function VillaBookingWidget({
 
       <div className="border-t border-gray-100 mb-6"></div>
 
-      {/* Date Pickers */}
-      <div className="space-y-3 mb-4">
+      {/* Date Pickers with RDP Popover */}
+      <div className="space-y-3 mb-4 relative" ref={pickerRef}>
+        {/* Check-in Field */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
-            Check-in
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Check-in
+            </label>
+            {checkIn && (
+              <button
+                type="button"
+                onClick={() => {
+                  setCheckIn(null);
+                  setCheckOut(null);
+                  setPickerMode("checkIn");
+                }}
+                className="text-[11px] text-gray-400 hover:text-rose-500 cursor-pointer transition-colors"
+                title="Hapus tanggal"
+              >
+                Reset
+              </button>
+            )}
+          </div>
           <div className="relative">
             <button
               type="button"
-              onClick={scrollToCalendar}
-              className="flex items-center gap-3 bg-cream border border-gray-200 rounded-xl px-4 py-3 w-full text-left cursor-pointer hover:border-accent/40 transition-colors"
+              onClick={() => openPicker("checkIn")}
+              className={cn(
+                "flex items-center gap-3 bg-cream border rounded-xl px-4 py-3 w-full text-left cursor-pointer transition-colors",
+                isPickerOpen && pickerMode === "checkIn"
+                  ? "border-accent ring-2 ring-accent/20"
+                  : "border-gray-200 hover:border-accent/40"
+              )}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -127,24 +249,53 @@ export function VillaBookingWidget({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
-                ></path>
+                />
               </svg>
-              <span className="text-sm truncate text-gray-800">
-                {formattedCheckIn}
+              <span
+                className={cn(
+                  "text-sm truncate",
+                  checkIn ? "text-primary font-medium" : "text-gray-400"
+                )}
+              >
+                {checkIn
+                  ? format(checkIn, "d MMM yyyy", { locale: localeId })
+                  : "Pilih tanggal"}
               </span>
             </button>
           </div>
         </div>
 
+        {/* Check-out Field */}
         <div>
-          <label className="block text-xs font-medium text-gray-500 mb-1.5 uppercase tracking-wide">
-            Check-out
-          </label>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
+              Check-out
+            </label>
+            {checkIn && !checkOut && (
+              <span className="text-[10px] text-accent font-semibold uppercase">
+                Wajib diisi
+              </span>
+            )}
+            {checkIn && checkOut && breakdown && breakdown.nights > 0 && (
+              <span className="text-[10px] text-accent font-semibold">
+                {breakdown.nights} malam
+              </span>
+            )}
+          </div>
           <div className="relative">
             <button
               type="button"
-              onClick={scrollToCalendar}
-              className="flex items-center gap-3 bg-cream border border-gray-200 rounded-xl px-4 py-3 w-full text-left cursor-pointer hover:border-accent/40 transition-colors"
+              onClick={() => openPicker("checkOut")}
+              className={cn(
+                "flex items-center gap-3 bg-cream border rounded-xl px-4 py-3 w-full text-left cursor-pointer transition-colors",
+                !checkIn
+                  ? "border-gray-200 opacity-60 hover:opacity-80"
+                  : isPickerOpen && pickerMode === "checkOut"
+                  ? "border-accent ring-2 ring-accent/20"
+                  : checkOut
+                  ? "border-gray-200 hover:border-accent/40"
+                  : "border-accent/60 ring-1 ring-accent/20"
+              )}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -158,14 +309,173 @@ export function VillaBookingWidget({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
-                ></path>
+                />
               </svg>
-              <span className="text-sm truncate text-gray-800">
-                {formattedCheckOut}
+              <span
+                className={cn(
+                  "text-sm truncate",
+                  checkOut
+                    ? "text-primary font-medium"
+                    : checkIn
+                    ? "text-accent font-medium"
+                    : "text-gray-400"
+                )}
+              >
+                {checkOut
+                  ? format(checkOut, "d MMM yyyy", { locale: localeId })
+                  : "Pilih tanggal"}
               </span>
             </button>
           </div>
         </div>
+
+        {/* Date Range Picker Popover (RDP Structure) */}
+        {isPickerOpen && (
+          <div className="absolute top-full left-0 right-0 mt-2 z-40 animate-fade-in">
+            <div className="rdp-sidebar bg-white border border-gray-200 rounded-2xl p-4 shadow-2xl shadow-black/10">
+              {/* RDP Root Component */}
+              <div className="rdp-root" lang="id" data-mode={pickerMode === "checkIn" ? "single" : "range"}>
+                <div className="rdp-months relative">
+                  <nav className="rdp-nav flex items-center justify-between absolute inset-x-0 top-0 z-10 px-0.5" aria-label="Navigation bar">
+                    <button
+                      type="button"
+                      onClick={prevMonth}
+                      disabled={isPrevDisabled}
+                      className="rdp-btn-nav p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-cream transition-colors disabled:opacity-20 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Go to the Previous Month"
+                    >
+                      <svg className="rdp-chevron-icon w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <polygon points="16 18.112 9.81111111 12 16 5.87733333 14.0888889 4 6 12 14.0888889 20" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={nextMonth}
+                      className="rdp-btn-nav p-1.5 rounded-lg text-gray-500 hover:text-primary hover:bg-cream transition-colors cursor-pointer"
+                      aria-label="Go to the Next Month"
+                    >
+                      <svg className="rdp-chevron-icon w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <polygon points="8 18.112 14.18888889 12 8 5.87733333 9.91111111 4 18 12 9.91111111 20" />
+                      </svg>
+                    </button>
+                  </nav>
+
+                  <div className="rdp-month">
+                    <div className="rdp-month-caption text-center py-1 mb-2">
+                      <span className="rdp-caption-label font-bold text-sm text-primary font-sans capitalize" role="status" aria-live="polite">
+                        {format(pickerMonth, "MMMM yyyy", { locale: localeId })}
+                      </span>
+                    </div>
+
+                    <table role="grid" aria-multiselectable="false" aria-label={format(pickerMonth, "MMMM yyyy", { locale: localeId })} className="rdp-grid w-full border-collapse">
+                      <thead aria-hidden="true">
+                        <tr className="rdp-weekdays-row grid grid-cols-7 mb-1 text-center">
+                          <th aria-label="Senin" className="rdp-weekday-cell text-[11px] font-semibold text-gray-400 py-1 font-sans" scope="col">Sen</th>
+                          <th aria-label="Selasa" className="rdp-weekday-cell text-[11px] font-semibold text-gray-400 py-1 font-sans" scope="col">Sel</th>
+                          <th aria-label="Rabu" className="rdp-weekday-cell text-[11px] font-semibold text-gray-400 py-1 font-sans" scope="col">Rab</th>
+                          <th aria-label="Kamis" className="rdp-weekday-cell text-[11px] font-semibold text-gray-400 py-1 font-sans" scope="col">Kam</th>
+                          <th aria-label="Jumat" className="rdp-weekday-cell text-[11px] font-semibold text-gray-400 py-1 font-sans" scope="col">Jum</th>
+                          <th aria-label="Sabtu" className="rdp-weekday-cell text-[11px] font-semibold text-gray-400 py-1 font-sans" scope="col">Sab</th>
+                          <th aria-label="Minggu" className="rdp-weekday-cell text-[11px] font-semibold text-gray-400 py-1 font-sans" scope="col">Min</th>
+                        </tr>
+                      </thead>
+                      <tbody className="rdp-weeks space-y-1 block">
+                        {weeks.map((week, wIdx) => (
+                          <tr key={wIdx} className="rdp-week-row grid grid-cols-7">
+                            {week.map((day) => {
+                              const isOutside = !isSameMonth(day, pickerMonth);
+                              const isPast = isBefore(day, startOfDay(new Date()));
+                              const isBooked = isDateBooked(day);
+                              const isToday = isSameDay(day, new Date());
+
+                              let isDisabled = isPast || isBooked;
+                              if (pickerMode === "checkOut" && checkIn) {
+                                if (!isAfter(day, checkIn)) {
+                                  isDisabled = true;
+                                } else if (hasBookedBetween(checkIn, day)) {
+                                  isDisabled = true;
+                                }
+                              }
+
+                              const isStart = checkIn ? isSameDay(day, checkIn) : false;
+                              const isEnd = checkOut ? isSameDay(day, checkOut) : false;
+                              const isInRange =
+                                checkIn && checkOut && isAfter(day, checkIn) && isBefore(day, checkOut);
+                              const isHoveredRange =
+                                checkIn &&
+                                !checkOut &&
+                                hoveredDate &&
+                                isAfter(day, checkIn) &&
+                                (isBefore(day, hoveredDate) || isSameDay(day, hoveredDate));
+
+                              const dayStr = format(day, "yyyy-MM-dd");
+
+                              if (isOutside) {
+                                return (
+                                  <td
+                                    key={dayStr}
+                                    className="rdp-day-cell rdp-disabled rdp-hidden rdp-outside p-0.5 text-center"
+                                    role="gridcell"
+                                    data-day={dayStr}
+                                    data-disabled="true"
+                                    data-hidden="true"
+                                    data-outside="true"
+                                  >
+                                    <div className="w-full aspect-square" />
+                                  </td>
+                                );
+                              }
+
+                              return (
+                                <td
+                                  key={dayStr}
+                                  className={cn(
+                                    "rdp-day-cell p-0.5 text-center relative",
+                                    isDisabled && "rdp-disabled",
+                                    isToday && "rdp-today",
+                                    isStart && "rdp-range-start",
+                                    isEnd && "rdp-range-end",
+                                    (isInRange || isHoveredRange) && "rdp-range-middle bg-accent/15"
+                                  )}
+                                  role="gridcell"
+                                  data-day={dayStr}
+                                  data-disabled={isDisabled ? "true" : undefined}
+                                  data-today={isToday ? "true" : undefined}
+                                >
+                                  <button
+                                    type="button"
+                                    disabled={isDisabled}
+                                    tabIndex={isDisabled ? -1 : 0}
+                                    onClick={() => handleDayClick(day)}
+                                    onMouseEnter={() => {
+                                      if (checkIn && !checkOut) setHoveredDate(day);
+                                    }}
+                                    onMouseLeave={() => setHoveredDate(null)}
+                                    className={cn(
+                                      "rdp-day-btn w-full aspect-square rounded-xl text-xs flex items-center justify-center font-sans transition-all duration-150",
+                                      isDisabled && "text-gray-300 cursor-not-allowed",
+                                      isBooked && !isPast && "line-through text-rose-300",
+                                      !isDisabled && !isStart && !isEnd && "text-gray-700 hover:bg-accent hover:text-white cursor-pointer font-medium",
+                                      isToday && !isStart && !isEnd && "font-bold text-primary ring-1 ring-accent/40",
+                                      (isStart || isEnd) && "bg-accent text-white font-bold shadow-xs hover:bg-accent-light cursor-pointer scale-105 z-10"
+                                    )}
+                                    aria-label={format(day, "EEEE, d MMMM yyyy", { locale: localeId })}
+                                  >
+                                    {format(day, "d")}
+                                  </button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Guest Selector */}
@@ -191,7 +501,7 @@ export function VillaBookingWidget({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z"
-              ></path>
+              />
             </svg>
             <span className="text-gray-800 text-sm truncate">{guests} Tamu</span>
           </button>
@@ -235,8 +545,21 @@ export function VillaBookingWidget({
         )}
       </div>
 
+      {/* Overlap Warning Alert */}
+      {isOverlap && (
+        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-700 mb-4 animate-fade-in font-sans">
+          <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+          <div className="leading-snug">
+            <p className="font-bold">Tanggal Tidak Tersedia (Penuh)</p>
+            <p className="text-[11px] text-rose-600 mt-0.5">
+              Rentang tanggal ini sudah terisi oleh pemesan lain. Silakan periksa kalender di bawah untuk melihat tanggal kosong.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Itemized Price Breakdown */}
-      {breakdown && breakdown.nights > 0 ? (
+      {breakdown && breakdown.nights > 0 && (
         <div className="animate-fade-in">
           <div className="bg-cream rounded-2xl p-5 mb-4">
             <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
@@ -285,16 +608,20 @@ export function VillaBookingWidget({
             </div>
           </div>
         </div>
-      ) : (
-        <div className="bg-cream/60 rounded-2xl p-4 mb-4 text-center text-xs text-gray-500">
-          Silakan pilih tanggal check-in dan check-out untuk melihat rincian harga.
-        </div>
       )}
 
       {/* Booking CTA */}
-      {checkIn && checkOut ? (
+      {isOverlap ? (
+        <button
+          type="button"
+          disabled
+          className="w-full flex items-center justify-center gap-2 bg-gray-200 text-gray-500 px-6 py-4 rounded-2xl font-semibold cursor-not-allowed text-center font-sans"
+        >
+          Tanggal Tidak Tersedia (Penuh)
+        </button>
+      ) : checkIn && checkOut ? (
         <Link
-          className="w-full flex items-center justify-center gap-2 bg-accent text-white px-6 py-4 rounded-2xl font-semibold hover:bg-accent-light transition-colors text-center"
+          className="w-full flex items-center justify-center gap-2 bg-accent text-white px-6 py-4 rounded-2xl font-semibold hover:bg-accent-light transition-colors text-center shadow-md shadow-accent/20 font-sans cursor-pointer"
           href={bookingUrl}
         >
           Booking Sekarang
@@ -302,10 +629,10 @@ export function VillaBookingWidget({
       ) : (
         <button
           type="button"
-          onClick={scrollToCalendar}
-          className="w-full flex items-center justify-center gap-2 bg-accent text-white px-6 py-4 rounded-2xl font-semibold hover:bg-accent-light transition-colors cursor-pointer text-center"
+          onClick={() => openPicker(!checkIn ? "checkIn" : "checkOut")}
+          className="w-full flex items-center justify-center gap-2 bg-accent text-white px-6 py-4 rounded-2xl font-semibold hover:bg-accent-light transition-colors opacity-50 cursor-pointer font-sans"
         >
-          Pilih Tanggal
+          Booking Sekarang
         </button>
       )}
 

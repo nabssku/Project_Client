@@ -20,7 +20,6 @@ export function VillaGallery({ images, villaName }: VillaGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const total = images.length;
-  const hasMoreThan7 = total > 7;
 
   // Open modal at specific index
   const openLightbox = (index: number) => {
@@ -94,194 +93,393 @@ export function VillaGallery({ images, villaName }: VillaGalleryProps) {
       );
     }
 
-    // 2 images: 50% - 50%
+    // 2 images
     if (total === 2) {
       return (
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 h-full">
-          {images.map((img, idx) => (
-            <div
-              key={idx}
-              onClick={() => openLightbox(idx)}
-              className="relative h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-            >
-              <Image
-                src={img}
-                alt={`${villaName} ${idx + 1}`}
-                fill
-                priority={idx === 0}
-                sizes="50vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
-              />
-              <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
-            </div>
-          ))}
-        </div>
+        <>
+          {/* Mobile (< md): 2 stacked images */}
+          <div className="flex flex-col gap-2 h-full md:hidden">
+            {images.map((img, idx) => (
+              <div
+                key={idx}
+                onClick={() => openLightbox(idx)}
+                className="relative flex-1 min-h-0 rounded-xl overflow-hidden cursor-pointer group"
+              >
+                <Image
+                  src={img}
+                  alt={`${villaName} ${idx + 1}`}
+                  fill
+                  priority={idx === 0}
+                  sizes="100vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop (md:): 2 columns 50%-50% */}
+          <div className="hidden md:grid md:grid-cols-2 md:gap-3 md:h-full">
+            {images.map((img, idx) => (
+              <div
+                key={idx}
+                onClick={() => openLightbox(idx)}
+                className="relative h-full rounded-2xl overflow-hidden cursor-pointer group"
+              >
+                <Image
+                  src={img}
+                  alt={`${villaName} ${idx + 1}`}
+                  fill
+                  priority={idx === 0}
+                  sizes="50vw"
+                  className="object-cover group-hover:scale-105 transition-transform duration-500"
+                />
+                <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
+            ))}
+          </div>
+        </>
       );
     }
 
-    // 3 images: 60% main on left, 2 stacked on right
+    // 3 images
     if (total === 3) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 h-full">
-          <div
-            onClick={() => openLightbox(0)}
-            className="md:col-span-8 relative h-64 md:h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-          >
-            <Image
-              src={images[0]}
-              alt={villaName}
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 66vw"
-              className="object-cover group-hover:scale-103 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <>
+          {/* Mobile (< md): 1 top hero + 2 bottom thumbnails */}
+          <div className="flex flex-col gap-2 h-full md:hidden">
+            <div
+              onClick={() => openLightbox(0)}
+              className="relative flex-1 min-h-0 rounded-xl overflow-hidden cursor-pointer group"
+            >
+              <Image
+                src={images[0]}
+                alt={villaName}
+                fill
+                priority
+                sizes="100vw"
+                className="object-cover group-hover:scale-103 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="p-2.5 rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur-xs">
+                  <Maximize2 className="h-4 w-4" />
+                </span>
+              </div>
+              <div className="absolute bottom-2.5 right-2.5 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[11px] font-medium shadow-sm">
+                <Grid className="h-3.5 w-3.5 text-accent" />
+                <span>3 Foto</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 h-[86px] sm:h-[105px] shrink-0">
+              {images.slice(1, 3).map((img, idx) => (
+                <div
+                  key={idx + 1}
+                  onClick={() => openLightbox(idx + 1)}
+                  className="relative h-full rounded-lg sm:rounded-xl overflow-hidden cursor-pointer group"
+                >
+                  <Image
+                    src={img}
+                    alt={`${villaName} ${idx + 2}`}
+                    fill
+                    sizes="50vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="md:col-span-4 grid grid-cols-2 md:grid-cols-1 gap-2 sm:gap-3 h-36 md:h-full">
-            {images.slice(1, 3).map((img, idx) => (
-              <div
-                key={idx}
-                onClick={() => openLightbox(idx + 1)}
-                className="relative h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-              >
-                <Image
-                  src={img}
-                  alt={`${villaName} ${idx + 2}`}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 33vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+          {/* Desktop (md:): col-span-8 hero + col-span-4 (2 stacked) */}
+          <div className="hidden md:grid md:grid-cols-12 md:gap-3 md:h-full">
+            <div
+              onClick={() => openLightbox(0)}
+              className="md:col-span-8 relative h-full rounded-2xl overflow-hidden cursor-pointer group"
+            >
+              <Image
+                src={images[0]}
+                alt={villaName}
+                fill
+                priority
+                sizes="66vw"
+                className="object-cover group-hover:scale-103 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="p-3 rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur-xs">
+                  <Maximize2 className="h-5 w-5" />
+                </span>
               </div>
-            ))}
+            </div>
+
+            <div className="md:col-span-4 grid grid-cols-1 gap-3 h-full">
+              {images.slice(1, 3).map((img, idx) => (
+                <div
+                  key={idx + 1}
+                  onClick={() => openLightbox(idx + 1)}
+                  className="relative h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
+                >
+                  <Image
+                    src={img}
+                    alt={`${villaName} ${idx + 2}`}
+                    fill
+                    sizes="33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       );
     }
 
-    // 4 to 6 images: Main photo left (50%), 2x2 grid on right
-    if (total <= 6) {
-      return (
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 h-full">
-          <div
-            onClick={() => openLightbox(0)}
-            className="md:col-span-6 lg:col-span-7 relative h-72 md:h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-          >
-            <Image
-              src={images[0]}
-              alt={villaName}
-              fill
-              priority
-              sizes="(max-width: 768px) 100vw, 60vw"
-              className="object-cover group-hover:scale-103 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-          </div>
-
-          <div className="md:col-span-6 lg:col-span-5 grid grid-cols-2 gap-2 sm:gap-3 h-full">
-            {images.slice(1, 5).map((img, idx) => (
-              <div
-                key={idx}
-                onClick={() => openLightbox(idx + 1)}
-                className="relative aspect-4/3 md:aspect-auto md:h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-              >
-                <Image
-                  src={img}
-                  alt={`${villaName} ${idx + 2}`}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    // 7 or more images (> 7 images)
-    // Show 1 big on left, 6 grid items on right (2 columns x 3 rows)
-    const visibleCount = 7;
-    const rightImages = images.slice(1, visibleCount);
+    // 4 or more images (total >= 4)
+    const mobileThumbnails = images.slice(1, 4);
 
     return (
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-2 sm:gap-3 h-full">
-        {/* Main Cover (Left) */}
-        <div
-          onClick={() => openLightbox(0)}
-          className="md:col-span-6 lg:col-span-6 relative h-72 md:h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-        >
-          <Image
-            src={images[0]}
-            alt={villaName}
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, 50vw"
-            className="object-cover group-hover:scale-103 transition-transform duration-500"
-          />
-          <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <span className="p-3 rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur-xs">
-              <Maximize2 className="h-5 w-5" />
-            </span>
+      <>
+        {/* MOBILE BENTO LAYOUT (< md) */}
+        <div className="flex flex-col gap-2 h-full md:hidden">
+          {/* Main Hero Photo (Mobile) */}
+          <div
+            onClick={() => openLightbox(0)}
+            className="relative flex-1 min-h-0 rounded-xl overflow-hidden cursor-pointer group"
+          >
+            <Image
+              src={images[0]}
+              alt={villaName}
+              fill
+              priority
+              sizes="100vw"
+              className="object-cover group-hover:scale-103 transition-transform duration-500"
+            />
+            <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <span className="p-2.5 rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur-xs">
+                <Maximize2 className="h-4 w-4" />
+              </span>
+            </div>
+            <div className="absolute bottom-2.5 right-2.5 z-10 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-md text-white text-[11px] font-medium shadow-sm">
+              <Grid className="h-3.5 w-3.5 text-accent" />
+              <span>{total} Foto</span>
+            </div>
+          </div>
+
+          {/* Bottom 3 Thumbnails Row (Mobile) */}
+          <div className="grid grid-cols-3 gap-2 h-[86px] sm:h-[105px] shrink-0">
+            {mobileThumbnails.map((img, idx) => {
+              const actualIndex = idx + 1;
+              const isLastSlot = idx === 2;
+              const showMoreBadge = isLastSlot && total > 4;
+
+              return (
+                <div
+                  key={actualIndex}
+                  onClick={() => openLightbox(actualIndex)}
+                  className="relative h-full rounded-lg sm:rounded-xl overflow-hidden cursor-pointer group"
+                >
+                  <Image
+                    src={img}
+                    alt={`${villaName} ${actualIndex + 1}`}
+                    fill
+                    sizes="33vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+
+                  {showMoreBadge ? (
+                    <div className="absolute inset-0 bg-primary-dark/80 backdrop-blur-2xs flex flex-col items-center justify-center text-center p-1 text-white group-hover:bg-primary-dark/90 transition-colors">
+                      <Grid className="h-4 w-4 text-accent mb-0.5" />
+                      <span className="text-xs font-bold font-display leading-tight">
+                        +{total - 3} Foto
+                      </span>
+                      <span className="text-[9px] text-white/75 mt-0.5">
+                        Lihat Semua
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* Right 6 Photos (2 cols x 3 rows) */}
-        <div className="md:col-span-6 lg:col-span-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 h-full">
-          {rightImages.map((img, idx) => {
-            const actualIndex = idx + 1;
-            const isLastVisible = idx === rightImages.length - 1 && hasMoreThan7;
-
-            return (
-              <div
-                key={actualIndex}
-                onClick={() => openLightbox(actualIndex)}
-                className="relative aspect-4/3 md:aspect-auto md:h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
-              >
-                <Image
-                  src={img}
-                  alt={`${villaName} ${actualIndex + 1}`}
-                  fill
-                  sizes="(max-width: 768px) 33vw, 20vw"
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-
-                {/* Dark overlay on the last visible slot if > 7 images */}
-                {isLastVisible ? (
-                  <div className="absolute inset-0 bg-primary-dark/75 backdrop-blur-2xs flex flex-col items-center justify-center text-center p-2 text-white group-hover:bg-primary-dark/85 transition-colors">
-                    <Grid className="h-5 w-5 text-accent mb-1" />
-                    <span className="text-xs sm:text-sm font-bold font-display leading-tight">
-                      +{total - 6} Foto
-                    </span>
-                    <span className="text-[10px] text-white/70 mt-0.5">
-                      Lihat Semua
-                    </span>
-                  </div>
-                ) : (
-                  <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
-                )}
+        {/* DESKTOP BENTO LAYOUT (md: and up) */}
+        {total <= 6 ? (
+          // 4 to 6 images on Desktop
+          <div className="hidden md:grid md:grid-cols-12 md:gap-3 md:h-full">
+            <div
+              onClick={() => openLightbox(0)}
+              className="md:col-span-6 lg:col-span-7 relative h-full rounded-2xl overflow-hidden cursor-pointer group"
+            >
+              <Image
+                src={images[0]}
+                alt={villaName}
+                fill
+                priority
+                sizes="(max-width: 1024px) 50vw, 60vw"
+                className="object-cover group-hover:scale-103 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="p-3 rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur-xs">
+                  <Maximize2 className="h-5 w-5" />
+                </span>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            </div>
+
+            {total === 4 ? (
+              // 4 images: 1 top spanning 2 cols, 2 bottom
+              <div className="md:col-span-6 lg:col-span-5 grid grid-cols-2 gap-3 h-full">
+                <div
+                  onClick={() => openLightbox(1)}
+                  className="col-span-2 relative h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
+                >
+                  <Image
+                    src={images[1]}
+                    alt={`${villaName} 2`}
+                    fill
+                    sizes="50vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                {images.slice(2, 4).map((img, idx) => (
+                  <div
+                    key={idx + 2}
+                    onClick={() => openLightbox(idx + 2)}
+                    className="col-span-1 relative h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
+                  >
+                    <Image
+                      src={img}
+                      alt={`${villaName} ${idx + 3}`}
+                      fill
+                      sizes="25vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              // 5 or 6 images: 2x2 grid
+              <div className="md:col-span-6 lg:col-span-5 grid grid-cols-2 gap-3 h-full">
+                {images.slice(1, 5).map((img, idx) => {
+                  const actualIndex = idx + 1;
+                  const isFourthSlot = idx === 3;
+                  const showDesktopOverlay = isFourthSlot && total > 5;
+
+                  return (
+                    <div
+                      key={actualIndex}
+                      onClick={() => openLightbox(actualIndex)}
+                      className="relative h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
+                    >
+                      <Image
+                        src={img}
+                        alt={`${villaName} ${actualIndex + 1}`}
+                        fill
+                        sizes="25vw"
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      />
+                      {showDesktopOverlay ? (
+                        <div className="absolute inset-0 bg-primary-dark/75 backdrop-blur-2xs flex flex-col items-center justify-center text-center p-2 text-white group-hover:bg-primary-dark/85 transition-colors">
+                          <Grid className="h-5 w-5 text-accent mb-1" />
+                          <span className="text-xs sm:text-sm font-bold font-display leading-tight">
+                            +{total - 4} Foto
+                          </span>
+                          <span className="text-[10px] text-white/70 mt-0.5">
+                            Lihat Semua
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          // 7 or more images on Desktop (1 Hero + 6 Thumbnails)
+          <div className="hidden md:grid md:grid-cols-12 md:gap-3 md:h-full">
+            {/* Main Cover (Left) */}
+            <div
+              onClick={() => openLightbox(0)}
+              className="md:col-span-6 lg:col-span-6 relative h-full rounded-2xl overflow-hidden cursor-pointer group"
+            >
+              <Image
+                src={images[0]}
+                alt={villaName}
+                fill
+                priority
+                sizes="50vw"
+                className="object-cover group-hover:scale-103 transition-transform duration-500"
+              />
+              <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="p-3 rounded-full bg-white/90 text-slate-900 shadow-lg backdrop-blur-xs">
+                  <Maximize2 className="h-5 w-5" />
+                </span>
+              </div>
+            </div>
+
+            {/* Right 6 Photos (2 cols x 3 rows or 3 cols x 2 rows) */}
+            <div className="md:col-span-6 lg:col-span-6 grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 h-full">
+              {images.slice(1, 7).map((img, idx) => {
+                const actualIndex = idx + 1;
+                const isLastVisible = idx === 5 && total > 7;
+
+                return (
+                  <div
+                    key={actualIndex}
+                    onClick={() => openLightbox(actualIndex)}
+                    className="relative h-full rounded-xl sm:rounded-2xl overflow-hidden cursor-pointer group"
+                  >
+                    <Image
+                      src={img}
+                      alt={`${villaName} ${actualIndex + 1}`}
+                      fill
+                      sizes="(max-width: 1024px) 25vw, 17vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+
+                    {isLastVisible ? (
+                      <div className="absolute inset-0 bg-primary-dark/75 backdrop-blur-2xs flex flex-col items-center justify-center text-center p-2 text-white group-hover:bg-primary-dark/85 transition-colors">
+                        <Grid className="h-5 w-5 text-accent mb-1" />
+                        <span className="text-xs sm:text-sm font-bold font-display leading-tight">
+                          +{total - 6} Foto
+                        </span>
+                        <span className="text-[10px] text-white/70 mt-0.5">
+                          Lihat Semua
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </>
     );
   };
 
   return (
     <>
       {/* Gallery Container */}
-      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden h-[340px] sm:h-[420px] md:h-[480px] lg:h-[520px] bg-slate-100 shadow-sm">
+      <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden h-[340px] sm:h-[400px] md:h-[480px] lg:h-[520px] bg-slate-100 shadow-sm">
         {renderGalleryGrid()}
 
-        {/* Floating Button: "Lihat semua foto ({total} foto)" */}
-        {hasMoreThan7 && (
+        {/* Floating Button for Desktop */}
+        {total > 1 && (
           <button
             type="button"
             onClick={() => openLightbox(0)}
-            className="absolute bottom-4 right-4 z-20 inline-flex items-center gap-2 rounded-xl bg-white/95 backdrop-blur-md px-4 py-2.5 text-xs sm:text-sm font-semibold text-primary shadow-lg border border-black/5 hover:bg-white hover:scale-102 transition-all cursor-pointer"
+            className="hidden md:inline-flex absolute bottom-4 right-4 z-20 items-center gap-2 rounded-xl bg-white/95 backdrop-blur-md px-4 py-2.5 text-xs sm:text-sm font-semibold text-primary shadow-lg border border-black/5 hover:bg-white hover:scale-102 transition-all cursor-pointer"
           >
             <Grid className="h-4 w-4 text-accent" />
             <span>Lihat semua foto ({total} foto)</span>
