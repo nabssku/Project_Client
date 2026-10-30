@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -138,6 +139,18 @@ export async function PUT(
       },
     });
 
+    try {
+      revalidatePath("/villas");
+      revalidatePath(`/villas/${updatedVilla.slug}`);
+      if (existingVilla.slug !== updatedVilla.slug) {
+        revalidatePath(`/villas/${existingVilla.slug}`);
+      }
+      revalidatePath("/sitemap.xml");
+      try { revalidateTag("sitemap_villas", { expire: 0 }); } catch {}
+    } catch (e) {
+      console.warn("Revalidate error:", e);
+    }
+
     return NextResponse.json(updatedVilla);
   } catch (error: any) {
     console.error("Error updating villa:", error);
@@ -205,6 +218,15 @@ export async function DELETE(
         details: `Menghapus permanen unit villa "${villa.name}"`,
       },
     });
+
+    try {
+      revalidatePath("/villas");
+      revalidatePath(`/villas/${villa.slug}`);
+      revalidatePath("/sitemap.xml");
+      try { revalidateTag("sitemap_villas", { expire: 0 }); } catch {}
+    } catch (e) {
+      console.warn("Revalidate error:", e);
+    }
 
     return NextResponse.json({ success: true, message: `Villa "${villa.name}" berhasil dihapus` });
   } catch (error: any) {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/auth-guard";
 import { z } from "zod";
@@ -145,6 +145,8 @@ export async function PUT(
       if (existing.slug !== updated.slug) {
         revalidatePath(`/artikel/${existing.slug}`);
       }
+      revalidatePath("/sitemap.xml");
+      try { revalidateTag("sitemap_articles", { expire: 0 }); } catch {}
     } catch (e) {
       console.warn("Revalidate error:", e);
     }
@@ -197,6 +199,8 @@ export async function DELETE(
     try {
       revalidatePath("/artikel");
       revalidatePath(`/artikel/${existing.slug}`);
+      revalidatePath("/sitemap.xml");
+      try { revalidateTag("sitemap_articles", { expire: 0 }); } catch {}
     } catch (e) {
       console.warn("Revalidate error:", e);
     }

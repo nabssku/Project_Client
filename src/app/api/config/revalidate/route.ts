@@ -29,6 +29,8 @@ export async function POST(request: Request) {
       revalidateTag("villas", { expire: 0 });
       revalidateTag("testimonials", { expire: 0 });
       revalidateTag("articles", { expire: 0 });
+      revalidateTag("sitemap_villas", { expire: 0 });
+      revalidateTag("sitemap_articles", { expire: 0 });
 
       revalidatePath("/", "layout");
       revalidatePath("/", "page");
@@ -37,6 +39,7 @@ export async function POST(request: Request) {
       revalidatePath("/artikel", "layout");
       revalidatePath("/promo", "layout");
       revalidatePath("/booking", "layout");
+      revalidatePath("/sitemap.xml");
       revalidatePath("/dashboard/settings");
       revalidatePath("/dashboard/cms/hero");
     } catch (revalErr) {

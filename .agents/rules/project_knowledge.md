@@ -70,6 +70,11 @@ Navbar menggunakan `usePathname()` untuk mendeteksi rute dan mengatur styling se
    - Menambahkan event listener `theme-change` pada `FontLoader` yang di-dispatch saat tombol Simpan Perubahan di CMS Hero ditekan, sehingga font dan warna langsung ter-update seketika di browser tanpa perlu reload halaman.
    - Mengganti kelas warna hardcoded di komponen dashboard (`sidebar.tsx`, `header.tsx`, `admin-dashboard.tsx`, `marketing-dashboard.tsx`, `manajer-dashboard.tsx`, `maintenance-dashboard.tsx`) dan halaman detail villa menjadi semantic tokens (`primary`, `primary-dark`, `accent`, `accent-light`).
 
+6. **Error: XML Sitemap Parsing Error (`EntityRef: expecting ';'`)**:
+   - Next.js 16 App Router built-in `resolveSitemap` merender properti `url` dan `images` langsung ke tag `<loc>` dan `<image:loc>` tanpa XML escaping otomatis.
+   - Ketika gambar eksternal (seperti Unsplash) atau URL memiliki query parameters (`?auto=format&fit=crop&w=1200&q=80`), karakter `&` yang tidak ter-escape dibaca parser XML sebagai *entity reference* yang tidak valid sehingga browser/crawler gagal merender sitemap dengan error `EntityRef: expecting ';'`.
+   - Solusi: Menambahkan helper `escapeXml()` pada `src/app/sitemap.ts` untuk mengonversi `&` menjadi `&amp;` (tanpa double-escaping entitas valid) serta karakter `<, >, ", '`. Menghubungkan invalidasi cache `sitemap_villas`, `sitemap_articles`, dan `/sitemap.xml` pada endpoint revalidasi dan mutasi villa/artikel.
+
 ---
 
 ## 4. Keputusan Arsitektur Produk (PRD)

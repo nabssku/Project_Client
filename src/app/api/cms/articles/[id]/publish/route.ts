@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireApiPermission } from "@/lib/auth-guard";
 
@@ -30,6 +30,8 @@ export async function PATCH(
     try {
       revalidatePath("/artikel");
       revalidatePath(`/artikel/${existing.slug}`);
+      revalidatePath("/sitemap.xml");
+      try { revalidateTag("sitemap_articles", { expire: 0 }); } catch {}
     } catch (e) {
       console.warn("Revalidate error:", e);
     }

@@ -12,6 +12,22 @@ function getBaseUrl(): string {
   return url.replace(/\/+$/, "");
 }
 
+/**
+ * Escapes special XML characters (&, <, >, ", ') in URLs and text to prevent
+ * XML parsing errors (such as "EntityRef: expecting ';'" caused by unescaped '&').
+ * Ampersands that are already part of a valid XML entity reference are preserved.
+ */
+function escapeXml(str: string): string {
+  if (!str) return "";
+  return str
+    .trim()
+    .replace(/&(?!amp;|lt;|gt;|quot;|apos;|#[0-9]+;|#x[0-9a-fA-F]+;)/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 async function getVillasForSitemap() {
   "use cache";
   cacheTag("sitemap_villas");
@@ -63,25 +79,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 1. Static Public Pages
   const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: baseUrl,
+      url: escapeXml(baseUrl),
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/villas`,
+      url: escapeXml(`${baseUrl}/villas`),
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/artikel`,
+      url: escapeXml(`${baseUrl}/artikel`),
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.8,
     },
     {
-      url: `${baseUrl}/about`,
+      url: escapeXml(`${baseUrl}/about`),
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.7,
@@ -93,16 +109,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const villaRoutes: MetadataRoute.Sitemap = villas.map((villa) => {
     const images = Array.isArray(villa.images)
       ? villa.images
-          .filter((img): img is string => typeof img === "string" && img.length > 0)
-          .map((img) =>
-            img.startsWith("http")
-              ? img
-              : `${baseUrl}${img.startsWith("/") ? "" : "/"}${img}`
-          )
+          .filter((img): img is string => typeof img === "string" && img.trim().length > 0)
+          .map((img) => {
+            const trimmed = img.trim();
+            const fullUrl = trimmed.startsWith("http")
+              ? trimmed
+              : `${baseUrl}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
+            return escapeXml(fullUrl);
+          })
       : [];
 
     return {
-      url: `${baseUrl}/villas/${villa.slug}`,
+      url: escapeXml(`${baseUrl}/villas/${villa.slug}`),
       lastModified: villa.updatedAt || new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.9,
@@ -114,16 +132,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const articles = await getArticlesForSitemap();
   const articleRoutes: MetadataRoute.Sitemap = articles.map((article) => {
     const images: string[] = [];
-    if (article.coverImage) {
-      images.push(
-        article.coverImage.startsWith("http")
-          ? article.coverImage
-          : `${baseUrl}${article.coverImage.startsWith("/") ? "" : "/"}${article.coverImage}`
-      );
+    if (article.coverImage && article.coverImage.trim().length > 0) {
+      const trimmed = article.coverImage.trim();
+      const fullUrl = trimmed.startsWith("http")
+        ? trimmed
+        : `${baseUrl}${trimmed.startsWith("/") ? "" : "/"}${trimmed}`;
+      images.push(escapeXml(fullUrl));
     }
 
     return {
-      url: `${baseUrl}/artikel/${article.slug}`,
+      url: escapeXml(`${baseUrl}/artikel/${article.slug}`),
       lastModified: article.publishedAt || article.updatedAt || new Date(),
       changeFrequency: "weekly" as const,
       priority: 0.8,

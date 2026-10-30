@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
@@ -143,6 +144,15 @@ export async function POST(request: Request) {
         details: `Menambahkan unit villa baru "${newVilla.name}" (${newVilla.slug})`,
       },
     });
+
+    try {
+      revalidatePath("/villas");
+      revalidatePath(`/villas/${newVilla.slug}`);
+      revalidatePath("/sitemap.xml");
+      try { revalidateTag("sitemap_villas", { expire: 0 }); } catch {}
+    } catch (e) {
+      console.warn("Revalidate error:", e);
+    }
 
     return NextResponse.json(newVilla, { status: 201 });
   } catch (error: any) {
