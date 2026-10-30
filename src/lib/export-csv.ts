@@ -48,11 +48,18 @@ export function exportReportsToCSV(
 
   // Ringkasan KPI
   rows.push(["RINGKASAN METRIK", "NILAI"].map(escapeCSV).join(","));
-  rows.push(["Total Omzet Bersih (Confirmed/Selesai)", summary.totalNetRevenue].map(escapeCSV).join(","));
+  rows.push(["Total Omzet Kas Masuk (Lunas + DP)", summary.totalNetRevenue].map(escapeCSV).join(","));
+  if (summary.totalDpReceived && summary.totalDpReceived > 0) {
+    rows.push(["Total DP 50% Diterima", summary.totalDpReceived].map(escapeCSV).join(","));
+  }
+  if (summary.totalPendingSettlement && summary.totalPendingSettlement > 0) {
+    rows.push(["Total Sisa Piutang Pelunasan (H-1 Check-In)", summary.totalPendingSettlement].map(escapeCSV).join(","));
+    rows.push(["Estimasi Total Kontrak Reservasi", summary.totalNetRevenue + summary.totalPendingSettlement].map(escapeCSV).join(","));
+  }
   rows.push(["Total Omzet Kotor", summary.totalGrossRevenue].map(escapeCSV).join(","));
   rows.push(["Total Diskon Kupon Diberikan", summary.totalDiscount].map(escapeCSV).join(","));
   rows.push(["Total Transaksi Reservasi", summary.totalBookings].map(escapeCSV).join(","));
-  rows.push(["Transaksi Sukses / Selesai", summary.completedBookings].map(escapeCSV).join(","));
+  rows.push(["Transaksi Sukses / Aktif", summary.completedBookings].map(escapeCSV).join(","));
   rows.push(["Total Malam Terjual", `${summary.totalNights} Malam`].map(escapeCSV).join(","));
   rows.push(["Rata-rata Nilai Transaksi (ADR)", summary.avgBookingValue].map(escapeCSV).join(","));
   rows.push(""); // Empty separator line
@@ -74,7 +81,9 @@ export function exportReportsToCSV(
     "Harga Asli (IDR)",
     "Diskon Promo (IDR)",
     "Kode Promo",
-    "Total Bayar (IDR)",
+    "Total Nilai Booking (IDR)",
+    "DP Diterima (IDR)",
+    "Sisa Pelunasan (IDR)",
     "Metode Pembayaran",
     "Status Reservasi",
   ];
@@ -89,6 +98,24 @@ export function exportReportsToCSV(
           (1000 * 60 * 60 * 24)
       )
     );
+
+    const isDp50 = b.status === "DP_50";
+    const isPaidInFull =
+      b.status === "CONFIRMED" ||
+      b.status === "CHECKED_IN" ||
+      b.status === "COMPLETED";
+
+    const dpPaid = isDp50
+      ? b.dpAmount || Math.round(b.totalPrice * 0.5)
+      : isPaidInFull
+      ? b.totalPrice
+      : 0;
+
+    const sisa = isDp50
+      ? Math.max(0, b.totalPrice - dpPaid)
+      : isPaidInFull
+      ? 0
+      : b.totalPrice;
 
     const row = [
       idx + 1,
@@ -107,13 +134,37 @@ export function exportReportsToCSV(
       b.discountAmount,
       b.promoCode || "-",
       b.totalPrice,
+      dpPaid,
+      sisa,
       b.paymentMethod,
-      b.status,
+      b.status === "DP_50" ? "DP_50 (Menunggu Pelunasan H-1)" : b.status,
     ];
     rows.push(row.map(escapeCSV).join(","));
   });
 
   // Footer Total Baris
+  const totalDpPaidAll = bookings.reduce((acc, b) => {
+    if (b.status === "DP_50") {
+      return acc + (b.dpAmount || Math.round(b.totalPrice * 0.5));
+    }
+    if (
+      b.status === "CONFIRMED" ||
+      b.status === "CHECKED_IN" ||
+      b.status === "COMPLETED"
+    ) {
+      return acc + b.totalPrice;
+    }
+    return acc;
+  }, 0);
+
+  const totalSisaAll = bookings.reduce((acc, b) => {
+    if (b.status === "DP_50") {
+      const dp = b.dpAmount || Math.round(b.totalPrice * 0.5);
+      return acc + Math.max(0, b.totalPrice - dp);
+    }
+    return acc;
+  }, 0);
+
   const footerRow = [
     "TOTAL",
     "",
@@ -130,7 +181,9 @@ export function exportReportsToCSV(
     summary.totalGrossRevenue,
     summary.totalDiscount,
     "",
-    summary.totalNetRevenue,
+    summary.totalNetRevenue + totalSisaAll,
+    totalDpPaidAll,
+    totalSisaAll,
     "",
     `${bookings.length} Reservasi`,
   ];

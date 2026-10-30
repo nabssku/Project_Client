@@ -232,7 +232,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     villasStatus,
   ] = await Promise.all([
     prisma.bookings.count({ where: { status: "PENDING" } }),
-    prisma.bookings.count({ where: { status: "CONFIRMED" } }),
+    prisma.bookings.count({ where: { status: { in: ["CONFIRMED", "DP_50"] } } }),
     prisma.villas.count({ where: { status: "AVAILABLE" } }),
     prisma.villas.count({ where: { status: "CLEANING" } }),
     prisma.bookings.findMany({

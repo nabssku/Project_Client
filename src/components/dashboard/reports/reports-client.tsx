@@ -22,6 +22,8 @@ import {
   BarChart3,
   List,
   Sparkles,
+  ShieldCheck,
+  ExternalLink,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -179,6 +181,9 @@ export function ReportsClient({
     let net = 0;
     let completed = 0;
     let nightsTotal = 0;
+    let totalDpReceived = 0;
+    let totalPendingSettlement = 0;
+    let dp50Bookings = 0;
 
     filteredBookings.forEach((b) => {
       gross += b.totalPrice + b.discountAmount;
@@ -192,6 +197,14 @@ export function ReportsClient({
       if (isSuccessful) {
         net += b.totalPrice;
         completed += 1;
+      } else if (b.status === "DP_50") {
+        const dp = b.dpAmount || Math.round(b.totalPrice * 0.5);
+        const sisa = Math.max(0, b.totalPrice - dp);
+        net += dp; // Uang riil yang sudah diterima di kas
+        totalDpReceived += dp;
+        totalPendingSettlement += sisa;
+        dp50Bookings += 1;
+        completed += 1; // DP_50 juga merupakan booking aktif terkonfirmasi
       }
 
       const nights = Math.max(
@@ -214,6 +227,9 @@ export function ReportsClient({
       completedBookings: completed,
       totalNights: nightsTotal,
       avgBookingValue: avgVal,
+      totalDpReceived,
+      totalPendingSettlement,
+      dp50Bookings,
     };
   }, [filteredBookings]);
 
@@ -249,7 +265,11 @@ export function ReportsClient({
       const item = map.get(b.villa.id);
       if (item) {
         item.bookings += 1;
-        if (isSuccess) item.revenue += b.totalPrice;
+        if (isSuccess) {
+          item.revenue += b.totalPrice;
+        } else if (b.status === "DP_50") {
+          item.revenue += (b.dpAmount || Math.round(b.totalPrice * 0.5));
+        }
       }
     });
 
@@ -262,6 +282,7 @@ export function ReportsClient({
       COMPLETED: 0,
       CHECKED_IN: 0,
       CONFIRMED: 0,
+      DP_50: 0,
       PENDING: 0,
       CANCELLED: 0,
     };
@@ -460,7 +481,8 @@ export function ReportsClient({
               <option value="all">Semua Status</option>
               <option value="COMPLETED">Selesai (COMPLETED)</option>
               <option value="CHECKED_IN">Sedang Menginap (CHECKED_IN)</option>
-              <option value="CONFIRMED">Terkonfirmasi (CONFIRMED)</option>
+              <option value="CONFIRMED">Terkonfirmasi Lunas (CONFIRMED)</option>
+              <option value="DP_50">DP 50% (DP_50)</option>
               <option value="PENDING">Menunggu Verifikasi (PENDING)</option>
               <option value="CANCELLED">Dibatalkan (CANCELLED)</option>
             </select>
@@ -509,11 +531,11 @@ export function ReportsClient({
 
       {/* --- Executive KPI Summary Cards --- */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Card 1: Omzet Bersih */}
+        {/* Card 1: Omzet Bersih / Kas Masuk */}
         <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-white p-4 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-800">
-              Omzet Bersih
+              {(summary.dp50Bookings || 0) > 0 ? "Kas Masuk (Net)" : "Omzet Bersih"}
             </span>
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
               <DollarSign className="h-4 w-4" />
@@ -523,7 +545,13 @@ export function ReportsClient({
             {formatPrice(summary.totalNetRevenue)}
           </p>
           <p className="mt-1 text-[11px] text-gray-500">
-            Dari {summary.completedBookings} reservasi sukses/terkonfirmasi
+            {(summary.dp50Bookings || 0) > 0 ? (
+              <span>
+                Termasuk DP {formatPrice(summary.totalDpReceived || 0)} ({summary.dp50Bookings} booking)
+              </span>
+            ) : (
+              `Dari ${summary.completedBookings} reservasi sukses/terkonfirmasi`
+            )}
           </p>
         </div>
 
@@ -541,7 +569,9 @@ export function ReportsClient({
             {summary.totalBookings} Transaksi
           </p>
           <p className="mt-1 text-[11px] text-gray-500">
-            {summary.totalNights} total malam terpesan
+            {(summary.dp50Bookings || 0) > 0
+              ? `${summary.completedBookings} sukses/aktif (${summary.dp50Bookings} DP 50%)`
+              : `${summary.totalNights} total malam terpesan`}
           </p>
         </div>
 
@@ -581,6 +611,39 @@ export function ReportsClient({
           </p>
         </div>
       </div>
+
+      {/* --- Notice Piutang Pelunasan DP 50% jika ada --- */}
+      {(summary.totalPendingSettlement || 0) > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-indigo-100 bg-gradient-to-r from-indigo-50/80 via-white to-amber-50/60 px-4 py-3.5 text-xs shadow-xs gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-xs">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-sm">
+                Piutang Pelunasan Reservasi DP 50%:{" "}
+                <span className="text-indigo-700 font-extrabold">
+                  {formatPrice(summary.totalPendingSettlement || 0)}
+                </span>
+              </p>
+              <p className="text-[11px] text-gray-600 mt-0.5">
+                Terdapat <strong className="text-gray-900">{summary.dp50Bookings}</strong> reservasi berstatus DP 50% yang jatuh tempo pelunasan maksimal <strong>H-1 Check-In</strong>. Estimasi total kontrak penuh: <strong className="text-gray-900">{formatPrice((summary.totalNetRevenue || 0) + (summary.totalPendingSettlement || 0))}</strong>.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setSelectedStatus("DP_50");
+              setActiveTab("table");
+              setCurrentPage(1);
+            }}
+            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 transition shadow-2xs cursor-pointer"
+          >
+            <span>Lihat Reservasi DP 50%</span>
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* --- Switch View Tabs: Ringkasan Analitik vs Tabel Rincian --- */}
       <div className="flex items-center justify-between border-b border-gray-200">
@@ -699,10 +762,20 @@ export function ReportsClient({
                   <div className="flex items-center justify-between rounded-xl bg-cyan-50/70 p-2.5 border border-cyan-100">
                     <span className="flex items-center gap-2 text-cyan-800 font-medium">
                       <Check className="h-4 w-4 text-cyan-600" />
-                      Terkonfirmasi (CONFIRMED)
+                      Terkonfirmasi Lunas (CONFIRMED)
                     </span>
                     <span className="font-bold text-cyan-900">
                       {statusBreakdown.CONFIRMED}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl bg-indigo-50/70 p-2.5 border border-indigo-100">
+                    <span className="flex items-center gap-2 text-indigo-800 font-medium">
+                      <ShieldCheck className="h-4 w-4 text-indigo-600" />
+                      DP 50% (Pelunasan H-1)
+                    </span>
+                    <span className="font-bold text-indigo-900">
+                      {statusBreakdown.DP_50 || 0}
                     </span>
                   </div>
 
@@ -801,7 +874,14 @@ export function ReportsClient({
                           </td>
                           <td className="py-3 px-4 font-mono font-semibold text-gray-900">
                             <div className="flex items-center gap-1.5">
-                              <span>{b.code}</span>
+                              <Link
+                                href={`/dashboard/bookings?search=${b.code}`}
+                                title="Buka di Manajemen Reservasi"
+                                className="hover:text-accent hover:underline flex items-center gap-1"
+                              >
+                                <span>{b.code}</span>
+                                <ExternalLink className="h-3 w-3 text-gray-400 hover:text-accent" />
+                              </Link>
                               <button
                                 onClick={() => handleCopy(b.code)}
                                 className="text-gray-400 hover:text-gray-700 cursor-pointer"
@@ -859,11 +939,20 @@ export function ReportsClient({
                             <div className="font-bold text-primary">
                               {formatPrice(b.totalPrice)}
                             </div>
-                            {b.discountAmount > 0 && (
+                            {b.status === "DP_50" ? (
+                              <div className="mt-0.5 space-y-0.5 text-right">
+                                <div className="text-[10px] text-indigo-700 font-semibold">
+                                  DP: {formatPrice(b.dpAmount || Math.round(b.totalPrice * 0.5))}
+                                </div>
+                                <div className="text-[10px] text-amber-600">
+                                  Sisa: {formatPrice(Math.max(0, b.totalPrice - (b.dpAmount || Math.round(b.totalPrice * 0.5))))}
+                                </div>
+                              </div>
+                            ) : b.discountAmount > 0 ? (
                               <div className="text-[10px] text-emerald-600">
                                 Diskon: -{formatPrice(b.discountAmount)}
                               </div>
-                            )}
+                            ) : null}
                           </td>
                           <td className="py-3 px-4 text-center whitespace-nowrap">
                             <span className="rounded-md bg-gray-100 px-2 py-0.5 text-[10px] font-semibold text-gray-600">
@@ -879,12 +968,21 @@ export function ReportsClient({
                                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                                   : b.status === "CONFIRMED"
                                   ? "bg-cyan-50 text-cyan-700 border border-cyan-200"
+                                  : b.status === "DP_50"
+                                  ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
                                   : b.status === "PENDING"
                                   ? "bg-amber-50 text-amber-700 border border-amber-200"
                                   : "bg-rose-50 text-rose-700 border border-rose-200"
                               }`}
                             >
-                              {b.status}
+                              {b.status === "DP_50" ? (
+                                <>
+                                  <ShieldCheck className="h-3 w-3 text-indigo-600" />
+                                  DP 50%
+                                </>
+                              ) : (
+                                b.status
+                              )}
                             </span>
                           </td>
                         </tr>

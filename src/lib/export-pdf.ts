@@ -19,6 +19,9 @@ export interface ReportBookingItem {
   status: string;
   paymentMethod: string;
   createdAt: string;
+  dpAmount?: number | null;
+  settlementProofUrl?: string | null;
+  settlementProofUploadedAt?: string | null;
   villa: {
     id: string;
     name: string;
@@ -34,6 +37,9 @@ export interface ReportExportSummary {
   completedBookings: number;
   totalNights: number;
   avgBookingValue: number;
+  totalDpReceived?: number;
+  totalPendingSettlement?: number;
+  dp50Bookings?: number;
 }
 
 export interface ReportExportOptions {
@@ -140,9 +146,22 @@ export async function exportReportsToPDF(
   // --- Kotak Ringkasan KPI Finansial ---
   yPos = 39;
   const kpiBoxWidth = (pageWidth - 28 - 15) / 4;
+  const hasDp = (summary.dp50Bookings || 0) > 0;
   const kpis = [
-    { label: "OMZET BERSIH", val: formatPrice(summary.totalNetRevenue), note: "Confirmed / Selesai" },
-    { label: "TOTAL RESERVASI", val: `${summary.totalBookings} Transaksi`, note: `${summary.completedBookings} Sukses` },
+    {
+      label: hasDp ? "KAS MASUK (NET)" : "OMZET BERSIH",
+      val: formatPrice(summary.totalNetRevenue),
+      note: summary.totalPendingSettlement && summary.totalPendingSettlement > 0
+        ? `Piutang H-1: ${formatPrice(summary.totalPendingSettlement)}`
+        : "Confirmed / Selesai",
+    },
+    {
+      label: "TOTAL RESERVASI",
+      val: `${summary.totalBookings} Transaksi`,
+      note: hasDp
+        ? `${summary.completedBookings} Sukses/Aktif (${summary.dp50Bookings} DP)`
+        : `${summary.completedBookings} Sukses`,
+    },
     { label: "TOTAL DISKON", val: formatPrice(summary.totalDiscount), note: "Kupon Promo" },
     { label: "RATA-RATA TRANSAKSI", val: formatPrice(summary.avgBookingValue), note: `${summary.totalNights} Malam Terjual` },
   ];
@@ -197,6 +216,16 @@ export async function exportReportsToPDF(
       month: "short",
     });
 
+    const isDp50 = b.status === "DP_50";
+    let statusLabel = b.status;
+    let paymentDetail = formatPrice(b.totalPrice);
+
+    if (isDp50) {
+      statusLabel = "DP 50%";
+      const dp = b.dpAmount || Math.round(b.totalPrice * 0.5);
+      paymentDetail = `${formatPrice(b.totalPrice)}\n(DP: ${formatPrice(dp)})`;
+    }
+
     return [
       (i + 1).toString(),
       b.code,
@@ -207,9 +236,9 @@ export async function exportReportsToPDF(
       `${nights} mlm`,
       formatPrice(b.totalPrice + b.discountAmount),
       b.discountAmount > 0 ? formatPrice(b.discountAmount) : "-",
-      formatPrice(b.totalPrice),
+      paymentDetail,
       b.paymentMethod,
-      b.status,
+      statusLabel,
     ];
   });
 

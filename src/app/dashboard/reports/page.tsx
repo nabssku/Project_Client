@@ -61,6 +61,9 @@ export default async function DashboardReportsPage() {
     status: b.status,
     paymentMethod: b.paymentMethod,
     createdAt: b.createdAt.toISOString(),
+    dpAmount: b.dpAmount ?? 0,
+    settlementProofUrl: b.settlementProofUrl,
+    settlementProofUploadedAt: b.settlementProofUploadedAt ? b.settlementProofUploadedAt.toISOString() : null,
     villa: {
       id: b.villa.id,
       name: b.villa.name,
