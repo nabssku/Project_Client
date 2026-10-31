@@ -10,6 +10,7 @@ export interface SendBookingEmailOptions {
   siteName?: string;
   siteLogo?: string | null;
   contactPhone?: string | null;
+  contactEmail?: string | null;
   appBaseUrl?: string;
   type?: "CONFIRMATION" | "RECEIPT" | "REMINDER";
 }
@@ -22,7 +23,8 @@ function buildBookingEmailHtml(
   siteName: string,
   appBaseUrl: string,
   siteLogo?: string | null,
-  contactPhone?: string | null
+  contactPhone?: string | null,
+  contactEmail?: string | null
 ): string {
   const checkInDate = new Date(booking.checkIn);
   const checkOutDate = new Date(booking.checkOut);
@@ -204,6 +206,7 @@ function buildBookingEmailHtml(
                 <a href="https://wa.me/${(contactPhone || "628111141888").replace(/\D/g, "").replace(/^0/, "62")}" style="color: #C8A44E; text-decoration: underline; font-weight: 600;">
                   ${contactPhone || "(+62) 811-1141-888"}
                 </a>
+                ${contactEmail ? `atau email ke <a href="mailto:${contactEmail}" style="color: #C8A44E; text-decoration: underline; font-weight: 600;">${contactEmail}</a>` : ""}
               </p>
             </td>
           </tr>
@@ -244,7 +247,13 @@ export async function sendBookingConfirmationEmail(
 
   try {
     // 1. Generate PDF Attachment Buffer with dynamic brand logo
-    const pdfBuffer = await generateBookingPDFBuffer(booking, siteName, options.siteLogo);
+    const pdfBuffer = await generateBookingPDFBuffer(
+      booking,
+      siteName,
+      options.siteLogo,
+      options.contactPhone,
+      options.contactEmail
+    );
     const pdfFilename = `Voucher-${siteName.toLowerCase().replace(/\s+/g, "-")}-${booking.code}.pdf`;
 
     // 2. Generate HTML Email Body
@@ -253,7 +262,8 @@ export async function sendBookingConfirmationEmail(
       siteName,
       appBaseUrl,
       options.siteLogo,
-      options.contactPhone
+      options.contactPhone,
+      options.contactEmail
     );
 
     // Subject

@@ -345,6 +345,8 @@ export default async function VillaDetailPage({
             dailyRates: (villa as any).dailyRates,
             capacity: villa.capacity,
             ownerPhone,
+            checkInTime: villa.checkInTime || "14:00",
+            checkOutTime: villa.checkOutTime || "12:00",
           }}
           initialCustomPrices={(villa as any).customPrices || []}
           initialBookedRanges={activeBookings.map((b) => ({

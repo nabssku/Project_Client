@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 const updateBookingStatusSchema = z.object({
   status: z.enum(["PENDING", "DP_50", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"]),
@@ -190,19 +191,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
     // Jika status diubah menjadi CONFIRMED, kirimkan email voucher resmi kepada tamu
     if (newStatus === "CONFIRMED") {
       try {
-        const configs = await prisma.site_configs.findMany({
-          where: { key: { in: ["site_name", "site_logo", "contact_phone_1"] } },
-        });
-        const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
-        const siteName = configMap.site_name || "Villa";
-        const siteLogo = configMap.site_logo || null;
-        const contactPhone = configMap.contact_phone_1 || "(+62) 811-1141-888";
-
+        const siteContact = await getSiteContactConfig();
         const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
         sendBookingConfirmationEmail({
-          siteName,
-          siteLogo,
-          contactPhone,
+          siteName: siteContact.siteName,
+          siteLogo: siteContact.siteLogo,
+          contactPhone: siteContact.contactPhone1,
+          contactEmail: siteContact.contactEmail,
           booking: {
             id: updated.id,
             code: updated.code,

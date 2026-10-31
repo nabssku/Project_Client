@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { sendBookingConfirmationEmail } from "@/lib/email/resend";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -38,28 +39,15 @@ export async function POST(request: Request, { params }: RouteParams) {
       );
     }
 
-    // Ambil nama situs & logo dari database
-    let siteName = "Villa";
-    let siteLogo: string | null = null;
-    let contactPhone: string | null = null;
-    try {
-      const configs = await prisma.site_configs.findMany({
-        where: { key: { in: ["site_name", "site_logo", "contact_phone_1"] } },
-      });
-      configs.forEach((c) => {
-        if (c.key === "site_name" && c.value) siteName = c.value;
-        if (c.key === "site_logo" && c.value) siteLogo = c.value;
-        if (c.key === "contact_phone_1" && c.value) contactPhone = c.value;
-      });
-    } catch {
-      // fallback
-    }
+    // Ambil konfigurasi kontak situs dari database
+    const siteContact = await getSiteContactConfig();
 
     // Kirim email konfirmasi beserta PDF lampiran melalui Resend
     const result = await sendBookingConfirmationEmail({
-      siteName,
-      siteLogo,
-      contactPhone,
+      siteName: siteContact.siteName,
+      siteLogo: siteContact.siteLogo,
+      contactPhone: siteContact.contactPhone1,
+      contactEmail: siteContact.contactEmail,
       booking: {
         id: booking.id,
         code: booking.code,

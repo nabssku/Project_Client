@@ -208,9 +208,14 @@ export function VillaBookingWidget({
         {/* Check-in Field */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Check-in
-            </label>
+            <div className="flex items-center gap-1.5">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Check-in
+              </label>
+              <span className="text-[10px] text-gray-400 font-sans">
+                (Mulai {villa.checkInTime || "14:00"} WIB)
+              </span>
+            </div>
             {checkIn && (
               <button
                 type="button"
@@ -268,9 +273,14 @@ export function VillaBookingWidget({
         {/* Check-out Field */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
-              Check-out
-            </label>
+            <div className="flex items-center gap-1.5">
+              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Check-out
+              </label>
+              <span className="text-[10px] text-gray-400 font-sans">
+                (Maks {villa.checkOutTime || "12:00"} WIB)
+              </span>
+            </div>
             {checkIn && !checkOut && (
               <span className="text-[10px] text-accent font-semibold uppercase">
                 Wajib diisi
@@ -388,13 +398,14 @@ export function VillaBookingWidget({
                               const isBooked = isDateBooked(day);
                               const isToday = isSameDay(day, new Date());
 
-                              let isDisabled = isPast || isBooked;
-                              if (pickerMode === "checkOut" && checkIn) {
-                                if (!isAfter(day, checkIn)) {
-                                  isDisabled = true;
-                                } else if (hasBookedBetween(checkIn, day)) {
-                                  isDisabled = true;
-                                }
+                              let isDisabled = false;
+                              if (pickerMode === "checkIn") {
+                                isDisabled = isPast || isBooked;
+                              } else {
+                                isDisabled =
+                                  !checkIn ||
+                                  !isAfter(day, checkIn) ||
+                                  hasOverlapWithBooked(checkIn, day);
                               }
 
                               const isStart = checkIn ? isSameDay(day, checkIn) : false;

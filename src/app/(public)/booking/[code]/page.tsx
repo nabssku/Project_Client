@@ -123,6 +123,7 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
       siteName={siteContact.siteName}
       siteLogo={siteContact.siteLogo}
       contactPhone={siteContact.contactPhone1}
+      contactEmail={siteContact.contactEmail}
       initialBooking={{
         id: booking.id,
         code: booking.code,

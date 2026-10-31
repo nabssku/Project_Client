@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ManagerBookingsClient } from "@/components/dashboard/bookings/manager-bookings-client";
 import { requirePagePermission } from "@/lib/auth-guard";
 import { normalizeMediaUrl } from "@/lib/media";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 export const instant = false;
 
@@ -22,6 +23,8 @@ export default async function DashboardBookingsPage() {
           id: true,
           name: true,
           slug: true,
+          checkInTime: true,
+          checkOutTime: true,
         },
       },
       addons: true,
@@ -44,24 +47,14 @@ export default async function DashboardBookingsPage() {
     orderBy: { name: "asc" },
   });
 
-  let siteName = "Villa";
-  let siteLogo: string | null = null;
-  try {
-    const configs = await prisma.site_configs.findMany({
-      where: { key: { in: ["site_name", "site_logo"] } },
-    });
-    configs.forEach((c) => {
-      if (c.key === "site_name" && c.value) siteName = c.value;
-      if (c.key === "site_logo" && c.value) siteLogo = c.value;
-    });
-  } catch (err) {
-    console.warn("Failed to load site configs for manager bookings page:", err);
-  }
+  const siteContact = await getSiteContactConfig();
 
   return (
     <ManagerBookingsClient
-      siteName={siteName}
-      siteLogo={siteLogo}
+      siteName={siteContact.siteName}
+      siteLogo={siteContact.siteLogo}
+      contactPhone={siteContact.contactPhone1}
+      contactEmail={siteContact.contactEmail}
       initialBookings={bookings.map((b) => ({
         id: b.id,
         code: b.code,
@@ -102,6 +95,8 @@ export default async function DashboardBookingsPage() {
           id: b.villa.id,
           name: b.villa.name,
           slug: b.villa.slug,
+          checkInTime: b.villa.checkInTime,
+          checkOutTime: b.villa.checkOutTime,
         },
       }))}
       villas={villas}

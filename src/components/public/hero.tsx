@@ -37,6 +37,8 @@ export interface HeroVillaItem {
   capacity?: number;
   images: string[];
   isFeatured?: boolean;
+  checkInTime?: string;
+  checkOutTime?: string;
 }
 
 interface HeroProps {
@@ -138,14 +140,16 @@ export function Hero({ config, featuredVilla, villas = [] }: HeroProps) {
   const isDateBooked = (day: Date) => {
     if (!selectedVilla || bookedDates.length === 0) return false;
     const target = startOfDay(day);
-    return bookedDates.some((r) => target >= r.start && target <= r.end);
+    // Stay night is strictly [start, end)
+    return bookedDates.some((r) => target >= r.start && target < r.end);
   };
 
   const hasBookedBetween = (start: Date, end: Date) => {
     if (!selectedVilla || bookedDates.length === 0) return false;
     const s = startOfDay(start);
     const e = startOfDay(end);
-    return bookedDates.some((r) => s <= r.end && e >= r.start);
+    // Interval [s, e) overlaps with [r.start, r.end) iff s < r.end && e > r.start
+    return bookedDates.some((r) => s < r.end && e > r.start);
   };
 
   const openPicker = (mode: "checkIn" | "checkOut") => {
@@ -512,7 +516,7 @@ export function Hero({ config, featuredVilla, villas = [] }: HeroProps) {
               {/* Field 2: Check in */}
               <div className="search-field flex-1 min-w-0 px-3 py-2 rounded-xl hover:bg-gray-50/80 transition-colors sm:border-r border-gray-100">
                 <span className="field-label block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
-                  Check in
+                  Check in {selectedVilla?.checkInTime ? `(Mulai ${selectedVilla.checkInTime} WIB)` : ""}
                 </span>
                 <button
                   type="button"
@@ -546,7 +550,7 @@ export function Hero({ config, featuredVilla, villas = [] }: HeroProps) {
               {/* Field 3: Check out */}
               <div className="search-field flex-1 min-w-0 px-3 py-2 rounded-xl hover:bg-gray-50/80 transition-colors">
                 <span className="field-label block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-0.5">
-                  Check out
+                  Check out {selectedVilla?.checkOutTime ? `(Maks ${selectedVilla.checkOutTime} WIB)` : ""}
                 </span>
                 <button
                   type="button"
@@ -647,13 +651,14 @@ export function Hero({ config, featuredVilla, villas = [] }: HeroProps) {
                                     const isBooked = isDateBooked(day);
                                     const isTodayDate = isSameDay(day, new Date());
 
-                                    let isDisabled = isPast || isBooked;
-                                    if (pickerMode === "checkOut" && checkIn) {
-                                      if (!isAfter(day, checkIn)) {
-                                        isDisabled = true;
-                                      } else if (hasBookedBetween(checkIn, day)) {
-                                        isDisabled = true;
-                                      }
+                                    let isDisabled = false;
+                                    if (pickerMode === "checkIn") {
+                                      isDisabled = isPast || isBooked;
+                                    } else {
+                                      isDisabled =
+                                        !checkIn ||
+                                        !isAfter(day, checkIn) ||
+                                        hasBookedBetween(checkIn, day);
                                     }
 
                                     const isStart = checkIn ? isSameDay(day, checkIn) : false;

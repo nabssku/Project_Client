@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { z } from "zod";
 import { hash } from "bcryptjs";
 import { calculateStayBreakdown } from "@/lib/pricing";
 import { generateBookingCode } from "@/lib/booking";
-import { parseISO, startOfDay } from "date-fns";
+import {
+  parseISO,
+  startOfDay,
+  isValid,
+  isSameDay,
+  set,
+  differenceInCalendarDays,
+} from "date-fns";
 import { autoCancelExpiredBookings } from "@/lib/booking-expiration";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 const createBookingSchema = z.object({
   villaId: z.string().optional(),
@@ -129,9 +138,32 @@ export async function POST(request: Request) {
     const checkInDate = startOfDay(parseISO(data.checkIn));
     const checkOutDate = startOfDay(parseISO(data.checkOut));
 
+    if (!isValid(checkInDate) || !isValid(checkOutDate)) {
+      return NextResponse.json(
+        { error: "Format tanggal check-in atau check-out tidak valid" },
+        { status: 400 }
+      );
+    }
+
     if (checkOutDate <= checkInDate) {
       return NextResponse.json(
         { error: "Tanggal check-out harus lebih besar dari tanggal check-in" },
+        { status: 400 }
+      );
+    }
+
+    const isManagerOrAdmin = Boolean(
+      session?.user && (session.user.role === "MANAJER" || session.user.role === "ADMIN")
+    );
+
+    // Guard: Batasi maksimal durasi menginap 30 malam untuk mencegah resource exhaustion (DoS)
+    const totalNights = differenceInCalendarDays(checkOutDate, checkInDate);
+    if (totalNights > 30 && !isManagerOrAdmin) {
+      return NextResponse.json(
+        {
+          error:
+            "Maksimal durasi reservasi online adalah 30 malam. Silakan hubungi kami untuk reservasi jangka panjang.",
+        },
         { status: 400 }
       );
     }
@@ -179,6 +211,43 @@ export async function POST(request: Request) {
 
     if (!villa) {
       return NextResponse.json({ error: "Villa tidak ditemukan" }, { status: 404 });
+    }
+
+    // Guard: Villa Status (Hanya villa AVAILABLE yang dapat dipesan publik)
+    if (!isManagerOrAdmin && villa.status !== "AVAILABLE") {
+      return NextResponse.json(
+        { error: "Villa saat ini sedang tidak menerima pemesanan." },
+        { status: 400 }
+      );
+    }
+
+    // Guard: Tanggal Masa Lalu & Batas Jam Check-in Hari Ini
+    const now = new Date();
+    const today = startOfDay(now);
+    if (!isManagerOrAdmin) {
+      if (checkInDate < today) {
+        return NextResponse.json(
+          { error: "Tanggal check-in tidak boleh di masa lalu" },
+          { status: 400 }
+        );
+      }
+      if (isSameDay(checkInDate, today)) {
+        const [h, m] = (villa.checkInTime || "14:00").split(":").map(Number);
+        const deadlineCheckIn = set(today, {
+          hours: h || 14,
+          minutes: m || 0,
+          seconds: 0,
+          milliseconds: 0,
+        });
+        if (now > deadlineCheckIn) {
+          return NextResponse.json(
+            {
+              error: `Jadwal check-in untuk hari ini telah lewat (Maksimal pukul ${villa.checkInTime || "14:00"} WIB). Silakan pilih tanggal besok atau berikutnya.`,
+            },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Validate guest capacity
@@ -277,9 +346,6 @@ export async function POST(request: Request) {
     }
 
     // 4. Determine Initial Status
-    const isManagerOrAdmin =
-      session?.user && (session.user.role === "MANAJER" || session.user.role === "ADMIN");
-
     let initialStatus: "PENDING" | "CONFIRMED" | "DP_50" = "PENDING";
     if (isManagerOrAdmin && data.directBookingStatus) {
       initialStatus = data.directBookingStatus;
@@ -291,7 +357,7 @@ export async function POST(request: Request) {
     // Auto-cancel past pending bookings before checking collisions
     await autoCancelExpiredBookings();
 
-    // 5. ATOMIC Collision Guard & Booking Creation inside Transaction
+    // 5. ATOMIC Collision Guard & Booking Creation inside Serializable Transaction (Anti-Race Condition)
     const newBooking = await prisma.$transaction(async (tx) => {
       // Date Collision Guard (Interval Overlap Detection)
       const existingCollision = await tx.bookings.findFirst({
@@ -341,7 +407,7 @@ export async function POST(request: Request) {
           notes: data.notes || null,
           paymentMethod: data.paymentMethod || "BANK_TRANSFER",
           userId,
-          assignedToId: isManagerOrAdmin ? session.user.id : null,
+          assignedToId: isManagerOrAdmin ? session?.user?.id || null : null,
           addons:
             validAddonsToInsert.length > 0
               ? {
@@ -364,6 +430,8 @@ export async function POST(request: Request) {
               slug: true,
               location: true,
               images: true,
+              checkInTime: true,
+              checkOutTime: true,
             },
           },
           addons: true,
@@ -382,7 +450,9 @@ export async function POST(request: Request) {
       });
 
       return created;
-    });
+    },
+    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }
+  );
 
     // Revalidate paths for instant freshness
     try {
@@ -394,19 +464,13 @@ export async function POST(request: Request) {
 
     // Kirim email konfirmasi reservasi & PDF invoice secara asynchronous via Resend
     try {
-      const configs = await prisma.site_configs.findMany({
-        where: { key: { in: ["site_name", "site_logo", "contact_phone_1"] } },
-      });
-      const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
-      const siteName = configMap.site_name || "Villa";
-      const siteLogo = configMap.site_logo || null;
-      const contactPhone = configMap.contact_phone_1 || "(+62) 811-1141-888";
-
+      const siteContact = await getSiteContactConfig();
       const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
       sendBookingConfirmationEmail({
-        siteName,
-        siteLogo,
-        contactPhone,
+        siteName: siteContact.siteName,
+        siteLogo: siteContact.siteLogo,
+        contactPhone: siteContact.contactPhone1,
+        contactEmail: siteContact.contactEmail,
         booking: {
           id: newBooking.id,
           code: newBooking.code,
@@ -448,7 +512,12 @@ export async function POST(request: Request) {
     );
   } catch (error: any) {
     console.error("Error creating booking:", error);
-    if (error.message === "COLLISION_ERROR") {
+    if (
+      error.message === "COLLISION_ERROR" ||
+      error.code === "P2034" ||
+      error.message?.includes("could not serialize access") ||
+      error.message?.includes("serialization failure")
+    ) {
       return NextResponse.json(
         {
           error:

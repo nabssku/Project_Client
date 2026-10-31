@@ -92,6 +92,8 @@ interface BookingItem {
     id: string;
     name: string;
     slug: string;
+    checkInTime?: string;
+    checkOutTime?: string;
   };
 }
 
@@ -101,6 +103,8 @@ interface ManagerBookingsClientProps {
   userRole: string;
   siteName?: string;
   siteLogo?: string | null;
+  contactPhone?: string | null;
+  contactEmail?: string | null;
 }
 
 export function ManagerBookingsClient({
@@ -109,6 +113,8 @@ export function ManagerBookingsClient({
   userRole,
   siteName = "Villa",
   siteLogo = "/logo.png",
+  contactPhone,
+  contactEmail,
 }: ManagerBookingsClientProps) {
   const [bookings, setBookings] = useState<BookingItem[]>(initialBookings);
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -285,10 +291,14 @@ Status: ${b.status}`;
           })),
           villa: {
             name: b.villa.name,
+            checkInTime: b.villa.checkInTime,
+            checkOutTime: b.villa.checkOutTime,
           },
         },
         siteName,
-        siteLogo
+        siteLogo,
+        contactPhone,
+        contactEmail
       );
     } catch (err) {
       console.error("Gagal mengunduh dokumen PDF:", err);

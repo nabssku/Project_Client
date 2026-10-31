@@ -8,6 +8,7 @@ import { ManajerDashboard } from "@/components/dashboard/roles/manajer-dashboard
 import { MaintenanceDashboard } from "@/components/dashboard/roles/maintenance-dashboard";
 import { MarketingDashboard } from "@/components/dashboard/roles/marketing-dashboard";
 import { GuestDashboard } from "@/components/dashboard/roles/guest-dashboard";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 export const instant = false;
 
@@ -148,7 +149,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     dashboardView = <MarketingDashboard user={session.user} data={marketingData} />;
   } else if (role === "GUEST") {
     // Data fetching for Guest customer portal
-    const [guestBookings, dbUser, siteConfigs] = await Promise.all([
+    const [guestBookings, dbUser, siteContact] = await Promise.all([
       prisma.bookings.findMany({
         where: {
           OR: [
@@ -183,31 +184,16 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
           avatar: true,
         },
       }),
-      prisma.site_configs.findMany({
-        where: {
-          key: {
-            in: ["site_name", "site_logo", "contact_phone_1", "contact_phone_2"],
-          },
-        },
-      }),
+      getSiteContactConfig(),
     ]);
-
-    let siteName = "Villa";
-    let siteLogo: string | null = null;
-    let contactPhone = "628111141888";
-
-    siteConfigs.forEach((c) => {
-      if (c.key === "site_name" && c.value) siteName = c.value;
-      if (c.key === "site_logo" && c.value) siteLogo = c.value;
-      if (c.key === "contact_phone_1" && c.value) contactPhone = c.value;
-    });
 
     const guestData = {
       bookings: JSON.parse(JSON.stringify(guestBookings)),
       user: dbUser,
-      siteName,
-      siteLogo,
-      contactPhone,
+      siteName: siteContact.siteName,
+      siteLogo: siteContact.siteLogo,
+      contactPhone: siteContact.contactPhone1,
+      contactEmail: siteContact.contactEmail,
     };
 
     dashboardView = (

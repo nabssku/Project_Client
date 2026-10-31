@@ -93,6 +93,29 @@ export async function resolveImageToDataUri(url: string): Promise<string | null>
 }
 
 /**
+ * Format phone string cleanly for printed documents (e.g. 6281111828131 -> +62 811-1182-8131)
+ */
+export function formatDisplayPhone(phone?: string | null): string {
+  if (!phone) return "";
+  const trimmed = phone.trim();
+  // Match raw digits starting with 62
+  if (/^62\d{8,13}$/.test(trimmed)) {
+    const prefix = trimmed.slice(2, 5);
+    const mid = trimmed.slice(5, 9);
+    const rest = trimmed.slice(9);
+    return `+62 ${prefix}-${mid}${rest ? `-${rest}` : ""}`;
+  }
+  // Match raw digits starting with 0
+  if (/^0\d{8,13}$/.test(trimmed)) {
+    const prefix = trimmed.slice(1, 4);
+    const mid = trimmed.slice(4, 8);
+    const rest = trimmed.slice(8);
+    return `+62 ${prefix}-${mid}${rest ? `-${rest}` : ""}`;
+  }
+  return trimmed;
+}
+
+/**
  * Membangun dokumen jsPDF Voucher & Invoice Reservasi dengan desain Luxury Hospitality
  */
 export function buildBookingPDFDocument(
@@ -599,14 +622,17 @@ export function buildBookingPDFDocument(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
   doc.setTextColor(navy[0], navy[1], navy[2]);
-  doc.text("Layanan Bantuan Tamu (Concierge & WhatsApp):", 16, footerY + 3);
+  const labelText = "Layanan Bantuan Tamu (Concierge & WhatsApp):";
+  doc.text(labelText, 16, footerY + 3);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.setTextColor(gold[0], gold[1], gold[2]);
-  const phoneText = contactPhone || "+62 811-1141-888";
-  const emailText = contactEmail || `support@${siteName.toLowerCase().replace(/\s+/g, "")}.com`;
-  doc.text(`${phoneText}  |  ${emailText}`, 82, footerY + 3);
+  const phoneFormatted = formatDisplayPhone(contactPhone);
+  const phoneText = phoneFormatted || contactPhone || "+62 811-1141-888";
+  const emailText = contactEmail?.trim() || `support@${siteName.toLowerCase().replace(/\s+/g, "")}.com`;
+  const labelWidth = doc.getTextWidth(labelText);
+  doc.text(`${phoneText}  |  ${emailText}`, 16 + labelWidth + 3, footerY + 3);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
@@ -630,18 +656,53 @@ export async function downloadBookingPDF(
   contactPhone?: string | null,
   contactEmail?: string | null
 ) {
+  let finalSiteName = siteName;
+  let finalLogo = siteLogo;
+  let finalPhone = contactPhone;
+  let finalEmail = contactEmail;
+
+  // Browser fallback: if contact details are missing or using defaults, fetch current site configs
+  if (
+    typeof window !== "undefined" &&
+    (!finalPhone || !finalEmail || !finalSiteName || finalSiteName === "Villa")
+  ) {
+    try {
+      const res = await fetch("/api/config/site", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.configs) {
+          if (!finalPhone) {
+            finalPhone =
+              data.configs["contact_phone_1"] || data.configs["contact_phone_2"];
+          }
+          if (!finalEmail) {
+            finalEmail = data.configs["contact_email"];
+          }
+          if (!finalSiteName || finalSiteName === "Villa") {
+            finalSiteName = data.configs["site_name"] || "Villa";
+          }
+          if (!finalLogo) {
+            finalLogo = data.configs["site_logo"];
+          }
+        }
+      }
+    } catch {
+      // Continue with provided values
+    }
+  }
+
   let logoDataUri: string | null = null;
-  if (siteLogo) {
-    logoDataUri = await resolveImageToDataUri(siteLogo);
+  if (finalLogo) {
+    logoDataUri = await resolveImageToDataUri(finalLogo);
   }
   const doc = buildBookingPDFDocument(
     booking,
-    siteName,
+    finalSiteName,
     logoDataUri,
-    contactPhone,
-    contactEmail
+    finalPhone,
+    finalEmail
   );
-  const filename = `Voucher-${siteName.toLowerCase().replace(/\s+/g, "-")}-${booking.code}.pdf`;
+  const filename = `Voucher-${finalSiteName.toLowerCase().replace(/\s+/g, "-")}-${booking.code}.pdf`;
   doc.save(filename);
 }
 
@@ -655,16 +716,40 @@ export async function generateBookingPDFBuffer(
   contactPhone?: string | null,
   contactEmail?: string | null
 ): Promise<Buffer> {
+  let finalSiteName = siteName;
+  let finalLogo = siteLogo;
+  let finalPhone = contactPhone;
+  let finalEmail = contactEmail;
+
+  // Server-side fallback: if contact info is missing, fetch from database site_configs
+  if (
+    typeof window === "undefined" &&
+    (!finalPhone || !finalEmail || !finalSiteName || finalSiteName === "Villa")
+  ) {
+    try {
+      const { getSiteContactConfig } = await import("@/lib/site-config");
+      const contactConfig = await getSiteContactConfig();
+      if (!finalPhone) finalPhone = contactConfig.contactPhone1;
+      if (!finalEmail) finalEmail = contactConfig.contactEmail;
+      if (!finalSiteName || finalSiteName === "Villa") {
+        finalSiteName = contactConfig.siteName;
+      }
+      if (!finalLogo) finalLogo = contactConfig.siteLogo;
+    } catch {
+      // Fallback to provided values
+    }
+  }
+
   let logoDataUri: string | null = null;
-  if (siteLogo) {
-    logoDataUri = await resolveImageToDataUri(siteLogo);
+  if (finalLogo) {
+    logoDataUri = await resolveImageToDataUri(finalLogo);
   }
   const doc = buildBookingPDFDocument(
     booking,
-    siteName,
+    finalSiteName,
     logoDataUri,
-    contactPhone,
-    contactEmail
+    finalPhone,
+    finalEmail
   );
   const arrayBuf = doc.output("arraybuffer");
   return Buffer.from(arrayBuf);

@@ -202,8 +202,14 @@ export function VillaAvailabilityCalendar() {
           return (
             <div
               key={idx}
+              onClick={() => {
+                if (!isDisabled) {
+                  selectDate(day);
+                }
+              }}
               className={cn(
-                "min-h-[48px] sm:min-h-[56px] lg:min-h-[60px] p-1 sm:p-1.5 lg:p-2 rounded-xl border transition-all flex flex-col justify-between text-left relative select-none cursor-default",
+                "min-h-[48px] sm:min-h-[56px] lg:min-h-[60px] p-1 sm:p-1.5 lg:p-2 rounded-xl border transition-all flex flex-col justify-between text-left relative select-none",
+                !isDisabled && !isPast ? "cursor-pointer hover:border-accent/50" : "cursor-default",
                 cellStyle
               )}
             >

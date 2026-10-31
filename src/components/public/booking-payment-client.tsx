@@ -101,12 +101,14 @@ export function BookingPaymentClient({
   siteName = "Villa",
   siteLogo = "/logo.png",
   contactPhone,
+  contactEmail,
 }: {
   initialBooking: BookingData;
   bankAccounts?: BankAccount[];
   siteName?: string;
   siteLogo?: string | null;
   contactPhone?: string | null;
+  contactEmail?: string | null;
 }) {
   const [booking, setBooking] = useState<BookingData>(initialBooking);
   const [copiedCode, setCopiedCode] = useState(false);
@@ -227,7 +229,8 @@ export function BookingPaymentClient({
         },
         siteName,
         siteLogo,
-        contactPhone
+        contactPhone,
+        contactEmail
       );
     } catch (err) {
       console.error("Gagal mengunduh PDF:", err);

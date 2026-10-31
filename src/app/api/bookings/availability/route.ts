@@ -27,6 +27,8 @@ export async function GET(request: Request) {
         priceWeekend: true,
         dailyRates: true,
         capacity: true,
+        checkInTime: true,
+        checkOutTime: true,
         customPrices: {
           orderBy: { startDate: "asc" },
         },
@@ -77,6 +79,8 @@ export async function GET(request: Request) {
         priceWeekend: villa.priceWeekend,
         dailyRates: (villa as any).dailyRates,
         capacity: villa.capacity,
+        checkInTime: villa.checkInTime || "14:00",
+        checkOutTime: villa.checkOutTime || "12:00",
         customPrices: villa.customPrices.map((cp) => ({
           id: cp.id,
           startDate: format(new Date(cp.startDate), "yyyy-MM-dd"),

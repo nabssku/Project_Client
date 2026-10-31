@@ -97,11 +97,12 @@ interface GuestDashboardProps {
     siteName: string;
     siteLogo: string | null;
     contactPhone: string;
+    contactEmail?: string | null;
   };
 }
 
 export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
-  const { bookings, user, siteName, siteLogo, contactPhone } = data;
+  const { bookings, user, siteName, siteLogo, contactPhone, contactEmail } = data;
 
   const [activeTab, setActiveTab] = useState<"active" | "history" | "profile">("active");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -189,7 +190,7 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
         },
       };
 
-      await downloadBookingPDF(pdfData, siteName, siteLogo, contactPhone);
+      await downloadBookingPDF(pdfData, siteName, siteLogo, contactPhone, contactEmail);
     } catch (err) {
       console.error("Failed to generate PDF voucher:", err);
       alert("Gagal mengunduh dokumen voucher. Silakan coba beberapa saat lagi.");

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { uploadBufferToR2 } from "@/lib/r2";
 import { isBookingExpired } from "@/lib/booking-expiration";
 import { auth } from "@/lib/auth";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 export async function POST(request: Request) {
   try {
@@ -152,21 +153,14 @@ export async function POST(request: Request) {
     });
 
     // Kirim notifikasi bukti bayar via Resend beserta PDF invoice
-    let siteName = "Villa";
+    const siteContact = await getSiteContactConfig();
     try {
-      const configs = await prisma.site_configs.findMany({
-        where: { key: { in: ["site_name", "site_logo", "contact_phone_1"] } },
-      });
-      const configMap = configs.reduce((acc, c) => ({ ...acc, [c.key]: c.value }), {} as Record<string, string>);
-      if (configMap.site_name) siteName = configMap.site_name;
-      const siteLogo = configMap.site_logo || null;
-      const contactPhone = configMap.contact_phone_1 || "(+62) 811-1141-888";
-
       const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
       sendBookingConfirmationEmail({
-        siteName,
-        siteLogo,
-        contactPhone,
+        siteName: siteContact.siteName,
+        siteLogo: siteContact.siteLogo,
+        contactPhone: siteContact.contactPhone1,
+        contactEmail: siteContact.contactEmail,
         booking: {
           id: updated.id,
           code: updated.code,
@@ -201,7 +195,7 @@ export async function POST(request: Request) {
       success: true,
       url: publicUrl,
       booking: updated,
-      message: `Bukti pembayaran berhasil diunggah! Tim ${siteName} akan segera memverifikasi pesanan Anda.`,
+      message: `Bukti pembayaran berhasil diunggah! Tim ${siteContact.siteName} akan segera memverifikasi pesanan Anda.`,
     });
   } catch (error: any) {
     console.error("Payment proof upload error:", error);

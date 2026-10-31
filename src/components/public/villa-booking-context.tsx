@@ -33,6 +33,8 @@ interface VillaBookingContextType {
     dailyRates?: any;
     capacity: number;
     ownerPhone?: string;
+    checkInTime?: string;
+    checkOutTime?: string;
   };
   checkIn: Date | null;
   checkOut: Date | null;
@@ -73,6 +75,8 @@ export function VillaBookingProvider({
     dailyRates?: any;
     capacity: number;
     ownerPhone?: string;
+    checkInTime?: string;
+    checkOutTime?: string;
   };
   initialBookedRanges?: BookedDateRange[];
   initialCustomPrices?: CustomPriceRange[];
@@ -198,27 +202,32 @@ export function VillaBookingProvider({
     return hasBookedBetween(start, end);
   };
 
-  // Intelligent date selection
+  // Intelligent date selection (allows check-out on the check-in date of another booking)
   const selectDate = (date: Date) => {
+    const today = startOfDay(new Date());
     const target = startOfDay(date);
-    if (isDateDisabled(target)) return;
+    if (isBefore(target, today)) return;
 
     if (!checkIn || (checkIn && checkOut)) {
-      // First click or reset
+      // First click: selecting checkIn
+      if (isDateBooked(target)) return;
       setCheckIn(target);
       setCheckOut(null);
     } else {
       // Second click: setting checkOut
       if (isBefore(target, checkIn) || isSameDay(target, checkIn)) {
         // Clicked date is earlier or same as checkIn -> set as new checkIn
+        if (isDateBooked(target)) return;
         setCheckIn(target);
         setCheckOut(null);
       } else {
-        // Verify no booked dates in between
-        if (hasBookedBetween(checkIn, target)) {
-          // Can't span over booked dates
-          setCheckIn(target);
-          setCheckOut(null);
+        // Verify no booked dates in between [checkIn, target)
+        if (hasOverlapWithBooked(checkIn, target)) {
+          // Can't span over booked dates -> if target is not booked, set as new checkIn
+          if (!isDateBooked(target)) {
+            setCheckIn(target);
+            setCheckOut(null);
+          }
         } else {
           setCheckOut(target);
         }
