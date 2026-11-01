@@ -50,7 +50,7 @@ export function exportReportsToCSV(
   rows.push(["RINGKASAN METRIK", "NILAI"].map(escapeCSV).join(","));
   rows.push(["Total Omzet Kas Masuk (Lunas + DP)", summary.totalNetRevenue].map(escapeCSV).join(","));
   if (summary.totalDpReceived && summary.totalDpReceived > 0) {
-    rows.push(["Total DP 50% Diterima", summary.totalDpReceived].map(escapeCSV).join(","));
+    rows.push(["Total DP Diterima", summary.totalDpReceived].map(escapeCSV).join(","));
   }
   if (summary.totalPendingSettlement && summary.totalPendingSettlement > 0) {
     rows.push(["Total Sisa Piutang Pelunasan (H-1 Check-In)", summary.totalPendingSettlement].map(escapeCSV).join(","));
@@ -99,19 +99,19 @@ export function exportReportsToCSV(
       )
     );
 
-    const isDp50 = b.status === "DP_50";
+    const isDp = b.status === "DP" || b.status === "DP_50";
     const isPaidInFull =
       b.status === "CONFIRMED" ||
       b.status === "CHECKED_IN" ||
       b.status === "COMPLETED";
 
-    const dpPaid = isDp50
+    const dpPaid = isDp
       ? b.dpAmount || Math.round(b.totalPrice * 0.5)
       : isPaidInFull
       ? b.totalPrice
       : 0;
 
-    const sisa = isDp50
+    const sisa = isDp
       ? Math.max(0, b.totalPrice - dpPaid)
       : isPaidInFull
       ? 0
@@ -137,14 +137,14 @@ export function exportReportsToCSV(
       dpPaid,
       sisa,
       b.paymentMethod,
-      b.status === "DP_50" ? "DP_50 (Menunggu Pelunasan H-1)" : b.status,
+      isDp ? "DP (Menunggu Pelunasan H-1)" : b.status,
     ];
     rows.push(row.map(escapeCSV).join(","));
   });
 
   // Footer Total Baris
   const totalDpPaidAll = bookings.reduce((acc, b) => {
-    if (b.status === "DP_50") {
+    if (b.status === "DP" || b.status === "DP_50") {
       return acc + (b.dpAmount || Math.round(b.totalPrice * 0.5));
     }
     if (
@@ -158,7 +158,7 @@ export function exportReportsToCSV(
   }, 0);
 
   const totalSisaAll = bookings.reduce((acc, b) => {
-    if (b.status === "DP_50") {
+    if (b.status === "DP" || b.status === "DP_50") {
       const dp = b.dpAmount || Math.round(b.totalPrice * 0.5);
       return acc + Math.max(0, b.totalPrice - dp);
     }

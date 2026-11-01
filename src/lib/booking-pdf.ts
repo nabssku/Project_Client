@@ -223,9 +223,9 @@ export function buildBookingPDFDocument(
   if (statusUpper === "PENDING") {
     statusBadgeColor = [217, 119, 6]; // Amber
     statusLabel = "MENUNGGU PEMBAYARAN";
-  } else if (statusUpper === "DP_50") {
+  } else if (statusUpper === "DP" || statusUpper === "DP_50") {
     statusBadgeColor = [2, 132, 199]; // Sky Blue
-    statusLabel = "DP 50% TERKONFIRMASI";
+    statusLabel = "DP TERKONFIRMASI";
   } else if (statusUpper === "CHECKED_IN") {
     statusBadgeColor = [37, 99, 235]; // Blue
     statusLabel = "SEDANG MENGINAP (CHECK-IN)";
@@ -474,7 +474,7 @@ export function buildBookingPDFDocument(
   const finalTableY = (doc as any).lastAutoTable.finalY + 4;
   const totalBoxWidth = 92;
   const totalBoxX = pageWidth - 16 - totalBoxWidth;
-  const isDpBooking = statusUpper === "DP_50";
+  const isDpBooking = statusUpper === "DP" || statusUpper === "DP_50";
   const dpAmountVal = booking.dpAmount && booking.dpAmount > 0
     ? booking.dpAmount
     : Math.round(booking.totalPrice * 0.5);
@@ -496,7 +496,7 @@ export function buildBookingPDFDocument(
   doc.roundedRect(totalBoxX, finalTableY, totalBoxWidth, totalBoxHeight, 2, 2, "S");
 
   if (isDpBooking) {
-    // DP 50% breakdown
+    // DP breakdown
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7.5);
     doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
@@ -507,7 +507,7 @@ export function buildBookingPDFDocument(
 
     doc.setFont("helvetica", "normal");
     doc.setTextColor(40, 160, 90);
-    doc.text("DP 50% Diterima (Lunas):", totalBoxX + 6, finalTableY + 12);
+    doc.text("DP Diterima (Lunas):", totalBoxX + 6, finalTableY + 12);
     doc.setFont("helvetica", "bold");
     doc.text(`-${formatPrice(dpAmountVal)}`, totalBoxX + totalBoxWidth - 6, finalTableY + 12, { align: "right" });
 
@@ -519,7 +519,7 @@ export function buildBookingPDFDocument(
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(gold[0], gold[1], gold[2]);
-    doc.text("SISA PELUNASAN (50%):", totalBoxX + 6, finalTableY + 21);
+    doc.text("SISA PELUNASAN:", totalBoxX + 6, finalTableY + 21);
     doc.setFontSize(11);
     doc.text(formatPrice(remainingVal), totalBoxX + totalBoxWidth - 6, finalTableY + 21, { align: "right" });
 

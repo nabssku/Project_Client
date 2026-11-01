@@ -216,14 +216,15 @@ export async function exportReportsToPDF(
       month: "short",
     });
 
-    const isDp50 = b.status === "DP_50";
+    const isDp = b.status === "DP" || b.status === "DP_50";
     let statusLabel = b.status;
     let paymentDetail = formatPrice(b.totalPrice);
 
-    if (isDp50) {
-      statusLabel = "DP 50%";
+    if (isDp) {
+      statusLabel = "DP";
       const dp = b.dpAmount || Math.round(b.totalPrice * 0.5);
-      paymentDetail = `${formatPrice(b.totalPrice)}\n(DP: ${formatPrice(dp)})`;
+      const sisa = Math.max(0, b.totalPrice - dp);
+      paymentDetail = `${formatPrice(b.totalPrice)}\n(DP: ${formatPrice(dp)} | Sisa: ${formatPrice(sisa)})`;
     }
 
     return [

@@ -43,7 +43,8 @@ const createBookingSchema = z.object({
     )
     .optional(),
   // For Manager direct bookings
-  directBookingStatus: z.enum(["PENDING", "CONFIRMED", "DP_50"]).optional(),
+  directBookingStatus: z.enum(["PENDING", "CONFIRMED", "DP", "DP_50"]).optional(),
+  dpAmount: z.coerce.number().min(0).optional(),
   paymentProofUrl: z.string().optional().nullable(),
 });
 
@@ -346,13 +347,19 @@ export async function POST(request: Request) {
     }
 
     // 4. Determine Initial Status
-    let initialStatus: "PENDING" | "CONFIRMED" | "DP_50" = "PENDING";
+    let initialStatus: "PENDING" | "CONFIRMED" | "DP" | "DP_50" = "PENDING";
     if (isManagerOrAdmin && data.directBookingStatus) {
       initialStatus = data.directBookingStatus;
     }
 
-    const calculatedDpAmount =
-      initialStatus === "DP_50" ? Math.round(totalPrice * 0.5) : 0;
+    let calculatedDpAmount = 0;
+    if (initialStatus === "DP" || initialStatus === "DP_50") {
+      if (data.dpAmount !== undefined && data.dpAmount !== null && data.dpAmount > 0) {
+        calculatedDpAmount = Math.min(totalPrice, Math.round(data.dpAmount));
+      } else {
+        calculatedDpAmount = Math.round(totalPrice * 0.5);
+      }
+    }
 
     // Auto-cancel past pending bookings before checking collisions
     await autoCancelExpiredBookings();
@@ -363,7 +370,7 @@ export async function POST(request: Request) {
       const existingCollision = await tx.bookings.findFirst({
         where: {
           villaId: villa.id,
-          status: { in: ["CONFIRMED", "CHECKED_IN", "PENDING", "DP_50"] },
+          status: { in: ["CONFIRMED", "CHECKED_IN", "PENDING", "DP", "DP_50"] },
           AND: [
             { checkIn: { lt: checkOutDate } },
             { checkOut: { gt: checkInDate } },

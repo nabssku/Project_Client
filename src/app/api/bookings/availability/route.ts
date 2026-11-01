@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     const activeBookings = await prisma.bookings.findMany({
       where: {
         villaId: villa.id,
-        status: { in: ["CONFIRMED", "CHECKED_IN", "PENDING", "DP_50"] },
+        status: { in: ["CONFIRMED", "CHECKED_IN", "PENDING", "DP", "DP_50"] },
         checkOut: { gte: today },
       },
       select: {

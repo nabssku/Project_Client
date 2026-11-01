@@ -45,7 +45,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       prisma.bookings.count({ where: { status: "PENDING" } }),
       prisma.bookings.aggregate({
         where: {
-          status: { in: ["CONFIRMED", "CHECKED_IN", "COMPLETED", "DP_50"] },
+          status: { in: ["CONFIRMED", "CHECKED_IN", "COMPLETED", "DP", "DP_50"] },
         },
         _sum: { totalPrice: true },
       }),
@@ -218,7 +218,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     villasStatus,
   ] = await Promise.all([
     prisma.bookings.count({ where: { status: "PENDING" } }),
-    prisma.bookings.count({ where: { status: { in: ["CONFIRMED", "DP_50"] } } }),
+    prisma.bookings.count({ where: { status: { in: ["CONFIRMED", "DP", "DP_50"] } } }),
     prisma.villas.count({ where: { status: "AVAILABLE" } }),
     prisma.villas.count({ where: { status: "CLEANING" } }),
     prisma.bookings.findMany({
@@ -227,7 +227,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
       include: { villa: { select: { name: true } } },
     }),
     prisma.bookings.findMany({
-      where: { status: { in: ["CONFIRMED", "DP_50"] } },
+      where: { status: { in: ["CONFIRMED", "DP", "DP_50"] } },
       orderBy: { checkIn: "asc" },
       take: 5,
       include: {

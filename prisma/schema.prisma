@@ -17,6 +17,7 @@ enum Role {
 
 enum BookingStatus {
   PENDING
+  DP
   DP_50
   CONFIRMED
   CHECKED_IN

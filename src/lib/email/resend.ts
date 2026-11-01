@@ -49,7 +49,12 @@ function buildBookingEmailHtml(
   });
 
   const bookingUrl = `${appBaseUrl}/booking/${booking.code}`;
-  const isConfirmed = booking.status === "CONFIRMED" || booking.status === "COMPLETED" || booking.status === "CHECKED_IN";
+  const isConfirmed =
+    booking.status === "CONFIRMED" ||
+    booking.status === "COMPLETED" ||
+    booking.status === "CHECKED_IN" ||
+    booking.status === "DP" ||
+    booking.status === "DP_50";
 
   return `
 <!DOCTYPE html>
@@ -267,7 +272,12 @@ export async function sendBookingConfirmationEmail(
     );
 
     // Subject
-    const isConfirmed = booking.status === "CONFIRMED" || booking.status === "COMPLETED";
+    const isConfirmed =
+      booking.status === "CONFIRMED" ||
+      booking.status === "COMPLETED" ||
+      booking.status === "CHECKED_IN" ||
+      booking.status === "DP" ||
+      booking.status === "DP_50";
     const subject = isConfirmed
       ? `Konfirmasi & Voucher Menginap #${booking.code} - ${booking.villa.name} (${siteName})`
       : `Detail Reservasi & Tagihan #${booking.code} - ${booking.villa.name} (${siteName})`;

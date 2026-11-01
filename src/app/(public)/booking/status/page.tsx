@@ -134,11 +134,12 @@ export default function BookingStatusPage() {
             Terkonfirmasi (Lunas)
           </span>
         );
+      case "DP":
       case "DP_50":
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-sky-100 text-sky-800 border border-sky-200">
             <ShieldCheck className="w-3.5 h-3.5 text-sky-600" />
-            DP 50% Terkonfirmasi
+            DP Terkonfirmasi
           </span>
         );
       case "CHECKED_IN":
@@ -294,21 +295,21 @@ export default function BookingStatusPage() {
 
               <div>
                 <span className="text-gray-400 block mb-0.5">
-                  {booking.status === "DP_50" ? "Status DP 50%" : "Total Bayar"}
+                  {booking.status === "DP" || booking.status === "DP_50" ? "Status DP" : "Total Bayar"}
                 </span>
                 <span className="font-bold text-accent text-sm tabular-nums">
                   {formatIDR(booking.totalPrice)}
                 </span>
                 <span className="text-[11px] text-gray-500 block">
-                  {booking.status === "DP_50"
+                  {booking.status === "DP" || booking.status === "DP_50"
                     ? `DP: ${formatIDR(booking.dpAmount || Math.round(booking.totalPrice * 0.5))}`
                     : booking.paymentMethod}
                 </span>
               </div>
             </div>
 
-            {/* DP 50% Financial Summary Card */}
-            {booking.status === "DP_50" && (() => {
+            {/* DP Financial Summary Card */}
+            {(booking.status === "DP" || booking.status === "DP_50") && (() => {
               const dpPaid = booking.dpAmount || Math.round(booking.totalPrice * 0.5);
               const remainingBalance = Math.max(0, booking.totalPrice - dpPaid);
               const checkInParsed = parseISO(booking.checkIn);
@@ -319,7 +320,7 @@ export default function BookingStatusPage() {
                   <div className="flex items-center justify-between border-b border-sky-200/70 pb-2">
                     <div className="flex items-center gap-2 text-sky-950 font-bold">
                       <ShieldCheck className="w-4 h-4 text-sky-600" />
-                      <span>Status DP 50% Terkonfirmasi</span>
+                      <span>Status DP Terkonfirmasi</span>
                     </div>
                     <span className="text-[10px] font-semibold text-sky-800 bg-sky-200/60 px-2.5 py-0.5 rounded-full">
                       Batas H-1 Check-In
@@ -432,7 +433,7 @@ export default function BookingStatusPage() {
                   </div>
                 );
               })()
-            ) : booking.status === "DP_50" ? (
+            ) : booking.status === "DP" || booking.status === "DP_50" ? (
               (() => {
                 const dpPaid = booking.dpAmount || Math.round(booking.totalPrice * 0.5);
                 const remainingBalance = Math.max(0, booking.totalPrice - dpPaid);
@@ -446,7 +447,7 @@ export default function BookingStatusPage() {
                           <span>Unggah Bukti Transfer Pelunasan ({formatIDR(remainingBalance)})</span>
                         </div>
                         <p className="text-[11px] text-gray-500 mt-0.5">
-                          Pelunasan sisa 50% wajib diselesaikan paling lambat H-1 sebelum tanggal check-in.
+                          Pelunasan sisa tagihan wajib diselesaikan paling lambat H-1 sebelum tanggal check-in.
                         </p>
                       </div>
                       {booking.paymentProofUrl && (

@@ -141,7 +141,13 @@ export function ReportsClient({
       if (selectedVilla !== "all" && b.villa.id !== selectedVilla) return false;
 
       // Filter Status
-      if (selectedStatus !== "all" && b.status !== selectedStatus) return false;
+      if (selectedStatus !== "all") {
+        if (selectedStatus === "DP" || selectedStatus === "DP_50") {
+          if (b.status !== "DP" && b.status !== "DP_50") return false;
+        } else if (b.status !== selectedStatus) {
+          return false;
+        }
+      }
 
       // Filter Payment
       if (selectedPayment !== "all" && b.paymentMethod !== selectedPayment) return false;
@@ -197,7 +203,7 @@ export function ReportsClient({
       if (isSuccessful) {
         net += b.totalPrice;
         completed += 1;
-      } else if (b.status === "DP_50") {
+      } else if (b.status === "DP" || b.status === "DP_50") {
         const dp = b.dpAmount || Math.round(b.totalPrice * 0.5);
         const sisa = Math.max(0, b.totalPrice - dp);
         net += dp; // Uang riil yang sudah diterima di kas
@@ -267,7 +273,7 @@ export function ReportsClient({
         item.bookings += 1;
         if (isSuccess) {
           item.revenue += b.totalPrice;
-        } else if (b.status === "DP_50") {
+        } else if (b.status === "DP" || b.status === "DP_50") {
           item.revenue += (b.dpAmount || Math.round(b.totalPrice * 0.5));
         }
       }
@@ -282,12 +288,16 @@ export function ReportsClient({
       COMPLETED: 0,
       CHECKED_IN: 0,
       CONFIRMED: 0,
+      DP: 0,
       DP_50: 0,
       PENDING: 0,
       CANCELLED: 0,
     };
     filteredBookings.forEach((b) => {
       counts[b.status] = (counts[b.status] || 0) + 1;
+      if (b.status === "DP_50") {
+        counts.DP = (counts.DP || 0) + 1;
+      }
     });
     return counts;
   }, [filteredBookings]);
@@ -482,7 +492,7 @@ export function ReportsClient({
               <option value="COMPLETED">Selesai (COMPLETED)</option>
               <option value="CHECKED_IN">Sedang Menginap (CHECKED_IN)</option>
               <option value="CONFIRMED">Terkonfirmasi Lunas (CONFIRMED)</option>
-              <option value="DP_50">DP 50% (DP_50)</option>
+              <option value="DP">DP / Uang Muka (DP)</option>
               <option value="PENDING">Menunggu Verifikasi (PENDING)</option>
               <option value="CANCELLED">Dibatalkan (CANCELLED)</option>
             </select>
@@ -627,19 +637,19 @@ export function ReportsClient({
                 </span>
               </p>
               <p className="text-[11px] text-gray-600 mt-0.5">
-                Terdapat <strong className="text-gray-900">{summary.dp50Bookings}</strong> reservasi berstatus DP 50% yang jatuh tempo pelunasan maksimal <strong>H-1 Check-In</strong>. Estimasi total kontrak penuh: <strong className="text-gray-900">{formatPrice((summary.totalNetRevenue || 0) + (summary.totalPendingSettlement || 0))}</strong>.
+                Terdapat <strong className="text-gray-900">{summary.dp50Bookings}</strong> reservasi berstatus DP yang jatuh tempo pelunasan maksimal <strong>H-1 Check-In</strong>. Estimasi total kontrak penuh: <strong className="text-gray-900">{formatPrice((summary.totalNetRevenue || 0) + (summary.totalPendingSettlement || 0))}</strong>.
               </p>
             </div>
           </div>
           <button
             onClick={() => {
-              setSelectedStatus("DP_50");
+              setSelectedStatus("DP");
               setActiveTab("table");
               setCurrentPage(1);
             }}
             className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-white px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 transition shadow-2xs cursor-pointer"
           >
-            <span>Lihat Reservasi DP 50%</span>
+            <span>Lihat Reservasi DP</span>
             <ChevronRight className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -772,10 +782,10 @@ export function ReportsClient({
                   <div className="flex items-center justify-between rounded-xl bg-indigo-50/70 p-2.5 border border-indigo-100">
                     <span className="flex items-center gap-2 text-indigo-800 font-medium">
                       <ShieldCheck className="h-4 w-4 text-indigo-600" />
-                      DP 50% (Pelunasan H-1)
+                      DP (Pelunasan H-1)
                     </span>
                     <span className="font-bold text-indigo-900">
-                      {statusBreakdown.DP_50 || 0}
+                      {(statusBreakdown.DP || 0) + (statusBreakdown.DP_50 || 0)}
                     </span>
                   </div>
 
@@ -939,7 +949,7 @@ export function ReportsClient({
                             <div className="font-bold text-primary">
                               {formatPrice(b.totalPrice)}
                             </div>
-                            {b.status === "DP_50" ? (
+                            {b.status === "DP" || b.status === "DP_50" ? (
                               <div className="mt-0.5 space-y-0.5 text-right">
                                 <div className="text-[10px] text-indigo-700 font-semibold">
                                   DP: {formatPrice(b.dpAmount || Math.round(b.totalPrice * 0.5))}
@@ -968,17 +978,17 @@ export function ReportsClient({
                                   ? "bg-blue-50 text-blue-700 border border-blue-200"
                                   : b.status === "CONFIRMED"
                                   ? "bg-cyan-50 text-cyan-700 border border-cyan-200"
-                                  : b.status === "DP_50"
+                                  : b.status === "DP" || b.status === "DP_50"
                                   ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
                                   : b.status === "PENDING"
                                   ? "bg-amber-50 text-amber-700 border border-amber-200"
                                   : "bg-rose-50 text-rose-700 border border-rose-200"
                               }`}
                             >
-                              {b.status === "DP_50" ? (
+                              {b.status === "DP" || b.status === "DP_50" ? (
                                 <>
                                   <ShieldCheck className="h-3 w-3 text-indigo-600" />
-                                  DP 50%
+                                  DP
                                 </>
                               ) : (
                                 b.status

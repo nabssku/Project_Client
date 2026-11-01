@@ -56,7 +56,7 @@ interface BookingData {
   totalPrice: number;
   discountAmount: number;
   promoCode?: string | null;
-  status: "PENDING" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "DP" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
   paymentMethod: string;
   paymentProofUrl?: string | null;
   paymentProofUploadedAt?: string | Date | null;
@@ -273,7 +273,7 @@ export function BookingPaymentClient({
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bookingCode", booking.code);
-      if (booking.status === "DP_50") {
+      if (booking.status === "DP" || booking.status === "DP_50") {
         formData.append("proofType", "SETTLEMENT");
       }
 
@@ -376,7 +376,7 @@ export function BookingPaymentClient({
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 mb-4">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-          ) : booking.status === "DP_50" ? (
+          ) : booking.status === "DP" || booking.status === "DP_50" ? (
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-sky-100 text-sky-700 mb-4 shadow-xs">
               <CreditCard className="w-8 h-8" />
             </div>
@@ -401,10 +401,10 @@ export function BookingPaymentClient({
               ? "Sedang Menginap di Villa"
               : booking.status === "CONFIRMED"
               ? "Pembayaran Terverifikasi (Lunas)!"
-              : booking.status === "DP_50"
+              : booking.status === "DP" || booking.status === "DP_50"
               ? booking.settlementProofUrl
                 ? "Bukti Pelunasan Terkirim — Menunggu Verifikasi"
-                : "DP 50% Diterima — Menunggu Pelunasan (H-1)"
+                : "DP Diterima — Menunggu Pelunasan (H-1)"
               : booking.paymentProofUrl
               ? "Bukti Terkirim — Menunggu Verifikasi"
               : "Instruksi Pembayaran Reservasi"}
@@ -421,10 +421,10 @@ export function BookingPaymentClient({
               ? `Selamat menikmati waktu liburan Anda di ${booking.villa.name}!`
               : booking.status === "CONFIRMED"
               ? "Reservasi Anda telah berhasil dikonfirmasi dan lunas. Sampai jumpa di villa!"
-              : booking.status === "DP_50"
+              : booking.status === "DP" || booking.status === "DP_50"
               ? booking.settlementProofUrl
                 ? `Terima kasih! Bukti transfer pelunasan Anda sebesar ${formatIDR(remainingBalance)} sedang diverifikasi oleh Tim ${siteName}.`
-                : `Pembayaran DP 50% (${formatIDR(dpPaid)}) telah terkonfirmasi. Sisa pelunasan sebesar ${formatIDR(remainingBalance)} wajib diselesaikan paling lambat H-1 sebelum check-in.`
+                : `Pembayaran DP (${formatIDR(dpPaid)}) telah terkonfirmasi. Sisa pelunasan sebesar ${formatIDR(remainingBalance)} wajib diselesaikan paling lambat H-1 sebelum check-in.`
               : booking.paymentProofUrl
               ? `Terima kasih! Bukti transfer Anda sudah kami terima dan sedang diverifikasi oleh Tim ${siteName}.`
               : "Selesaikan pembayaran Anda sebelum jadwal check-in untuk mengamankan tanggal menginap di villa."}
@@ -491,8 +491,8 @@ export function BookingPaymentClient({
             </div>
           )}
 
-          {/* Payment Deadline Info Banner for DP_50 bookings */}
-          {booking.status === "DP_50" && !booking.settlementProofUrl && (
+          {/* Payment Deadline Info Banner for DP bookings */}
+          {(booking.status === "DP" || booking.status === "DP_50") && !booking.settlementProofUrl && (
             <div className="mt-5 max-w-xl mx-auto p-4 rounded-2xl bg-sky-50/90 border border-sky-200 text-left flex items-start gap-3 shadow-xs animate-fade-in">
               <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-700 flex items-center justify-center shrink-0 mt-0.5">
                 <Calendar className="w-4 h-4" />
@@ -1057,8 +1057,8 @@ export function BookingPaymentClient({
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-base font-bold font-display text-primary">
-                      {booking.status === "DP_50"
-                        ? "Rincian Pelunasan Tagihan (50%)"
+                      {booking.status === "DP" || booking.status === "DP_50"
+                        ? "Rincian Pelunasan Tagihan"
                         : "Total Tagihan Pembayaran"}
                     </h2>
                     <button
@@ -1071,14 +1071,14 @@ export function BookingPaymentClient({
                     </button>
                   </div>
 
-                  {booking.status === "DP_50" ? (
+                  {booking.status === "DP" || booking.status === "DP_50" ? (
                     <div className="p-4 rounded-2xl bg-sky-50/70 border border-sky-200/80 mb-6 space-y-2 text-xs">
                       <div className="flex justify-between items-center text-gray-600">
                         <span>Total Tagihan Reservasi:</span>
                         <span className="font-semibold text-gray-900">{formatIDR(booking.totalPrice)}</span>
                       </div>
                       <div className="flex justify-between items-center text-emerald-700 font-semibold">
-                        <span>DP 50% Telah Diterima:</span>
+                        <span>DP Telah Diterima:</span>
                         <span>- {formatIDR(dpPaid)}</span>
                       </div>
                       <div className="pt-2 border-t border-sky-200/80 flex items-center justify-between">
@@ -1204,12 +1204,12 @@ export function BookingPaymentClient({
                 {/* Proof Upload Card */}
                 <div className="bg-white rounded-3xl p-6 sm:p-8 border border-gray-100 shadow-sm">
                   <h2 className="text-base font-bold font-display text-primary mb-2">
-                    {booking.status === "DP_50"
-                      ? "Unggah Bukti Transfer Pelunasan (Sisa 50%)"
+                    {booking.status === "DP" || booking.status === "DP_50"
+                      ? "Unggah Bukti Transfer Pelunasan"
                       : "Unggah Bukti Transfer"}
                   </h2>
                   <p className="text-xs text-gray-500 mb-4">
-                    {booking.status === "DP_50"
+                    {booking.status === "DP" || booking.status === "DP_50"
                       ? "Unggah tangkapan layar bukti transfer pelunasan Anda paling lambat H-1 sebelum jadwal check-in."
                       : "Unggah tangkapan layar (screenshot) bukti transfer sukses atau resi bank Anda."}
                   </p>
@@ -1276,8 +1276,8 @@ export function BookingPaymentClient({
                         </label>
                       </div>
                     </div>
-                  ) : booking.status === "DP_50" ? (
-                    /* Specific Section for DP_50 Settlement Proof */
+                  ) : booking.status === "DP" || booking.status === "DP_50" ? (
+                    /* Specific Section for DP Settlement Proof */
                     <div className="space-y-4">
                       {booking.settlementProofUrl ? (
                         <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200/80 flex items-center justify-between gap-3">
@@ -1580,18 +1580,18 @@ export function BookingPaymentClient({
                   </div>
                 )}
 
-                {booking.status === "DP_50" ? (
+                {booking.status === "DP" || booking.status === "DP_50" ? (
                   <div className="border-t border-gray-100 pt-2.5 space-y-1.5">
                     <div className="flex justify-between text-xs text-gray-600">
                       <span>Total Biaya Reservasi</span>
                       <span className="font-semibold text-gray-900">{formatIDR(booking.totalPrice)}</span>
                     </div>
                     <div className="flex justify-between text-xs text-emerald-700 font-semibold">
-                      <span>DP 50% (Diterima)</span>
+                      <span>DP Diterima</span>
                       <span>- {formatIDR(dpPaid)}</span>
                     </div>
                     <div className="flex justify-between font-bold text-sm text-accent pt-1.5 border-t border-dashed border-gray-200">
-                      <span>Sisa Pelunasan (50%)</span>
+                      <span>Sisa Pelunasan</span>
                       <span className="tabular-nums">{formatIDR(remainingBalance)}</span>
                     </div>
                     <div className="text-[10px] text-sky-800 font-medium bg-sky-50 p-2 rounded-lg border border-sky-200/60 mt-1">

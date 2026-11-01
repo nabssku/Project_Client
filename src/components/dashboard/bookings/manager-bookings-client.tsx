@@ -70,7 +70,7 @@ interface BookingItem {
   totalPrice: number;
   discountAmount: number;
   promoCode?: string | null;
-  status: "PENDING" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "DP" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
   paymentMethod: string;
   paymentProofUrl?: string | null;
   paymentProofUploadedAt?: string | null;
@@ -131,11 +131,13 @@ export function ManagerBookingsClient({
     booking: BookingItem | null;
     targetStatus: BookingItem["status"];
     notes: string;
+    dpAmount: string;
   }>({
     isOpen: false,
     booking: null,
     targetStatus: "CONFIRMED",
     notes: "",
+    dpAmount: "",
   });
 
   // Action Menu Dropdown state (stores booking id)
@@ -183,9 +185,10 @@ export function ManagerBookingsClient({
   const [directGuestPhone, setDirectGuestPhone] = useState("");
   const [directGuestCity, setDirectGuestCity] = useState("");
   const [directGuestsCount, setDirectGuestsCount] = useState(2);
-  const [directStatus, setDirectStatus] = useState<"CONFIRMED" | "DP_50" | "PENDING">(
+  const [directStatus, setDirectStatus] = useState<"CONFIRMED" | "DP" | "PENDING">(
     "CONFIRMED"
   );
+  const [directDpAmount, setDirectDpAmount] = useState("");
   const [directNotes, setDirectNotes] = useState("");
   const [directProofFile, setDirectProofFile] = useState<File | null>(null);
   const [directError, setDirectError] = useState("");
@@ -328,18 +331,24 @@ Status: ${b.status}`;
   const metrics = useMemo(() => {
     const total = bookings.length;
     const pending = bookings.filter((b) => b.status === "PENDING").length;
-    const dp50 = bookings.filter((b) => b.status === "DP_50").length;
+    const dp = bookings.filter((b) => b.status === "DP" || b.status === "DP_50").length;
     const confirmed = bookings.filter((b) => b.status === "CONFIRMED").length;
     const checkedIn = bookings.filter((b) => b.status === "CHECKED_IN").length;
     const completed = bookings.filter((b) => b.status === "COMPLETED").length;
-    return { total, pending, dp50, confirmed, checkedIn, completed };
+    return { total, pending, dp, dp50: dp, confirmed, checkedIn, completed };
   }, [bookings]);
 
   // Filtered Bookings
   const filteredBookings = useMemo(() => {
     return bookings.filter((b) => {
       // Status
-      if (statusFilter !== "ALL" && b.status !== statusFilter) return false;
+      if (statusFilter !== "ALL") {
+        if (statusFilter === "DP" || statusFilter === "DP_50") {
+          if (b.status !== "DP" && b.status !== "DP_50") return false;
+        } else if (b.status !== statusFilter) {
+          return false;
+        }
+      }
       // Villa
       if (villaFilter !== "ALL" && b.villa.id !== villaFilter) return false;
       // Search
@@ -362,19 +371,22 @@ Status: ${b.status}`;
     bookingId: string,
     newStatus: BookingItem["status"],
     notes?: string,
-    rejectionReason?: string
+    rejectionReason?: string,
+    dpAmount?: number
   ) => {
     setUpdatingId(bookingId);
     try {
       const res = await fetch(`/api/bookings/${bookingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, notes, rejectionReason }),
+        body: JSON.stringify({ status: newStatus, notes, rejectionReason, dpAmount }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
         throw new Error(data.error || "Gagal memperbarui status");
       }
+
+      const updatedDp = dpAmount !== undefined ? dpAmount : (data.booking?.dpAmount ?? undefined);
 
       setBookings((prev) =>
         prev.map((b) =>
@@ -382,6 +394,7 @@ Status: ${b.status}`;
             ? {
                 ...b,
                 status: newStatus,
+                dpAmount: updatedDp !== undefined ? updatedDp : b.dpAmount,
                 notes: notes !== undefined ? notes : b.notes,
                 rejectionReason:
                   newStatus === "CANCELLED"
@@ -398,6 +411,7 @@ Status: ${b.status}`;
             ? {
                 ...prev,
                 status: newStatus,
+                dpAmount: updatedDp !== undefined ? updatedDp : prev.dpAmount,
                 rejectionReason:
                   newStatus === "CANCELLED"
                     ? rejectionReason || notes || prev.rejectionReason
@@ -425,11 +439,15 @@ Status: ${b.status}`;
     defaultStatus?: BookingItem["status"]
   ) => {
     setOpenActionMenuId(null);
+    const initialDp = booking.dpAmount && booking.dpAmount > 0
+      ? String(booking.dpAmount)
+      : String(Math.round(booking.totalPrice * 0.5));
     setStatusModal({
       isOpen: true,
       booking,
       targetStatus: defaultStatus || booking.status,
       notes: "",
+      dpAmount: initialDp,
     });
   };
 
@@ -469,6 +487,14 @@ Status: ${b.status}`;
     setCreatingDirect(true);
 
     try {
+      const numDp =
+        directStatus === "DP" || (directStatus as string) === "DP_50"
+          ? parseInt(directDpAmount) ||
+            (directPricingBreakdown
+              ? Math.round(directPricingBreakdown.subtotal * 0.5)
+              : undefined)
+          : undefined;
+
       const payload = {
         villaId: directVillaId,
         checkIn: directCheckIn,
@@ -480,6 +506,7 @@ Status: ${b.status}`;
         guestCity: directGuestCity.trim() || undefined,
         notes: directNotes.trim() || undefined,
         directBookingStatus: directStatus,
+        dpAmount: numDp,
       };
 
       const res = await fetch("/api/bookings", {
@@ -503,7 +530,7 @@ Status: ${b.status}`;
           uploadFormData.append("bookingCode", data.booking.code);
           uploadFormData.append(
             "proofType",
-            directStatus === "DP_50" ? "DP" : "FULL"
+            directStatus === "DP" || (directStatus as string) === "DP_50" ? "DP" : "FULL"
           );
           if (directStatus === "CONFIRMED") {
             uploadFormData.append("markAsConfirmed", "true");
@@ -622,6 +649,7 @@ Status: ${b.status}`;
             <span>Terkonfirmasi</span>
           </span>
         );
+      case "DP":
       case "DP_50":
         return (
           <span
@@ -630,7 +658,7 @@ Status: ${b.status}`;
             }`}
           >
             <ShieldCheck className="w-3.5 h-3.5 text-sky-600 shrink-0" />
-            <span>DP 50%</span>
+            <span>DP Terkonfirmasi</span>
           </span>
         );
       case "CHECKED_IN":
@@ -731,7 +759,7 @@ Status: ${b.status}`;
         </div>
 
         <div className="p-4 sm:p-5 rounded-2xl bg-white border border-sky-200/70 shadow-xs bg-sky-50/20">
-          <span className="text-xs text-sky-800 font-medium">DP 50% (H-1)</span>
+          <span className="text-xs text-sky-800 font-medium">DP (H-1)</span>
           <p className="text-xl sm:text-2xl font-bold text-sky-700 mt-1">
             {metrics.dp50}
           </p>
@@ -759,7 +787,7 @@ Status: ${b.status}`;
           {[
             { id: "ALL", label: "Semua" },
             { id: "PENDING", label: `Menunggu (${metrics.pending})` },
-            { id: "DP_50", label: `DP 50% (${metrics.dp50})` },
+            { id: "DP", label: `DP (${metrics.dp})` },
             { id: "CONFIRMED", label: "Terkonfirmasi" },
             { id: "CHECKED_IN", label: "Check-In" },
             { id: "COMPLETED", label: "Selesai" },
@@ -999,7 +1027,7 @@ Status: ${b.status}`;
                         <span className="font-bold text-accent tabular-nums block">
                           {formatIDR(b.totalPrice)}
                         </span>
-                        {b.status === "DP_50" ? (
+                        {b.status === "DP" || b.status === "DP_50" ? (
                           <div className="mt-0.5 space-y-0.5 text-[10px]">
                             <span className="text-emerald-700 font-semibold block">
                               DP: {formatIDR(b.dpAmount || Math.round(b.totalPrice * 0.5))}
@@ -1027,7 +1055,7 @@ Status: ${b.status}`;
                                 title="Lihat Bukti Transfer DP / Pembayaran"
                               >
                                 <Eye className="w-3 h-3" />
-                                <span>{b.status === "DP_50" ? "Bukti DP" : "Lihat"}</span>
+                                <span>{b.status === "DP" || b.status === "DP_50" ? "Bukti DP" : "Lihat"}</span>
                               </button>
 
                               <button
@@ -1049,12 +1077,12 @@ Status: ${b.status}`;
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[11px] text-gray-400 italic">
                               <Clock className="w-3 h-3 shrink-0" />
-                              <span>{b.status === "DP_50" ? "DP Terlampir" : "Belum Ada"}</span>
+                              <span>{b.status === "DP" || b.status === "DP_50" ? "DP Terlampir" : "Belum Ada"}</span>
                             </span>
                           )}
 
-                          {/* Settlement Proof indicator for DP_50 */}
-                          {b.status === "DP_50" && (
+                          {/* Settlement Proof indicator for DP */}
+                          {(b.status === "DP" || b.status === "DP_50") && (
                             b.settlementProofUrl ? (
                               <div className="flex items-center gap-1.5">
                                 <button
@@ -1141,7 +1169,7 @@ Status: ${b.status}`;
                             </button>
                           )}
 
-                          {b.status === "DP_50" && (
+                          {(b.status === "DP" || b.status === "DP_50") && (
                             <button
                               type="button"
                               disabled={updatingId === b.id}
@@ -1299,7 +1327,7 @@ Status: ${b.status}`;
                                       >
                                         <Eye className="w-3.5 h-3.5 text-emerald-600" />
                                         <span>
-                                          {b.status === "DP_50"
+                                          {b.status === "DP" || b.status === "DP_50"
                                             ? "Lihat Bukti Transfer DP"
                                             : "Lihat Bukti Transfer"}
                                         </span>
@@ -1324,7 +1352,7 @@ Status: ${b.status}`;
                                   )}
 
                                   {/* Settlement options for DP_50 */}
-                                  {b.status === "DP_50" && (
+                                  {(b.status === "DP" || b.status === "DP_50") && (
                                     <>
                                       <button
                                         type="button"
@@ -1572,8 +1600,8 @@ Status: ${b.status}`;
                 <div>
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      {selectedProofBooking.status === "DP_50"
-                        ? "1. Bukti Transfer DP 50%"
+                      {selectedProofBooking.status === "DP" || selectedProofBooking.status === "DP_50"
+                        ? "1. Bukti Transfer DP"
                         : "Bukti Transfer Pembayaran"}
                     </span>
                     {selectedProofBooking.paymentProofUrl && (
@@ -1626,13 +1654,13 @@ Status: ${b.status}`;
                   )}
                 </div>
 
-                {/* 2. Settlement Proof for DP_50 */}
-                {selectedProofBooking.status === "DP_50" && (
+                {/* 2. Settlement Proof for DP */}
+                {(selectedProofBooking.status === "DP" || selectedProofBooking.status === "DP_50") && (
                   <div className="pt-3 border-t border-gray-200">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-xs font-bold text-sky-900 uppercase tracking-wider flex items-center gap-1.5">
                         <FileCheck className="w-3.5 h-3.5 text-sky-600" />
-                        <span>2. Bukti Transfer Pelunasan (Sisa 50%)</span>
+                        <span>2. Bukti Transfer Pelunasan</span>
                       </span>
                       {selectedProofBooking.settlementProofUrl && (
                         <a
@@ -1723,14 +1751,14 @@ Status: ${b.status}`;
                 </div>
                 <div>
                   <span className="text-[10px] text-gray-400 font-medium block">
-                    {selectedProofBooking.status === "DP_50"
+                    {selectedProofBooking.status === "DP" || selectedProofBooking.status === "DP_50"
                       ? "Rincian Tagihan"
                       : "Total Tagihan"}
                   </span>
                   <span className="font-bold text-accent block">
                     {formatIDR(selectedProofBooking.totalPrice)}
                   </span>
-                  {selectedProofBooking.status === "DP_50" && (
+                  {(selectedProofBooking.status === "DP" || selectedProofBooking.status === "DP_50") && (
                     <span className="text-[10px] text-emerald-700 font-semibold block">
                       DP: {formatIDR(selectedProofBooking.dpAmount || Math.round(selectedProofBooking.totalPrice * 0.5))} &bull; Sisa: {formatIDR(selectedProofBooking.totalPrice - (selectedProofBooking.dpAmount || Math.round(selectedProofBooking.totalPrice * 0.5)))}
                     </span>
@@ -1863,7 +1891,7 @@ Status: ${b.status}`;
                     </>
                   )}
 
-                  {selectedProofBooking.status === "DP_50" && (
+                  {(selectedProofBooking.status === "DP" || selectedProofBooking.status === "DP_50") && (
                     <>
                       <button
                         type="button"
@@ -1995,9 +2023,9 @@ Status: ${b.status}`;
                       icon: Clock,
                     },
                     {
-                      id: "DP_50",
-                      label: "DP 50% (Terkonfirmasi DP)",
-                      desc: "Uang muka 50% telah diterima, pelunasan sisa 50% wajib paling lambat H-1 check-in",
+                      id: "DP",
+                      label: "DP (Uang Muka Disesuaikan)",
+                      desc: "Uang muka awal telah diterima, sisa tagihan wajib dilunasi paling lambat H-1 check-in",
                       badgeColor: "bg-sky-100 text-sky-800 border-sky-300",
                       activeBorder: "border-sky-500 bg-sky-50/40",
                       icon: ShieldCheck,
@@ -2035,7 +2063,9 @@ Status: ${b.status}`;
                       icon: X,
                     },
                   ].map((option) => {
-                    const isSelected = statusModal.targetStatus === option.id;
+                    const isSelected =
+                      statusModal.targetStatus === option.id ||
+                      (option.id === "DP" && statusModal.targetStatus === "DP_50");
                     const IconComp = option.icon;
                     return (
                       <div
@@ -2087,6 +2117,87 @@ Status: ${b.status}`;
                 </div>
               </div>
 
+              {/* DP Amount Input when DP is selected */}
+              {(statusModal.targetStatus === "DP" || statusModal.targetStatus === "DP_50") && (
+                <div className="p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200 space-y-2 animate-fade-in">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-sky-950">
+                      Nominal DP yang Diterima (Rp) *
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStatusModal((prev) => ({
+                            ...prev,
+                            dpAmount: String(
+                              Math.round((statusModal.booking?.totalPrice || 0) * 0.3)
+                            ),
+                          }))
+                        }
+                        className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-sky-200 text-sky-800 hover:bg-sky-100 transition-colors cursor-pointer"
+                      >
+                        30%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStatusModal((prev) => ({
+                            ...prev,
+                            dpAmount: String(
+                              Math.round((statusModal.booking?.totalPrice || 0) * 0.5)
+                            ),
+                          }))
+                        }
+                        className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-sky-200 text-sky-800 hover:bg-sky-100 transition-colors cursor-pointer"
+                      >
+                        50%
+                      </button>
+                    </div>
+                  </div>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                      Rp
+                    </span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={statusModal.booking?.totalPrice}
+                      value={statusModal.dpAmount}
+                      onChange={(e) =>
+                        setStatusModal((prev) => ({
+                          ...prev,
+                          dpAmount: e.target.value,
+                        }))
+                      }
+                      placeholder={String(
+                        Math.round((statusModal.booking?.totalPrice || 0) * 0.5)
+                      )}
+                      className="w-full pl-9 pr-3 py-2 rounded-xl border border-sky-300 text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-accent"
+                    />
+                  </div>
+                  {statusModal.booking && (
+                    <div className="pt-1.5 border-t border-dashed border-sky-200/80 flex items-center justify-between text-[11px]">
+                      <span className="text-gray-600">
+                        Total Biaya: <strong className="text-gray-900">{formatIDR(statusModal.booking.totalPrice)}</strong>
+                      </span>
+                      <span className="font-bold text-sky-900">
+                        Sisa Pelunasan:{" "}
+                        <span className="text-accent tabular-nums">
+                          {formatIDR(
+                            Math.max(
+                              0,
+                              statusModal.booking.totalPrice -
+                                (parseInt(statusModal.dpAmount) || 0)
+                            )
+                          )}
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Notes or Rejection Reason input */}
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
@@ -2135,11 +2246,17 @@ Status: ${b.status}`;
                     (statusModal.targetStatus === "CANCELLED" && !statusModal.notes.trim())
                   }
                   onClick={async () => {
+                    const numDp =
+                      statusModal.targetStatus === "DP" ||
+                      (statusModal.targetStatus as string) === "DP_50"
+                        ? parseInt(statusModal.dpAmount) || undefined
+                        : undefined;
                     await handleUpdateStatus(
                       statusModal.booking!.id,
                       statusModal.targetStatus,
                       statusModal.targetStatus !== "CANCELLED" ? statusModal.notes.trim() || undefined : undefined,
-                      statusModal.targetStatus === "CANCELLED" ? statusModal.notes.trim() : undefined
+                      statusModal.targetStatus === "CANCELLED" ? statusModal.notes.trim() : undefined,
+                      numDp
                     );
                   }}
                   className={`px-5 py-2.5 rounded-xl text-white text-xs font-semibold transition-colors flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50 ${
@@ -2361,7 +2478,7 @@ Status: ${b.status}`;
                     value={directStatus}
                     onChange={(e) =>
                       setDirectStatus(
-                        e.target.value as "CONFIRMED" | "DP_50" | "PENDING"
+                        e.target.value as "CONFIRMED" | "DP" | "PENDING"
                       )
                     }
                     className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-accent"
@@ -2369,14 +2486,69 @@ Status: ${b.status}`;
                     <option value="CONFIRMED">
                       Langsung Terkonfirmasi (Lunas / Transfer Diterima)
                     </option>
-                    <option value="DP_50">
-                      DP 50% (Terkonfirmasi DP — Pelunasan H-1 Check-In)
+                    <option value="DP">
+                      DP / Uang Muka (Nominal DP Disesuaikan)
                     </option>
                     <option value="PENDING">
                       Menunggu Pembayaran (Tagihan Dikirim ke Tamu)
                     </option>
                   </select>
                 </div>
+
+                {/* DP Amount Input when directStatus === DP */}
+                {(directStatus === "DP" || (directStatus as string) === "DP_50") && (
+                  <div className="p-3.5 rounded-2xl bg-sky-50/80 border border-sky-200 space-y-2 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-sky-950">
+                        Nominal DP yang Sudah Dibayar (Rp) *
+                      </label>
+                      {directPricingBreakdown && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDirectDpAmount(
+                                String(Math.round(directPricingBreakdown.subtotal * 0.3))
+                              )
+                            }
+                            className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-sky-200 text-sky-800 hover:bg-sky-100 transition-colors cursor-pointer"
+                          >
+                            30%
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setDirectDpAmount(
+                                String(Math.round(directPricingBreakdown.subtotal * 0.5))
+                              )
+                            }
+                            className="px-2 py-0.5 rounded text-[10px] font-semibold bg-white border border-sky-200 text-sky-800 hover:bg-sky-100 transition-colors cursor-pointer"
+                          >
+                            50%
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">
+                        Rp
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={directPricingBreakdown?.subtotal}
+                        value={directDpAmount}
+                        onChange={(e) => setDirectDpAmount(e.target.value)}
+                        placeholder={
+                          directPricingBreakdown
+                            ? String(Math.round(directPricingBreakdown.subtotal * 0.5))
+                            : "Masukkan nominal DP"
+                        }
+                        className="w-full pl-9 pr-3 py-2 rounded-xl border border-sky-300 text-xs font-bold bg-white focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Live Villa Pricing Breakdown */}
                 {directPricingBreakdown && (
@@ -2405,36 +2577,40 @@ Status: ${b.status}`;
                     </div>
 
                     {/* Status specific financial summary */}
-                    {directStatus === "DP_50" ? (
-                      <div className="pt-2 border-t border-dashed border-gray-300 space-y-1">
-                        <div className="flex justify-between font-semibold text-emerald-700">
-                          <span>Tagihan DP 50%:</span>
-                          <span className="tabular-nums">
-                            {formatIDR(Math.round(directPricingBreakdown.subtotal * 0.5))}
-                          </span>
+                    {directStatus === "DP" || (directStatus as string) === "DP_50" ? (() => {
+                      const numDp = directDpAmount
+                        ? parseInt(directDpAmount) || 0
+                        : Math.round(directPricingBreakdown.subtotal * 0.5);
+                      const sisa = Math.max(0, directPricingBreakdown.subtotal - numDp);
+
+                      return (
+                        <div className="pt-2 border-t border-dashed border-gray-300 space-y-1">
+                          <div className="flex justify-between font-semibold text-emerald-700">
+                            <span>Tagihan DP Diterima:</span>
+                            <span className="tabular-nums">
+                              {formatIDR(numDp)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between font-semibold text-sky-800">
+                            <span>Sisa Pelunasan:</span>
+                            <span className="tabular-nums">
+                              {formatIDR(sisa)}
+                            </span>
+                          </div>
+                          {directCheckIn && (
+                            <p className="text-[10px] text-sky-900 bg-sky-50 p-1.5 rounded-lg border border-sky-200 mt-1">
+                              Batas waktu pelunasan: H-1 check-in (
+                              {format(
+                                subDays(parseISO(directCheckIn), 1),
+                                "EEEE, d MMMM yyyy",
+                                { locale: localeId }
+                              )}
+                              ).
+                            </p>
+                          )}
                         </div>
-                        <div className="flex justify-between font-semibold text-sky-800">
-                          <span>Sisa Pelunasan (50%):</span>
-                          <span className="tabular-nums">
-                            {formatIDR(
-                              directPricingBreakdown.subtotal -
-                                Math.round(directPricingBreakdown.subtotal * 0.5)
-                            )}
-                          </span>
-                        </div>
-                        {directCheckIn && (
-                          <p className="text-[10px] text-sky-900 bg-sky-50 p-1.5 rounded-lg border border-sky-200 mt-1">
-                            Batas waktu pelunasan: H-1 check-in (
-                            {format(
-                              subDays(parseISO(directCheckIn), 1),
-                              "EEEE, d MMMM yyyy",
-                              { locale: localeId }
-                            )}
-                            ).
-                          </p>
-                        )}
-                      </div>
-                    ) : (
+                      );
+                    })() : (
                       <div className="pt-2 border-t border-dashed border-gray-300 flex justify-between font-bold text-primary">
                         <span>
                           {directStatus === "CONFIRMED"
@@ -2453,7 +2629,7 @@ Status: ${b.status}`;
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
                     Upload Bukti Transfer{" "}
-                    {directStatus === "DP_50" ? "DP 50%" : "Pembayaran"} (Opsional)
+                    {directStatus === "DP" || (directStatus as string) === "DP_50" ? "DP" : "Pembayaran"} (Opsional)
                   </label>
                   <label className="border-2 border-dashed border-gray-200 hover:border-accent rounded-xl p-3 flex items-center justify-between cursor-pointer transition-colors bg-[#fafafa]">
                     <div className="flex items-center gap-2 text-xs text-gray-600 truncate mr-2">
@@ -2689,7 +2865,7 @@ Status: ${b.status}`;
                     </span>
                   </div>
                   <div className="flex justify-between text-emerald-700">
-                    <span>DP 50% Diterima:</span>
+                    <span>DP Diterima:</span>
                     <span className="font-semibold">- {formatIDR(dp)}</span>
                   </div>
                   <div className="flex justify-between pt-1 border-t border-sky-200 font-bold text-sky-950">

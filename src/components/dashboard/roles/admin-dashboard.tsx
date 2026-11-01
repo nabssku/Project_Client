@@ -9,6 +9,7 @@ import {
   Activity,
   CheckCircle2,
   Clock,
+  ShieldCheck,
 } from "lucide-react";
 
 interface AdminDashboardProps {
@@ -236,14 +237,17 @@ export function AdminDashboard({ user, data }: AdminDashboardProps) {
                           className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
                             b.status === "CONFIRMED"
                               ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : b.status === "DP" || b.status === "DP_50"
+                              ? "bg-sky-50 text-sky-700 border border-sky-200"
                               : b.status === "PENDING"
                               ? "bg-amber-50 text-amber-700 border border-amber-200"
                               : "bg-slate-100 text-slate-700"
                           }`}
                         >
                           {b.status === "CONFIRMED" && <CheckCircle2 className="h-3 w-3" />}
+                          {(b.status === "DP" || b.status === "DP_50") && <ShieldCheck className="h-3 w-3" />}
                           {b.status === "PENDING" && <Clock className="h-3 w-3" />}
-                          {b.status}
+                          {b.status === "DP" || b.status === "DP_50" ? "DP" : b.status}
                         </span>
                       </td>
                     </tr>

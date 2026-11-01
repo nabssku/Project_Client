@@ -5,10 +5,11 @@ import { z } from "zod";
 import { getSiteContactConfig } from "@/lib/site-config";
 
 const updateBookingStatusSchema = z.object({
-  status: z.enum(["PENDING", "DP_50", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"]),
+  status: z.enum(["PENDING", "DP", "DP_50", "CONFIRMED", "CHECKED_IN", "COMPLETED", "CANCELLED"]),
   notes: z.string().optional(),
   rejectionReason: z.string().optional(),
   settlementProofUrl: z.string().optional().nullable(),
+  dpAmount: z.coerce.number().min(0).optional(),
 });
 
 interface RouteParams {
@@ -150,9 +151,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
       } else if (newStatus === "CONFIRMED") {
         // Clear rejection reason once confirmed
         updateData.rejectionReason = null;
-      } else if (newStatus === "DP_50") {
+      } else if (newStatus === "DP" || newStatus === "DP_50") {
         updateData.rejectionReason = null;
-        if (!booking.dpAmount || booking.dpAmount <= 0) {
+        if (parsed.data.dpAmount !== undefined && parsed.data.dpAmount !== null && parsed.data.dpAmount > 0) {
+          updateData.dpAmount = Math.min(booking.totalPrice, Math.round(parsed.data.dpAmount));
+        } else if (!booking.dpAmount || booking.dpAmount <= 0) {
           updateData.dpAmount = Math.round(booking.totalPrice * 0.5);
         }
       }

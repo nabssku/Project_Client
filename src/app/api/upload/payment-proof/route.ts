@@ -94,7 +94,7 @@ export async function POST(request: Request) {
 
     const isSettlement =
       requestedProofType === "SETTLEMENT" ||
-      (booking.status === "DP_50" && requestedProofType !== "DP");
+      ((booking.status === "DP" || booking.status === "DP_50") && requestedProofType !== "DP");
 
     const timestamp = Date.now();
     const sanitizedCode = booking.code.replace(/[^a-zA-Z0-9_-]/g, "");
@@ -114,8 +114,8 @@ export async function POST(request: Request) {
       updateData.settlementProofUploadedAt = new Date();
       if (isStaff && markAsConfirmed) {
         updateData.status = "CONFIRMED";
-      } else if (booking.status === "DP_50") {
-        updateData.status = "DP_50";
+      } else if (booking.status === "DP" || booking.status === "DP_50") {
+        updateData.status = booking.status;
       }
     } else {
       updateData.paymentProofUrl = publicUrl;
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       if (isStaff && markAsConfirmed) {
         updateData.status = "CONFIRMED";
       } else if (isStaff && requestedProofType === "DP") {
-        updateData.status = "DP_50";
+        updateData.status = "DP";
         if (!booking.dpAmount || booking.dpAmount <= 0) {
           updateData.dpAmount = Math.round(booking.totalPrice * 0.5);
         }

@@ -33,6 +33,7 @@ import {
   CreditCard,
   MessageCircle,
   LogOut,
+  UploadCloud,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -52,7 +53,10 @@ export interface GuestBookingItem {
   discountAmount: number;
   promoCode?: string | null;
   addonsTotal: number;
-  status: "PENDING" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
+  status: "PENDING" | "DP" | "DP_50" | "CONFIRMED" | "CHECKED_IN" | "COMPLETED" | "CANCELLED";
+  dpAmount?: number | null;
+  settlementProofUrl?: string | null;
+  settlementProofUploadedAt?: string | Date | null;
   notes?: string | null;
   rejectionReason?: string | null;
   paymentMethod: string;
@@ -122,7 +126,7 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
   // Group Bookings into Active and Past
   const activeBookings = useMemo(() => {
     return bookings.filter(
-      (b) => b.status === "PENDING" || b.status === "DP_50" || b.status === "CONFIRMED" || b.status === "CHECKED_IN"
+      (b) => b.status === "PENDING" || b.status === "DP" || b.status === "DP_50" || b.status === "CONFIRMED" || b.status === "CHECKED_IN"
     );
   }, [bookings]);
 
@@ -280,11 +284,12 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
             <span>Menunggu Pembayaran</span>
           </span>
         );
+      case "DP":
       case "DP_50":
         return (
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-800 border border-sky-300">
             <Clock className="w-3.5 h-3.5 text-sky-600" />
-            <span>DP 50% Terkonfirmasi</span>
+            <span>DP Terkonfirmasi</span>
           </span>
         );
       case "CONFIRMED":
@@ -595,11 +600,21 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
                               </div>
                               <div className="text-right">
                                 <span className="text-[10px] uppercase text-slate-400 font-bold block">
-                                  Total Pembayaran
+                                  {b.status === "DP" || b.status === "DP_50" ? "Total Tagihan" : "Total Pembayaran"}
                                 </span>
                                 <span className="font-display text-base sm:text-lg font-bold text-accent">
                                   {formatIDR(b.totalPrice)}
                                 </span>
+                                {(b.status === "DP" || b.status === "DP_50") && (
+                                  <div className="text-[11px] space-y-0.5 mt-0.5">
+                                    <span className="text-emerald-700 font-semibold block">
+                                      DP Diterima: {formatIDR(b.dpAmount || Math.round(b.totalPrice * 0.5))}
+                                    </span>
+                                    <span className="text-sky-800 font-bold block">
+                                      Sisa Pelunasan: {formatIDR(Math.max(0, b.totalPrice - (b.dpAmount || Math.round(b.totalPrice * 0.5))))}
+                                    </span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -615,19 +630,35 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
                                 <span>Rincian Rekening & Upload Bukti</span>
                               </Link>
                             ) : (
-                              <button
-                                type="button"
-                                disabled={isDownloading}
-                                onClick={() => handleDownloadPDF(b)}
-                                className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-dark transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
-                              >
-                                {isDownloading ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Download className="w-3.5 h-3.5 text-accent" />
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={isDownloading}
+                                  onClick={() => handleDownloadPDF(b)}
+                                  className="px-4 py-2 rounded-xl bg-primary text-white font-bold text-xs hover:bg-primary-dark transition-all flex items-center gap-1.5 shadow-xs cursor-pointer disabled:opacity-50"
+                                >
+                                  {isDownloading ? (
+                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  ) : (
+                                    <Download className="w-3.5 h-3.5 text-accent" />
+                                  )}
+                                  <span>Unduh Voucher & Invoice PDF</span>
+                                </button>
+
+                                {(b.status === "DP" || b.status === "DP_50") && (
+                                  <Link
+                                    href={`/booking/status?code=${b.code}`}
+                                    className="px-4 py-2 rounded-xl bg-sky-600 text-white font-bold text-xs hover:bg-sky-700 transition-all flex items-center gap-1.5 shadow-xs"
+                                  >
+                                    <UploadCloud className="w-3.5 h-3.5" />
+                                    <span>
+                                      {b.settlementProofUrl
+                                        ? "Bukti Pelunasan Terkirim"
+                                        : "Pelunasan & Upload Bukti"}
+                                    </span>
+                                  </Link>
                                 )}
-                                <span>Unduh Voucher & Invoice PDF</span>
-                              </button>
+                              </>
                             )}
 
                             <Link
