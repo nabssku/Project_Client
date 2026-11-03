@@ -29,6 +29,7 @@ export async function POST(request: Request, { params }: RouteParams) {
             checkOutTime: true,
           },
         },
+        addons: true,
       },
     });
 
@@ -64,8 +65,20 @@ export async function POST(request: Request, { params }: RouteParams) {
         promoCode: booking.promoCode,
         status: booking.status,
         paymentMethod: booking.paymentMethod,
+        paymentProofUrl: booking.paymentProofUrl,
+        settlementProofUrl: booking.settlementProofUrl,
+        settlementProofUploadedAt: booking.settlementProofUploadedAt,
+        dpAmount: booking.dpAmount,
         notes: booking.notes,
+        rejectionReason: booking.rejectionReason,
         createdAt: booking.createdAt,
+        addons: booking.addons.map((a) => ({
+          name: a.name,
+          price: a.price,
+          qty: a.qty,
+          subtotal: a.subtotal,
+          unit: a.unit,
+        })),
         villa: {
           name: booking.villa.name,
           location: booking.villa.location,

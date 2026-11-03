@@ -191,8 +191,8 @@ export async function PUT(request: Request, { params }: RouteParams) {
       return updatedBooking;
     });
 
-    // Jika status diubah menjadi CONFIRMED, kirimkan email voucher resmi kepada tamu
-    if (newStatus === "CONFIRMED") {
+    // Jika status diubah menjadi CONFIRMED atau DP, kirimkan email voucher resmi kepada tamu
+    if (newStatus === "CONFIRMED" || newStatus === "DP" || newStatus === "DP_50") {
       try {
         const siteContact = await getSiteContactConfig();
         const { sendBookingConfirmationEmail } = await import("@/lib/email/resend");
@@ -217,8 +217,19 @@ export async function PUT(request: Request, { params }: RouteParams) {
             promoCode: updated.promoCode,
             status: updated.status,
             paymentMethod: updated.paymentMethod,
+            paymentProofUrl: updated.paymentProofUrl,
+            settlementProofUrl: updated.settlementProofUrl,
+            settlementProofUploadedAt: updated.settlementProofUploadedAt,
+            dpAmount: updated.dpAmount,
             notes: updated.notes,
             createdAt: updated.createdAt,
+            addons: updated.addons?.map((a) => ({
+              name: a.name,
+              price: a.price,
+              qty: a.qty,
+              subtotal: a.subtotal,
+              unit: a.unit,
+            })),
             villa: {
               name: updated.villa.name,
               location: updated.villa.location,

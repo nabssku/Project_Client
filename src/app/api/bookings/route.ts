@@ -494,8 +494,17 @@ export async function POST(request: Request) {
           promoCode: newBooking.promoCode,
           status: newBooking.status,
           paymentMethod: newBooking.paymentMethod,
+          paymentProofUrl: newBooking.paymentProofUrl,
+          dpAmount: newBooking.dpAmount,
           notes: newBooking.notes,
           createdAt: newBooking.createdAt,
+          addons: newBooking.addons?.map((a) => ({
+            name: a.name,
+            price: a.price,
+            qty: a.qty,
+            subtotal: a.subtotal,
+            unit: a.unit,
+          })),
           villa: {
             name: villa.name,
             location: villa.location,

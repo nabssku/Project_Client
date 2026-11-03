@@ -146,6 +146,13 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
         paymentProofUploadedAt: booking.paymentProofUploadedAt
           ? booking.paymentProofUploadedAt.toISOString()
           : null,
+        settlementProofUrl: booking.settlementProofUrl
+          ? normalizeMediaUrl(booking.settlementProofUrl)
+          : null,
+        settlementProofUploadedAt: booking.settlementProofUploadedAt
+          ? booking.settlementProofUploadedAt.toISOString()
+          : null,
+        dpAmount: booking.dpAmount ?? 0,
         notes: booking.notes,
         rejectionReason: booking.rejectionReason,
         createdAt: booking.createdAt.toISOString(),

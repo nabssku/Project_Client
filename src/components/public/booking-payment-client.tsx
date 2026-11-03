@@ -291,6 +291,7 @@ export function BookingPaymentClient({
       setBooking((prev) => ({
         ...prev,
         ...data.booking,
+        dpAmount: data.booking?.dpAmount ?? prev.dpAmount,
         paymentProofUrl: data.booking?.paymentProofUrl || prev.paymentProofUrl,
         paymentProofUploadedAt:
           data.booking?.paymentProofUploadedAt || prev.paymentProofUploadedAt,
@@ -944,13 +945,13 @@ export function BookingPaymentClient({
                     {booking.dpAmount && booking.dpAmount > 0 && (
                       <>
                         <div className="flex justify-between items-center text-emerald-700">
-                          <span>DP 50% (Diterima)</span>
+                          <span>DP (Diterima)</span>
                           <span className="font-semibold tabular-nums">
                             {formatIDR(dpPaid)}
                           </span>
                         </div>
                         <div className="flex justify-between items-center text-emerald-700 border-b border-gray-200/70 pb-2">
-                          <span>Pelunasan 50% (Lunas)</span>
+                          <span>Pelunasan (Lunas)</span>
                           <span className="font-semibold tabular-nums">
                             {formatIDR(remainingBalance)}
                           </span>
@@ -979,7 +980,7 @@ export function BookingPaymentClient({
                           <div>
                             <span className="font-semibold text-gray-800 block">
                               {booking.dpAmount && booking.dpAmount > 0
-                                ? "Bukti Transfer DP 50%"
+                                ? "Bukti Transfer DP"
                                 : "Bukti Pembayaran"}
                             </span>
                             <span className="text-[11px] text-gray-400">
@@ -1359,12 +1360,12 @@ export function BookingPaymentClient({
                         </div>
                       )}
 
-                      {/* Display reference to initial DP 50% proof */}
+                      {/* Display reference to initial DP proof */}
                       {booking.paymentProofUrl && (
                         <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500 bg-gray-50/70 p-3 rounded-xl border border-gray-200/60">
                           <div className="flex items-center gap-2">
                             <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                            <span>Bukti DP 50% Sebelumnya Telah Terverifikasi</span>
+                            <span>Bukti DP Sebelumnya Telah Terverifikasi</span>
                           </div>
                           <a
                             href={normalizeMediaUrl(booking.paymentProofUrl)}
@@ -1669,14 +1670,30 @@ export function BookingPaymentClient({
             {/* Total & Booking Code Highlight Banner */}
             <div className="px-5 sm:px-6 py-3.5 bg-accent/5 border-b border-accent/15 flex flex-wrap items-center justify-between gap-3 text-xs">
               <div>
-                <span className="text-gray-500 block text-[11px] font-medium">Nominal Tepat yang Ditransfer:</span>
+                <span className="text-gray-500 block text-[11px] font-medium">
+                  {booking.status === "DP" || booking.status === "DP_50"
+                    ? "Nominal Pelunasan yang Ditransfer:"
+                    : "Nominal Tepat yang Ditransfer:"}
+                </span>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className="font-display font-bold text-base sm:text-lg text-accent tabular-nums">
-                    {formatIDR(booking.totalPrice)}
+                    {formatIDR(
+                      booking.status === "DP" || booking.status === "DP_50"
+                        ? remainingBalance
+                        : booking.totalPrice
+                    )}
                   </span>
                   <button
                     type="button"
-                    onClick={() => copyToClipboard(booking.totalPrice.toString(), "amount")}
+                    onClick={() =>
+                      copyToClipboard(
+                        (booking.status === "DP" || booking.status === "DP_50"
+                          ? remainingBalance
+                          : booking.totalPrice
+                        ).toString(),
+                        "amount"
+                      )
+                    }
                     className="p-1 rounded-md bg-white border border-accent/30 text-accent hover:bg-accent hover:text-white transition cursor-pointer"
                     title="Salin Nominal"
                   >
@@ -1770,7 +1787,7 @@ export function BookingPaymentClient({
                       Pastikan <strong>Nama Pemilik Rekening</strong> yang muncul di layar m-Banking sesuai dengan nama rekening tujuan resmi kami.
                     </li>
                     <li>
-                      Masukkan nominal transfer tepat sebesar <strong className="text-accent">{formatIDR(booking.totalPrice)}</strong> (tanpa dilebihkan atau dikurangi).
+                      Masukkan nominal transfer tepat sebesar <strong className="text-accent">{formatIDR(booking.status === "DP" || booking.status === "DP_50" ? remainingBalance : booking.totalPrice)}</strong> (tanpa dilebihkan atau dikurangi).
                     </li>
                     <li>
                       Pada kolom Berita / Catatan Transaksi, cantumkan Kode Booking: <strong className="font-mono text-primary bg-gray-100 px-1 py-0.5 rounded">{booking.code}</strong>.
@@ -1809,7 +1826,7 @@ export function BookingPaymentClient({
                       Pilih Bank Tujuan (contoh: Bank BCA, Bank Mandiri, Bank BRI, dll) sesuai rekening kami di bawah.
                     </li>
                     <li>
-                      Masukkan nomor rekening tujuan resmi dan nominal pembayaran tepat <strong className="text-accent">{formatIDR(booking.totalPrice)}</strong>.
+                      Masukkan nomor rekening tujuan resmi dan nominal pembayaran tepat <strong className="text-accent">{formatIDR(booking.status === "DP" || booking.status === "DP_50" ? remainingBalance : booking.totalPrice)}</strong>.
                     </li>
                     <li>
                       Tuliskan Kode Booking <strong className="font-mono text-primary bg-gray-100 px-1 py-0.5 rounded">{booking.code}</strong> pada catatan/berita transfer.
@@ -1851,7 +1868,7 @@ export function BookingPaymentClient({
                       Masukkan nomor rekening tujuan resmi {siteName}.
                     </li>
                     <li>
-                      Masukkan jumlah transfer tepat sejumlah <strong className="text-accent">{formatIDR(booking.totalPrice)}</strong>.
+                      Masukkan jumlah transfer tepat sejumlah <strong className="text-accent">{formatIDR(booking.status === "DP" || booking.status === "DP_50" ? remainingBalance : booking.totalPrice)}</strong>.
                     </li>
                     <li>
                       Periksa data yang tampil di layar mesin ATM (Nama Penerima, No. Rekening, dan Nominal). Jika sudah sesuai, tekan <strong>YA / Benar</strong>.

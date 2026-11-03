@@ -171,6 +171,30 @@ function buildBookingEmailHtml(
                     ${formatPrice(booking.totalPrice)}
                   </td>
                 </tr>
+                ${
+                  booking.status === "DP" || booking.status === "DP_50"
+                    ? (() => {
+                        const dpPaid =
+                          booking.dpAmount && booking.dpAmount > 0
+                            ? booking.dpAmount
+                            : Math.round(booking.totalPrice * 0.5);
+                        const remaining = Math.max(0, booking.totalPrice - dpPaid);
+                        return `
+                <tr style="background-color: #ecfdf5;">
+                  <td style="padding: 12px 16px; font-size: 13px; font-weight: 600; color: #065f46; border-top: 1px solid #a7f3d0;">DP Diterima</td>
+                  <td style="padding: 12px 16px; font-size: 14px; font-weight: 700; color: #065f46; text-align: right; border-top: 1px solid #a7f3d0;">
+                    - ${formatPrice(dpPaid)}
+                  </td>
+                </tr>
+                <tr style="background-color: #fffbeb;">
+                  <td style="padding: 12px 16px; font-size: 13px; font-weight: 700; color: #92400e; border-top: 1px solid #fde68a;">Sisa Pelunasan (H-1)</td>
+                  <td style="padding: 12px 16px; font-size: 15px; font-weight: 700; color: #b45309; text-align: right; border-top: 1px solid #fde68a;">
+                    ${formatPrice(remaining)}
+                  </td>
+                </tr>`;
+                      })()
+                    : ""
+                }
               </table>
 
               <!-- Attachment Callout Box -->
