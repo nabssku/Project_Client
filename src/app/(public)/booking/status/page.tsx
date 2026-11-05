@@ -7,6 +7,7 @@ import { format, parseISO, subDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { formatIDR } from "@/lib/pricing";
 import { normalizeMediaUrl } from "@/lib/media";
+import { WhatsAppConfirmPopup } from "@/components/public/whatsapp-confirm-popup";
 import {
   Search,
   CheckCircle2,
@@ -23,6 +24,7 @@ import {
   UploadCloud,
   Loader2,
   ExternalLink,
+  MessageCircle,
 } from "lucide-react";
 
 export default function BookingStatusPage() {
@@ -30,13 +32,24 @@ export default function BookingStatusPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [booking, setBooking] = useState<any>(null);
+  const [siteName, setSiteName] = useState("Villa");
+  const [contactPhone, setContactPhone] = useState<string | null>(null);
   const [uploadingSettlement, setUploadingSettlement] = useState(false);
   const [settlementError, setSettlementError] = useState("");
   const [settlementSuccess, setSettlementSuccess] = useState(false);
+  const [showWaConfirmModal, setShowWaConfirmModal] = useState(false);
+  const [uploadedProofType, setUploadedProofType] = useState<"PAYMENT" | "SETTLEMENT">("PAYMENT");
 
-  const handleSettlementUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProofUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    proofTypeOverride?: "PAYMENT" | "SETTLEMENT"
+  ) => {
     const file = e.target.files?.[0];
     if (!file || !booking) return;
+
+    const isSettlement =
+      proofTypeOverride === "SETTLEMENT" ||
+      (!proofTypeOverride && (booking.status === "DP" || booking.status === "DP_50"));
 
     setUploadingSettlement(true);
     setSettlementError("");
@@ -46,7 +59,9 @@ export default function BookingStatusPage() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("bookingCode", booking.code);
-      formData.append("proofType", "SETTLEMENT");
+      if (isSettlement) {
+        formData.append("proofType", "SETTLEMENT");
+      }
 
       const res = await fetch("/api/upload/payment-proof", {
         method: "POST",
@@ -55,22 +70,33 @@ export default function BookingStatusPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.error || "Gagal mengunggah bukti pelunasan");
+        throw new Error(data.error || "Gagal mengunggah bukti pembayaran");
       }
+
+      if (data.siteName) setSiteName(data.siteName);
+      if (data.contactPhone) setContactPhone(data.contactPhone);
 
       setBooking((prev: any) => ({
         ...prev,
         ...data.booking,
+        paymentProofUrl:
+          data.booking?.paymentProofUrl || prev?.paymentProofUrl,
+        paymentProofUploadedAt:
+          data.booking?.paymentProofUploadedAt || prev?.paymentProofUploadedAt,
         settlementProofUrl:
           data.booking?.settlementProofUrl || prev?.settlementProofUrl,
         settlementProofUploadedAt:
-          data.booking?.settlementProofUploadedAt || new Date().toISOString(),
+          data.booking?.settlementProofUploadedAt ||
+          (isSettlement ? new Date().toISOString() : prev?.settlementProofUploadedAt),
       }));
+      setUploadedProofType(isSettlement ? "SETTLEMENT" : "PAYMENT");
       setSettlementSuccess(true);
+      setShowWaConfirmModal(true);
     } catch (err: any) {
-      setSettlementError(err.message || "Gagal mengunggah bukti pelunasan");
+      setSettlementError(err.message || "Gagal mengunggah bukti pembayaran");
     } finally {
       setUploadingSettlement(false);
+      e.target.value = "";
     }
   };
 
@@ -82,6 +108,8 @@ export default function BookingStatusPage() {
 
     setError("");
     setBooking(null);
+    setSettlementError("");
+    setSettlementSuccess(false);
     setLoading(true);
 
     try {
@@ -99,6 +127,8 @@ export default function BookingStatusPage() {
         throw new Error(data.error || "Pesanan tidak ditemukan.");
       }
 
+      if (data.siteName) setSiteName(data.siteName);
+      if (data.contactPhone) setContactPhone(data.contactPhone);
       setBooking(data.booking);
     } catch (err: any) {
       setError(err.message || "Gagal mencari data pesanan.");
@@ -411,7 +441,7 @@ export default function BookingStatusPage() {
                           ? "Batas waktu pembayaran telah kedaluwarsa karena telah melewati jadwal check-in."
                           : "Bukti transfer tidak sesuai atau tidak terbaca.")}
                     </p>
-                    <div className="pl-6 pt-1">
+                    <div className="pl-6 pt-1 flex flex-wrap items-center gap-2">
                       {isExpiredCancel ? (
                         <Link
                           href={`/villas/${booking.villa.slug}`}
@@ -421,13 +451,35 @@ export default function BookingStatusPage() {
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       ) : (
-                        <Link
-                          href={`/booking/${booking.code}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 transition-colors"
-                        >
-                          <span>Unggah Ulang Bukti Pembayaran</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
+                        <>
+                          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-700 transition-colors cursor-pointer">
+                            {uploadingSettlement ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                <span>Mengunggah...</span>
+                              </>
+                            ) : (
+                              <>
+                                <UploadCloud className="w-3.5 h-3.5" />
+                                <span>Unggah Ulang Bukti Sekarang</span>
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,application/pdf"
+                              onChange={(e) => handleProofUpload(e, "PAYMENT")}
+                              disabled={uploadingSettlement}
+                              className="hidden"
+                            />
+                          </label>
+                          <Link
+                            href={`/booking/${booking.code}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 font-semibold text-xs hover:bg-rose-100 transition-colors"
+                          >
+                            <span>Halaman Pembayaran</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </Link>
+                        </>
                       )}
                     </div>
                   </div>
@@ -478,41 +530,54 @@ export default function BookingStatusPage() {
                     )}
 
                     {booking.settlementProofUrl ? (
-                      <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-2.5 text-emerald-800">
-                          <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
-                          <div>
-                            <span className="font-bold block">
-                              Bukti Transfer Pelunasan Berhasil Diunggah
-                            </span>
-                            <span className="text-[11px] text-emerald-700">
-                              {booking.settlementProofUploadedAt
-                                ? `Diunggah pada ${format(new Date(booking.settlementProofUploadedAt), "d MMM yyyy, HH:mm", { locale: localeId })} WIB (menunggu verifikasi)`
-                                : "Sedang diverifikasi oleh manajer villa"}
-                            </span>
+                      <div className="p-3.5 rounded-xl bg-emerald-50/80 border border-emerald-200 text-xs space-y-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 text-emerald-800">
+                            <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
+                            <div>
+                              <span className="font-bold block">
+                                Bukti Transfer Pelunasan Berhasil Diunggah
+                              </span>
+                              <span className="text-[11px] text-emerald-700">
+                                {booking.settlementProofUploadedAt
+                                  ? `Diunggah pada ${format(new Date(booking.settlementProofUploadedAt), "d MMM yyyy, HH:mm", { locale: localeId })} WIB (menunggu verifikasi)`
+                                  : "Sedang diverifikasi oleh manajer villa"}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
+                            <a
+                              href={normalizeMediaUrl(booking.settlementProofUrl)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-bold text-emerald-800 hover:underline inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs"
+                            >
+                              <span>Lihat File</span>
+                              <ExternalLink className="w-3 h-3" />
+                            </a>
+                            <label className="text-accent hover:underline cursor-pointer font-semibold text-xs">
+                              {uploadingSettlement ? "Mengunggah..." : "Unggah Ulang"}
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,application/pdf"
+                                onChange={(e) => handleProofUpload(e, "SETTLEMENT")}
+                                disabled={uploadingSettlement}
+                                className="hidden"
+                              />
+                            </label>
                           </div>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
-                          <a
-                            href={normalizeMediaUrl(booking.settlementProofUrl)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="font-bold text-emerald-800 hover:underline inline-flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-emerald-200 shadow-2xs"
-                          >
-                            <span>Lihat File</span>
-                            <ExternalLink className="w-3 h-3" />
-                          </a>
-                          <label className="text-accent hover:underline cursor-pointer font-semibold text-xs">
-                            {uploadingSettlement ? "Mengunggah..." : "Unggah Ulang"}
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp,application/pdf"
-                              onChange={handleSettlementUpload}
-                              disabled={uploadingSettlement}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUploadedProofType("SETTLEMENT");
+                            setShowWaConfirmModal(true);
+                          }}
+                          className="w-full py-2.5 px-4 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                        >
+                          <MessageCircle className="w-4 h-4" />
+                          <span>Konfirmasi Cepat Pelunasan via WhatsApp</span>
+                        </button>
                       </div>
                     ) : (
                       <div>
@@ -536,7 +601,7 @@ export default function BookingStatusPage() {
                           <input
                             type="file"
                             accept="image/jpeg,image/png,image/webp,application/pdf"
-                            onChange={handleSettlementUpload}
+                            onChange={(e) => handleProofUpload(e, "SETTLEMENT")}
                             disabled={uploadingSettlement}
                             className="hidden"
                           />
@@ -547,34 +612,99 @@ export default function BookingStatusPage() {
                 );
               })()
             ) : booking.paymentProofUrl ? (
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-800">
-                  <FileCheck className="w-4 h-4 text-emerald-600" />
-                  <span>Bukti pembayaran sudah diunggah (sedang diverifikasi).</span>
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-emerald-800">
+                    <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span>Bukti pembayaran sudah diunggah (sedang diverifikasi).</span>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <a
+                      href={normalizeMediaUrl(booking.paymentProofUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-emerald-700 hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>Lihat File</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                    {booking.status === "PENDING" && (
+                      <label className="text-accent hover:underline cursor-pointer font-semibold">
+                        {uploadingSettlement ? "Mengunggah..." : "Unggah Ulang"}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp,application/pdf"
+                          onChange={(e) => handleProofUpload(e, "PAYMENT")}
+                          disabled={uploadingSettlement}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
-                <a
-                  href={normalizeMediaUrl(booking.paymentProofUrl)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-emerald-700 hover:underline"
-                >
-                  Lihat File
-                </a>
+                {booking.status === "PENDING" && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadedProofType("PAYMENT");
+                      setShowWaConfirmModal(true);
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Konfirmasi Cepat via WhatsApp</span>
+                  </button>
+                )}
               </div>
             ) : (
-              <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-amber-800">
-                  <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                  <span>
-                    Bukti transfer belum diunggah &bull; Batas bayar sebelum check-in ({booking.villa.checkInTime} WIB).
-                  </span>
+              <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-amber-800">
+                    <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>
+                      Bukti transfer belum diunggah &bull; Batas bayar sebelum check-in ({booking.villa.checkInTime} WIB).
+                    </span>
+                  </div>
+                  <Link
+                    href={`/booking/${booking.code}`}
+                    className="font-semibold text-accent hover:underline shrink-0"
+                  >
+                    Lihat Rekening Transfer &rarr;
+                  </Link>
                 </div>
-                <Link
-                  href={`/booking/${booking.code}`}
-                  className="font-semibold text-accent hover:underline shrink-0"
-                >
-                  Bayar &amp; Unggah Sekarang &rarr;
-                </Link>
+
+                {settlementError && (
+                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{settlementError}</span>
+                  </div>
+                )}
+
+                <label className="border-2 border-dashed border-amber-300 hover:border-accent rounded-2xl p-5 flex flex-col items-center justify-center cursor-pointer transition-colors bg-white/80 text-center">
+                  {uploadingSettlement ? (
+                    <div className="flex items-center gap-2 text-amber-900 text-xs font-semibold py-1">
+                      <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                      <span>Sedang Mengunggah Bukti Pembayaran...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <UploadCloud className="w-6 h-6 text-accent mb-1" />
+                      <span className="text-xs font-bold text-primary">
+                        Klik di sini untuk unggah foto bukti transfer
+                      </span>
+                      <span className="text-[10px] text-gray-500 mt-0.5">
+                        JPG, PNG, WebP atau PDF (Maks. 10MB)
+                      </span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    onChange={(e) => handleProofUpload(e, "PAYMENT")}
+                    disabled={uploadingSettlement}
+                    className="hidden"
+                  />
+                </label>
               </div>
             )}
 
@@ -610,6 +740,34 @@ export default function BookingStatusPage() {
           </div>
         )}
       </div>
+
+      {/* Pop-up Konfirmasi Cepat via WhatsApp Setelah Upload Berhasil */}
+      {booking && (
+        <WhatsAppConfirmPopup
+          isOpen={showWaConfirmModal}
+          onClose={() => setShowWaConfirmModal(false)}
+          bookingCode={booking.code}
+          guestName={booking.guestName}
+          villaName={booking.villa?.name || "Villa"}
+          amountFormatted={formatIDR(
+            uploadedProofType === "SETTLEMENT"
+              ? Math.max(
+                  0,
+                  booking.totalPrice -
+                    (booking.dpAmount || Math.round(booking.totalPrice * 0.5))
+                )
+              : booking.totalPrice
+          )}
+          proofType={uploadedProofType}
+          proofUrl={
+            uploadedProofType === "SETTLEMENT"
+              ? booking.settlementProofUrl
+              : booking.paymentProofUrl
+          }
+          siteName={siteName}
+          contactPhone={contactPhone}
+        />
+      )}
     </div>
   );
 }

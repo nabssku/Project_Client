@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { isBookingExpired } from "@/lib/booking-expiration";
+import { getSiteContactConfig } from "@/lib/site-config";
 
 const checkBookingSchema = z.object({
   code: z.string().min(3, "Kode booking wajib diisi"),
@@ -79,9 +80,13 @@ export async function POST(request: Request) {
       }
     }
 
+    const siteContact = await getSiteContactConfig();
+
     return NextResponse.json({
       success: true,
       booking,
+      siteName: siteContact.siteName,
+      contactPhone: siteContact.contactPhone1,
     });
   } catch (error: any) {
     console.error("Booking lookup error:", error);

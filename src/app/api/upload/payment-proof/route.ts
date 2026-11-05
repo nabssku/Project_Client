@@ -206,6 +206,9 @@ export async function POST(request: Request) {
       success: true,
       url: publicUrl,
       booking: updated,
+      siteName: siteContact.siteName,
+      contactPhone: siteContact.contactPhone1,
+      proofType: isSettlement ? "SETTLEMENT" : "PAYMENT",
       message: `Bukti pembayaran berhasil diunggah! Tim ${siteContact.siteName} akan segera memverifikasi pesanan Anda.`,
     });
   } catch (error: any) {

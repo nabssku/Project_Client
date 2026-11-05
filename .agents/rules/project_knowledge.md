@@ -532,3 +532,14 @@ Modul pengelolaan fasilitas tambahan per unit villa (seperti Extra Bed, Flooties
 
 
 
+
+---
+
+## 23. Pop-up Konfirmasi Cepat via WhatsApp Setelah Upload Bukti Transfer
+
+1. **Komponen Reusable (`src/components/public/whatsapp-confirm-popup.tsx`)**:
+   - Otomatis tampil sebagai modal pop-up begitu tamu berhasil mengunggah bukti pembayaran awal/DP (`PAYMENT`) maupun bukti pelunasan H-1 (`SETTLEMENT`).
+   - Menampilkan ringkasan transaksi (Kode Booking, Unit Villa, Atas Nama Tamu, Nominal Transfer, dan tautan pratinjau file bukti yang baru diunggah).
+   - Menyediakan tombol CTA utama **"Konfirmasi Cepat via WhatsApp"** yang langsung mengarahkan ke nomor WhatsApp Hotline resmi dari `site_configs` (`contact_phone_1`) dengan template pesan otomatis sesuai jenis pembayaran (Pembayaran Reservasi atau Pelunasan DP).
+2. **Integrasi di `/booking/[code]` (`src/components/public/booking-payment-client.tsx`) & `/booking/status` (`src/app/(public)/booking/status/page.tsx`)**:
+   - Kedua halaman mendukung unggah/unggah ulang bukti pembayaran (`PENDING` / `CANCELLED` non-expired) serta bukti pelunasan (`DP` / `DP_50`), dan langsung memunculkan pop-up konfirmasi WhatsApp saat unggahan selesai.

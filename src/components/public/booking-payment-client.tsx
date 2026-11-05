@@ -41,6 +41,7 @@ import {
   isBookingExpired,
   formatBookingDeadline,
 } from "@/lib/booking-expiration";
+import { WhatsAppConfirmPopup } from "@/components/public/whatsapp-confirm-popup";
 
 interface BookingData {
   id: string;
@@ -157,6 +158,8 @@ export function BookingPaymentClient({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [showWaConfirmModal, setShowWaConfirmModal] = useState(false);
+  const [uploadedProofType, setUploadedProofType] = useState<"PAYMENT" | "SETTLEMENT">("PAYMENT");
 
   // Guest Review states
   const [testimonial, setTestimonial] = useState(initialBooking.testimonial || null);
@@ -288,6 +291,11 @@ export function BookingPaymentClient({
         throw new Error(data.error || "Gagal mengunggah bukti pembayaran");
       }
 
+      const isSettlementUpload =
+        data.proofType === "SETTLEMENT" ||
+        booking.status === "DP" ||
+        booking.status === "DP_50";
+
       setBooking((prev) => ({
         ...prev,
         ...data.booking,
@@ -307,11 +315,14 @@ export function BookingPaymentClient({
               : prev.villa?.images || [],
         },
       }));
+      setUploadedProofType(isSettlementUpload ? "SETTLEMENT" : "PAYMENT");
       setUploadSuccess(true);
+      setShowWaConfirmModal(true);
     } catch (err: any) {
       setUploadError(err.message || "Gagal mengunggah bukti pembayaran");
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -1943,6 +1954,26 @@ export function BookingPaymentClient({
           </div>
         </div>
       )}
+
+      {/* --- Pop-up Modal: Konfirmasi Cepat via WhatsApp Setelah Upload Berhasil --- */}
+      <WhatsAppConfirmPopup
+        isOpen={showWaConfirmModal}
+        onClose={() => setShowWaConfirmModal(false)}
+        bookingCode={booking.code}
+        guestName={booking.guestName}
+        villaName={booking.villa.name}
+        amountFormatted={formatIDR(
+          uploadedProofType === "SETTLEMENT" ? remainingBalance : booking.totalPrice
+        )}
+        proofType={uploadedProofType}
+        proofUrl={
+          uploadedProofType === "SETTLEMENT"
+            ? booking.settlementProofUrl
+            : booking.paymentProofUrl
+        }
+        siteName={siteName}
+        contactPhone={contactPhone}
+      />
     </div>
   );
 }
