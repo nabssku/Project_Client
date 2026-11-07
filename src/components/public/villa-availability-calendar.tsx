@@ -76,7 +76,7 @@ export function VillaAvailabilityCalendar() {
             Kalender Ketersediaan &amp; Harga
           </h2>
           <p className="text-gray-500 text-xs sm:text-sm mt-0.5 sm:mt-1">
-            Gunakan kalender ini untuk melihat ketersediaan tanggal dan rincian tarif per malam. Tanggal bertanda <strong className="text-rose-700 font-bold">Penuh</strong> sudah terisi.
+            Gunakan kalender ini untuk melihat ketersediaan tanggal dan rincian tarif per malam. Tanggal bertanda <strong className="text-gray-800 font-bold">Penuh</strong> sudah terisi.
           </p>
         </div>
 
@@ -177,9 +177,9 @@ export function VillaAvailabilityCalendar() {
             priceColor = "text-gray-300";
           } else if (isBooked) {
             cellStyle =
-              "bg-rose-700 border-rose-800 shadow-xs";
+              "bg-gray-700 border-gray-800 shadow-xs";
             textColor = "text-white line-through decoration-white/80 font-bold";
-            priceColor = "text-rose-100 font-semibold";
+            priceColor = "text-gray-200 font-semibold";
           } else if (isCheckInDay || isCheckOutDay) {
             cellStyle =
               "bg-accent text-white border-accent shadow-md scale-[1.02] z-10 ring-2 ring-accent/30";
@@ -229,7 +229,7 @@ export function VillaAvailabilityCalendar() {
                   </span>
                 )}
                 {isBooked && isCurrentMonth && !isPast && (
-                  <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white bg-rose-900/70 border border-rose-400/30 px-1.5 py-0.5 rounded hidden sm:inline">
+                  <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-wider text-white bg-gray-900/70 border border-gray-500/30 px-1.5 py-0.5 rounded hidden sm:inline">
                     Penuh
                   </span>
                 )}
@@ -252,7 +252,7 @@ export function VillaAvailabilityCalendar() {
                   <span className="block text-[8px] sm:text-[9px] text-white font-bold font-sans truncate sm:hidden">
                     Penuh
                   </span>
-                  <span className="hidden sm:block text-[9px] md:text-[10px] text-rose-100/90 font-medium font-sans truncate line-through">
+                  <span className="hidden sm:block text-[9px] md:text-[10px] text-gray-200/90 font-medium font-sans truncate line-through">
                     {compactPrice}
                   </span>
                 </div>
@@ -281,8 +281,8 @@ export function VillaAvailabilityCalendar() {
           <span>Hari Libur</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-md border border-rose-800 bg-rose-700"></span>
-          <span className="font-semibold text-rose-700">Penuh</span>
+          <span className="w-3 h-3 sm:w-3.5 sm:h-3.5 rounded-md border border-gray-800 bg-gray-700"></span>
+          <span className="font-semibold text-gray-700">Penuh</span>
         </div>
       </div>
     </div>
