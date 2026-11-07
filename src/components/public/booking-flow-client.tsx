@@ -8,6 +8,7 @@ import { signIn } from "next-auth/react";
 import { format, parseISO } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { calculateStayBreakdown, formatIDR } from "@/lib/pricing";
+import { formatWhatsAppInput, normalizeWhatsAppPhone } from "@/lib/utils";
 import {
   Calendar,
   Users,
@@ -81,7 +82,9 @@ export function BookingFlowClient({
   // Form states
   const [guestName, setGuestName] = useState(currentUser?.name || "");
   const [guestEmail, setGuestEmail] = useState(currentUser?.email || "");
-  const [guestPhone, setGuestPhone] = useState(currentUser?.phone || "");
+  const [guestPhone, setGuestPhone] = useState(
+    currentUser?.phone ? normalizeWhatsAppPhone(currentUser.phone) : ""
+  );
   const [guestCity, setGuestCity] = useState("");
   const [companionType, setCompanionType] = useState("Keluarga");
   const [notes, setNotes] = useState("");
@@ -208,7 +211,8 @@ export function BookingFlowClient({
       setFormError("Email wajib diisi.");
       return;
     }
-    if (!guestPhone.trim() || guestPhone.trim().length < 9) {
+    const normalizedPhone = normalizeWhatsAppPhone(guestPhone);
+    if (!normalizedPhone || normalizedPhone.length < 9) {
       setFormError("Nomor WhatsApp/telepon aktif minimal 9 digit.");
       return;
     }
@@ -238,7 +242,7 @@ export function BookingFlowClient({
         guestsCount: initialGuests,
         guestName: guestName.trim(),
         guestEmail: guestEmail.trim().toLowerCase(),
-        guestPhone: guestPhone.trim(),
+        guestPhone: normalizedPhone,
         guestCity: guestCity.trim() || undefined,
         companionType,
         notes: notes.trim() || undefined,
@@ -380,12 +384,13 @@ export function BookingFlowClient({
                       type="tel"
                       required
                       value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="081234567890"
+                      onChange={(e) => setGuestPhone(formatWhatsAppInput(e.target.value))}
+                      onBlur={() => setGuestPhone((prev) => normalizeWhatsAppPhone(prev))}
+                      placeholder="6281234567890"
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent text-sm"
                     />
                     <p className="text-[11px] text-gray-400 mt-1">
-                      Untuk koordinasi check-in staf di lokasi.
+                      Otomatis diubah ke awalan 62 untuk koordinasi check-in via WhatsApp.
                     </p>
                   </div>
                 </div>

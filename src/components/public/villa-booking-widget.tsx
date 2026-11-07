@@ -464,8 +464,9 @@ export function VillaBookingWidget({
                                     onMouseLeave={() => setHoveredDate(null)}
                                     className={cn(
                                       "rdp-day-btn w-full aspect-square rounded-xl text-xs flex items-center justify-center font-sans transition-all duration-150",
-                                      isDisabled && "text-gray-300 cursor-not-allowed",
-                                      isBooked && !isPast && "line-through text-rose-300",
+                                      isDisabled && !isBooked && "text-gray-300 cursor-not-allowed",
+                                      isDisabled && isBooked && isPast && "text-gray-300 cursor-not-allowed",
+                                      isBooked && !isPast && "bg-rose-700 text-white line-through decoration-white/80 font-semibold cursor-not-allowed",
                                       !isDisabled && !isStart && !isEnd && "text-gray-700 hover:bg-accent hover:text-white cursor-pointer font-medium",
                                       isToday && !isStart && !isEnd && "font-bold text-primary ring-1 ring-accent/40",
                                       (isStart || isEnd) && "bg-accent text-white font-bold shadow-xs hover:bg-accent-light cursor-pointer scale-105 z-10"

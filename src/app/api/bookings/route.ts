@@ -17,6 +17,7 @@ import {
 } from "date-fns";
 import { autoCancelExpiredBookings } from "@/lib/booking-expiration";
 import { getSiteContactConfig } from "@/lib/site-config";
+import { normalizeWhatsAppPhone } from "@/lib/utils";
 
 const createBookingSchema = z.object({
   villaId: z.string().optional(),
@@ -396,7 +397,7 @@ export async function POST(request: Request) {
           code: bookingCode,
           villaId: villa.id,
           guestName: data.guestName,
-          guestPhone: data.guestPhone,
+          guestPhone: normalizeWhatsAppPhone(data.guestPhone),
           guestEmail: data.guestEmail.toLowerCase().trim(),
           guestCity: data.guestCity || null,
           companionType: data.companionType || null,

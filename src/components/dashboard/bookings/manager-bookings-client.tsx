@@ -6,6 +6,7 @@ import Link from "next/link";
 import { format, parseISO, subDays } from "date-fns";
 import { id as localeId } from "date-fns/locale";
 import { formatIDR, calculateStayBreakdown } from "@/lib/pricing";
+import { formatWhatsAppInput, normalizeWhatsAppPhone } from "@/lib/utils";
 import {
   CalendarDays,
   Search,
@@ -495,6 +496,7 @@ Status: ${b.status}`;
               : undefined)
           : undefined;
 
+      const normalizedDirectPhone = normalizeWhatsAppPhone(directGuestPhone);
       const payload = {
         villaId: directVillaId,
         checkIn: directCheckIn,
@@ -502,7 +504,7 @@ Status: ${b.status}`;
         guestsCount: directGuestsCount,
         guestName: directGuestName.trim(),
         guestEmail: directGuestEmail.trim().toLowerCase(),
-        guestPhone: directGuestPhone.trim(),
+        guestPhone: normalizedDirectPhone,
         guestCity: directGuestCity.trim() || undefined,
         notes: directNotes.trim() || undefined,
         directBookingStatus: directStatus,
@@ -897,14 +899,14 @@ Status: ${b.status}`;
                           {b.guestName}
                         </span>
                         <a
-                          href={`https://wa.me/${b.guestPhone.replace(/\D/g, "")}`}
+                          href={`https://wa.me/${normalizeWhatsAppPhone(b.guestPhone)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-emerald-700 hover:text-emerald-800 hover:underline inline-flex items-center gap-1 mt-0.5 font-medium"
                           title="Chat via WhatsApp"
                         >
                           <MessageCircle className="w-3 h-3 shrink-0" />
-                          <span>{b.guestPhone}</span>
+                          <span>{normalizeWhatsAppPhone(b.guestPhone)}</span>
                         </a>
                         {b.guestCity && (
                           <span className="text-[10px] text-gray-400 block truncate">
@@ -1445,7 +1447,7 @@ Status: ${b.status}`;
                                 <div className="py-1">
                                   {/* Kirim WhatsApp */}
                                   <a
-                                    href={`https://wa.me/${b.guestPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                                    href={`https://wa.me/${normalizeWhatsAppPhone(b.guestPhone)}?text=${encodeURIComponent(
                                       `Halo ${b.guestName}, kami dari manajemen ${siteName} mengonfirmasi reservasi ${b.code} di ${b.villa.name}.`
                                     )}`}
                                     target="_blank"
@@ -1930,7 +1932,7 @@ Status: ${b.status}`;
                   )}
 
                   <a
-                    href={`https://wa.me/${selectedProofBooking.guestPhone.replace(/\D/g, "")}?text=${encodeURIComponent(
+                    href={`https://wa.me/${normalizeWhatsAppPhone(selectedProofBooking.guestPhone)}?text=${encodeURIComponent(
                       `Halo ${selectedProofBooking.guestName}, terkait bukti transfer reservasi ${selectedProofBooking.code} untuk ${selectedProofBooking.villa.name} di ${siteName}.`
                     )}`}
                     target="_blank"
@@ -2417,9 +2419,10 @@ Status: ${b.status}`;
                     <input
                       type="tel"
                       required
-                      placeholder="08123456789"
+                      placeholder="628123456789"
                       value={directGuestPhone}
-                      onChange={(e) => setDirectGuestPhone(e.target.value)}
+                      onChange={(e) => setDirectGuestPhone(formatWhatsAppInput(e.target.value))}
+                      onBlur={() => setDirectGuestPhone((prev) => normalizeWhatsAppPhone(prev))}
                       className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
                     />
                   </div>
