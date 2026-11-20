@@ -70,6 +70,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         settlementProofUploadedAt: booking.settlementProofUploadedAt,
         dpAmount: booking.dpAmount,
         notes: booking.notes,
+        invoiceNotes: booking.invoiceNotes,
         rejectionReason: booking.rejectionReason,
         createdAt: booking.createdAt,
         addons: booking.addons.map((a) => ({

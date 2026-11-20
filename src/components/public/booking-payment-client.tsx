@@ -65,6 +65,7 @@ interface BookingData {
   settlementProofUploadedAt?: string | Date | null;
   dpAmount?: number | null;
   notes?: string | null;
+  invoiceNotes?: string | null;
   rejectionReason?: string | null;
   createdAt: string | Date;
   addons?: Array<{
@@ -214,6 +215,7 @@ export function BookingPaymentClient({
           settlementProofUploadedAt: booking.settlementProofUploadedAt,
           dpAmount: booking.dpAmount,
           notes: booking.notes,
+          invoiceNotes: booking.invoiceNotes,
           rejectionReason: booking.rejectionReason,
           createdAt: booking.createdAt,
           addons: booking.addons?.map((a) => ({

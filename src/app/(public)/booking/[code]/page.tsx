@@ -154,6 +154,7 @@ export default async function BookingCodePage({ params }: BookingCodePageProps) 
           : null,
         dpAmount: booking.dpAmount ?? 0,
         notes: booking.notes,
+        invoiceNotes: booking.invoiceNotes,
         rejectionReason: booking.rejectionReason,
         createdAt: booking.createdAt.toISOString(),
         villa: {

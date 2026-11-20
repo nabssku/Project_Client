@@ -23,6 +23,7 @@ export interface BookingPDFData {
   settlementProofUploadedAt?: string | Date | null;
   dpAmount?: number | null;
   notes?: string | null;
+  invoiceNotes?: string | null;
   rejectionReason?: string | null;
   createdAt: string | Date;
   addons?: Array<{
@@ -262,6 +263,23 @@ export function buildBookingPDFDocument(
   // ==========================================
   // 2. DOCUMENT TITLE & GREETING
   // ==========================================
+  const rawIssuedDate = booking.createdAt ? new Date(booking.createdAt) : new Date();
+  const issuedDate = isNaN(rawIssuedDate.getTime()) ? new Date() : rawIssuedDate;
+  const issuedDateFormatted = issuedDate.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  });
+  const issuedDateTimeFormatted = issuedDate.toLocaleString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Jakarta",
+  });
+
   let y = 43;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
@@ -272,11 +290,7 @@ export function buildBookingPDFDocument(
   doc.setFontSize(8.5);
   doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
   doc.text(
-    `Diterbitkan pada ${new Date(booking.createdAt).toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    })} untuk konfirmasi resmi masa menginap Anda.`,
+    `Diterbitkan pada ${issuedDateFormatted} untuk konfirmasi resmi masa menginap Anda.`,
     16,
     y + 5
   );
@@ -554,16 +568,22 @@ export function buildBookingPDFDocument(
   doc.setFontSize(7.5);
   doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
 
-  let notesText = booking.notes?.trim()
-    ? `Catatan Tamu: ${booking.notes.trim()}`
+  const customInvoiceNote = booking.invoiceNotes?.trim();
+  const guestNote = booking.notes?.trim();
+
+  let notesText = customInvoiceNote
+    ? customInvoiceNote
+    : guestNote
+    ? `Catatan Tamu: ${guestNote}`
     : "Tidak ada catatan khusus yang dilampirkan.";
 
   if (isDpBooking) {
-    notesText += `\n* Ketentuan Pelunasan: Sisa tagihan 50% wajib dilunasi paling lambat H-1 Check-In (${settlementDeadlineFormatted}) pukul 23:59 WIB melalui transfer rekening resmi.`;
+    notesText += `\n* Ketentuan Pelunasan: Sisa tagihan (${formatPrice(remainingVal)}) wajib dilunasi paling lambat H-1 Check-In (${settlementDeadlineFormatted}) pukul 23:59 WIB melalui transfer rekening resmi.`;
   }
 
   const splitNotes = doc.splitTextToSize(notesText, totalBoxX - 22);
   doc.text(splitNotes, 16, finalTableY + 12);
+  let notesEndY = finalTableY + 12 + splitNotes.length * 3.6;
 
   if (booking.rejectionReason) {
     doc.setFont("helvetica", "bold");
@@ -573,14 +593,22 @@ export function buildBookingPDFDocument(
       `Alasan Penolakan/Batal: ${booking.rejectionReason}`,
       totalBoxX - 22
     );
-    doc.text(splitRejection, 16, finalTableY + 22);
+    const rejectionStartY = Math.max(finalTableY + 22, notesEndY + 2);
+    doc.text(splitRejection, 16, rejectionStartY);
+    notesEndY = rejectionStartY + splitRejection.length * 3.4;
   }
 
   // ==========================================
   // 6. ATURAN VILLA & PANDUAN CHECK-IN
   // ==========================================
-  let rulesY = finalTableY + (isDpBooking ? 38 : 30);
+  const footerY = pageHeight - 20;
+  let rulesY = Math.max(finalTableY + totalBoxHeight + 6, notesEndY + 4);
   const rulesBoxHeight = isDpBooking ? 47 : 42;
+  if (rulesY + rulesBoxHeight > footerY - 6) {
+    doc.addPage();
+    rulesY = 20;
+  }
+
   doc.setFillColor(252, 251, 249);
   doc.roundedRect(16, rulesY, pageWidth - 32, rulesBoxHeight, 3, 3, "F");
   doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
@@ -604,7 +632,7 @@ export function buildBookingPDFDocument(
   ];
 
   if (isDpBooking) {
-    rules.push(`6. Batas waktu pelunasan sisa tagihan 50% adalah H-1 Check-In (${settlementDeadlineFormatted}) pukul 23:59 WIB.`);
+    rules.push(`6. Batas waktu pelunasan sisa tagihan (${formatPrice(remainingVal)}) adalah H-1 Check-In (${settlementDeadlineFormatted}) pukul 23:59 WIB.`);
   }
 
   rules.forEach((rule, idx) => {
@@ -614,7 +642,6 @@ export function buildBookingPDFDocument(
   // ==========================================
   // 7. FOOTER & CONCIERGE ASSISTANCE
   // ==========================================
-  const footerY = pageHeight - 20;
   doc.setDrawColor(borderGray[0], borderGray[1], borderGray[2]);
   doc.setLineWidth(0.3);
   doc.line(16, footerY - 2, pageWidth - 16, footerY - 2);
@@ -638,7 +665,7 @@ export function buildBookingPDFDocument(
   doc.setFontSize(6.5);
   doc.setTextColor(mutedGray[0], mutedGray[1], mutedGray[2]);
   doc.text(
-    `Dokumen resmi ${siteName} • Diterbitkan secara otomatis sebagai bukti reservasi yang sah • Dicetak ${new Date().toLocaleString("id-ID")}`,
+    `Dokumen resmi ${siteName} • Tanggal Terbit: ${issuedDateTimeFormatted} WIB • Bukti reservasi yang sah`,
     16,
     footerY + 9
   );

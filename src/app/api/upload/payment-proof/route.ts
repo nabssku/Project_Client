@@ -182,6 +182,7 @@ export async function POST(request: Request) {
           settlementProofUploadedAt: updated.settlementProofUploadedAt,
           dpAmount: updated.dpAmount,
           notes: updated.notes,
+          invoiceNotes: updated.invoiceNotes,
           createdAt: updated.createdAt,
           addons: updated.addons?.map((a) => ({
             name: a.name,

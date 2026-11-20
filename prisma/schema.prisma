@@ -131,6 +131,8 @@ model bookings {
   addonsTotal            Int           @default(0)
   status                 BookingStatus @default(PENDING)
   notes                  String?       @db.Text
+  adminNotes             String?       @db.Text
+  invoiceNotes           String?       @db.Text
   rejectionReason        String?       @db.Text
   paymentMethod          String        @default("QRIS")
   paymentProofUrl        String?       @db.Text

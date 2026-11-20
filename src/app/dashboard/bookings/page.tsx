@@ -81,6 +81,8 @@ export default async function DashboardBookingsPage() {
           : null,
         dpAmount: b.dpAmount || 0,
         notes: b.notes,
+        adminNotes: b.adminNotes,
+        invoiceNotes: b.invoiceNotes,
         rejectionReason: b.rejectionReason,
         createdAt: b.createdAt.toISOString(),
         addons: b.addons.map((a) => ({

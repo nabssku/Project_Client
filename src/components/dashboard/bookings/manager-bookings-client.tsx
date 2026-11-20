@@ -79,6 +79,8 @@ interface BookingItem {
   settlementProofUploadedAt?: string | null;
   dpAmount?: number | null;
   notes?: string | null;
+  adminNotes?: string | null;
+  invoiceNotes?: string | null;
   rejectionReason?: string | null;
   createdAt: string;
   addons?: Array<{
@@ -131,14 +133,33 @@ export function ManagerBookingsClient({
     isOpen: boolean;
     booking: BookingItem | null;
     targetStatus: BookingItem["status"];
-    notes: string;
+    adminNotes: string;
+    invoiceNotes: string;
+    rejectionReason: string;
     dpAmount: string;
   }>({
     isOpen: false,
     booking: null,
     targetStatus: "CONFIRMED",
-    notes: "",
+    adminNotes: "",
+    invoiceNotes: "",
+    rejectionReason: "",
     dpAmount: "",
+  });
+
+  // Invoice Customization & Download Modal
+  const [invoiceModal, setInvoiceModal] = useState<{
+    isOpen: boolean;
+    booking: BookingItem | null;
+    customNotes: string;
+    saveToBooking: boolean;
+    downloading: boolean;
+  }>({
+    isOpen: false,
+    booking: null,
+    customNotes: "",
+    saveToBooking: true,
+    downloading: false,
   });
 
   // Action Menu Dropdown state (stores booking id)
@@ -190,7 +211,8 @@ export function ManagerBookingsClient({
     "CONFIRMED"
   );
   const [directDpAmount, setDirectDpAmount] = useState("");
-  const [directNotes, setDirectNotes] = useState("");
+  const [directGuestNotes, setDirectGuestNotes] = useState("");
+  const [directAdminNotes, setDirectAdminNotes] = useState("");
   const [directProofFile, setDirectProofFile] = useState<File | null>(null);
   const [directError, setDirectError] = useState("");
   const [createdDirectCode, setCreatedDirectCode] = useState<string | null>(
@@ -260,7 +282,10 @@ Status: ${b.status}`;
   };
 
   // Unduh Dokumen PDF Resmi (Invoice & Voucher Menginap)
-  const handleDownloadPDF = async (b: BookingItem) => {
+  const handleDownloadPDF = async (
+    b: BookingItem,
+    overrideInvoiceNotes?: string | null
+  ) => {
     try {
       await downloadBookingPDF(
         {
@@ -284,6 +309,10 @@ Status: ${b.status}`;
           settlementProofUploadedAt: b.settlementProofUploadedAt,
           dpAmount: b.dpAmount,
           notes: b.notes,
+          invoiceNotes:
+            overrideInvoiceNotes !== undefined
+              ? overrideInvoiceNotes
+              : b.invoiceNotes,
           rejectionReason: b.rejectionReason,
           createdAt: b.createdAt,
           addons: b.addons?.map((a) => ({
@@ -307,6 +336,63 @@ Status: ${b.status}`;
     } catch (err) {
       console.error("Gagal mengunduh dokumen PDF:", err);
       alert("Gagal mengunduh dokumen PDF.");
+    }
+  };
+
+  // Buka Modal Kustomisasi & Unduh Invoice PDF
+  const openInvoiceModal = (b: BookingItem) => {
+    setOpenActionMenuId(null);
+    setInvoiceModal({
+      isOpen: true,
+      booking: b,
+      customNotes: b.invoiceNotes || "",
+      saveToBooking: true,
+      downloading: false,
+    });
+  };
+
+  // Simpan Catatan Kustom (opsional) lalu Unduh Invoice PDF
+  const handleConfirmDownloadInvoice = async () => {
+    if (!invoiceModal.booking) return;
+    const targetBooking = invoiceModal.booking;
+    const trimmedCustomNotes = invoiceModal.customNotes.trim();
+    const normalizedNotes = trimmedCustomNotes || null;
+
+    setInvoiceModal((prev) => ({ ...prev, downloading: true }));
+    try {
+      if (
+        invoiceModal.saveToBooking &&
+        normalizedNotes !== (targetBooking.invoiceNotes || null)
+      ) {
+        const res = await fetch(`/api/bookings/${targetBooking.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoiceNotes: normalizedNotes }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || "Gagal menyimpan catatan invoice");
+        }
+        setBookings((prev) =>
+          prev.map((item) =>
+            item.id === targetBooking.id
+              ? { ...item, invoiceNotes: normalizedNotes }
+              : item
+          )
+        );
+        if (selectedProofBooking?.id === targetBooking.id) {
+          setSelectedProofBooking((prev) =>
+            prev ? { ...prev, invoiceNotes: normalizedNotes } : null
+          );
+        }
+      }
+
+      await handleDownloadPDF(targetBooking, normalizedNotes);
+      setInvoiceModal((prev) => ({ ...prev, isOpen: false }));
+    } catch (err: any) {
+      alert(err.message || "Gagal mengunduh invoice PDF");
+    } finally {
+      setInvoiceModal((prev) => ({ ...prev, downloading: false }));
     }
   };
 
@@ -371,16 +457,23 @@ Status: ${b.status}`;
   const handleUpdateStatus = async (
     bookingId: string,
     newStatus: BookingItem["status"],
-    notes?: string,
-    rejectionReason?: string,
-    dpAmount?: number
+    adminNotes?: string | null,
+    rejectionReason?: string | null,
+    dpAmount?: number,
+    invoiceNotes?: string | null
   ) => {
     setUpdatingId(bookingId);
     try {
       const res = await fetch(`/api/bookings/${bookingId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus, notes, rejectionReason, dpAmount }),
+        body: JSON.stringify({
+          status: newStatus,
+          adminNotes,
+          invoiceNotes,
+          rejectionReason,
+          dpAmount,
+        }),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -396,10 +489,11 @@ Status: ${b.status}`;
                 ...b,
                 status: newStatus,
                 dpAmount: updatedDp !== undefined ? updatedDp : b.dpAmount,
-                notes: notes !== undefined ? notes : b.notes,
+                adminNotes: adminNotes !== undefined ? (adminNotes?.trim() || null) : b.adminNotes,
+                invoiceNotes: invoiceNotes !== undefined ? (invoiceNotes?.trim() || null) : b.invoiceNotes,
                 rejectionReason:
                   newStatus === "CANCELLED"
-                    ? rejectionReason || notes || b.rejectionReason
+                    ? rejectionReason || adminNotes || b.rejectionReason
                     : null,
               }
             : b
@@ -413,9 +507,11 @@ Status: ${b.status}`;
                 ...prev,
                 status: newStatus,
                 dpAmount: updatedDp !== undefined ? updatedDp : prev.dpAmount,
+                adminNotes: adminNotes !== undefined ? (adminNotes?.trim() || null) : prev.adminNotes,
+                invoiceNotes: invoiceNotes !== undefined ? (invoiceNotes?.trim() || null) : prev.invoiceNotes,
                 rejectionReason:
                   newStatus === "CANCELLED"
-                    ? rejectionReason || notes || prev.rejectionReason
+                    ? rejectionReason || adminNotes || prev.rejectionReason
                     : null,
               }
             : null
@@ -447,7 +543,9 @@ Status: ${b.status}`;
       isOpen: true,
       booking,
       targetStatus: defaultStatus || booking.status,
-      notes: "",
+      adminNotes: booking.adminNotes || "",
+      invoiceNotes: booking.invoiceNotes || "",
+      rejectionReason: booking.rejectionReason || "",
       dpAmount: initialDp,
     });
   };
@@ -506,7 +604,8 @@ Status: ${b.status}`;
         guestEmail: directGuestEmail.trim().toLowerCase(),
         guestPhone: normalizedDirectPhone,
         guestCity: directGuestCity.trim() || undefined,
-        notes: directNotes.trim() || undefined,
+        notes: directGuestNotes.trim() || undefined,
+        adminNotes: directAdminNotes.trim() || undefined,
         directBookingStatus: directStatus,
         dpAmount: numDp,
       };
@@ -913,14 +1012,34 @@ Status: ${b.status}`;
                             {b.guestCity} {b.companionType ? `• ${b.companionType}` : ""}
                           </span>
                         )}
-                        {/* Guest Notes */}
+                        {/* Catatan dari Pembeli / Tamu */}
                         {b.notes && (
                           <div className="mt-1.5 p-1.5 rounded-lg bg-amber-50/90 border border-amber-200/70 text-[10px] text-amber-900 leading-tight">
                             <span className="font-bold flex items-center gap-1 text-amber-800">
                               <MessageSquare className="w-2.5 h-2.5 shrink-0" />
-                              Catatan Tamu:
+                              Catatan Pembeli:
                             </span>
                             <span className="line-clamp-2 italic mt-0.5">&ldquo;{b.notes}&rdquo;</span>
+                          </div>
+                        )}
+                        {/* Catatan Internal dari Admin / Manajer */}
+                        {b.adminNotes && (
+                          <div className="mt-1.5 p-1.5 rounded-lg bg-indigo-50/90 border border-indigo-200/70 text-[10px] text-indigo-900 leading-tight">
+                            <span className="font-bold flex items-center gap-1 text-indigo-800">
+                              <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
+                              Catatan Admin:
+                            </span>
+                            <span className="line-clamp-2 mt-0.5">{b.adminNotes}</span>
+                          </div>
+                        )}
+                        {/* Catatan Kustom Invoice PDF */}
+                        {b.invoiceNotes && (
+                          <div className="mt-1.5 p-1.5 rounded-lg bg-emerald-50/80 border border-emerald-200/70 text-[10px] text-emerald-900 leading-tight">
+                            <span className="font-bold flex items-center gap-1 text-emerald-800">
+                              <FileText className="w-2.5 h-2.5 shrink-0" />
+                              Catatan Invoice:
+                            </span>
+                            <span className="line-clamp-2 mt-0.5">{b.invoiceNotes}</span>
                           </div>
                         )}
                         {/* Rejection Reason if Cancelled */}
@@ -1269,12 +1388,12 @@ Status: ${b.status}`;
                             </button>
                           )}
 
-                          {/* Quick Direct Download PDF Button */}
+                          {/* Quick Customize & Download PDF Button */}
                           <button
                             type="button"
-                            onClick={() => handleDownloadPDF(b)}
+                            onClick={() => openInvoiceModal(b)}
                             className="p-1.5 rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-[#C8A44E] hover:border-[#C8A44E] hover:bg-amber-50/50 transition-colors cursor-pointer"
-                            title="Unduh Invoice & Voucher Tamu (PDF)"
+                            title="Kustomisasi & Unduh Invoice PDF"
                           >
                             <FileText className="w-4 h-4 text-[#C8A44E]" />
                           </button>
@@ -1415,14 +1534,11 @@ Status: ${b.status}`;
                                   {/* Unduh Voucher PDF */}
                                   <button
                                     type="button"
-                                    onClick={() => {
-                                      setOpenActionMenuId(null);
-                                      handleDownloadPDF(b);
-                                    }}
+                                    onClick={() => openInvoiceModal(b)}
                                     className="w-full px-3.5 py-2 text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 transition-colors cursor-pointer"
                                   >
                                     <FileText className="w-3.5 h-3.5 text-[#C8A44E]" />
-                                    <span>Unduh Voucher & Invoice (PDF)</span>
+                                    <span>Kustomisasi & Unduh Invoice (PDF)</span>
                                   </button>
 
                                   {/* Kirim Ulang Email ke Tamu via Resend */}
@@ -1484,7 +1600,8 @@ Status: ${b.status}`;
                                           handleUpdateStatus(
                                             b.id,
                                             "CANCELLED",
-                                            "Dibatalkan oleh manajer via menu aksi"
+                                            "Dibatalkan oleh manajer via menu aksi",
+                                            "Dibatalkan oleh pengelola."
                                           );
                                         }
                                       }}
@@ -1540,12 +1657,12 @@ Status: ${b.status}`;
                 {/* Download PDF Voucher & Invoice */}
                 <button
                   type="button"
-                  onClick={() => handleDownloadPDF(selectedProofBooking)}
+                  onClick={() => openInvoiceModal(selectedProofBooking)}
                   className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1a1a2e] text-white text-xs font-semibold hover:bg-[#252542] transition-all shadow-xs cursor-pointer"
-                  title="Unduh Invoice & Voucher Tamu (PDF)"
+                  title="Kustomisasi & Unduh Invoice PDF"
                 >
                   <FileText className="w-3.5 h-3.5 text-[#C8A44E]" />
-                  <span className="hidden sm:inline">Voucher PDF</span>
+                  <span className="hidden sm:inline">Invoice PDF</span>
                 </button>
 
                 {/* Header Download Button */}
@@ -1809,15 +1926,41 @@ Status: ${b.status}`;
                 </div>
               )}
 
-              {/* Guest Notes if any */}
+              {/* Catatan Pembeli / Tamu */}
               {selectedProofBooking.notes && (
                 <div className="mt-3 w-full p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-xs">
                   <span className="font-bold text-amber-900 flex items-center gap-1.5 mb-1">
                     <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
-                    Catatan / Permintaan Khusus Tamu:
+                    Catatan dari Pembeli / Tamu:
                   </span>
                   <p className="text-amber-800 italic leading-relaxed">
                     &ldquo;{selectedProofBooking.notes}&rdquo;
+                  </p>
+                </div>
+              )}
+
+              {/* Catatan Internal Admin / Manajer */}
+              {selectedProofBooking.adminNotes && (
+                <div className="mt-3 w-full p-3.5 rounded-2xl bg-indigo-50/80 border border-indigo-200/70 text-xs">
+                  <span className="font-bold text-indigo-900 flex items-center gap-1.5 mb-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-700" />
+                    Catatan Internal Admin / Manajer:
+                  </span>
+                  <p className="text-indigo-800 leading-relaxed">
+                    {selectedProofBooking.adminNotes}
+                  </p>
+                </div>
+              )}
+
+              {/* Catatan Kustom Invoice PDF */}
+              {selectedProofBooking.invoiceNotes && (
+                <div className="mt-3 w-full p-3.5 rounded-2xl bg-emerald-50/80 border border-emerald-200/70 text-xs">
+                  <span className="font-bold text-emerald-900 flex items-center gap-1.5 mb-1">
+                    <FileText className="w-3.5 h-3.5 text-emerald-700" />
+                    Catatan Kustom Invoice PDF:
+                  </span>
+                  <p className="text-emerald-800 leading-relaxed whitespace-pre-line">
+                    {selectedProofBooking.invoiceNotes}
                   </p>
                 </div>
               )}
@@ -2200,33 +2343,68 @@ Status: ${b.status}`;
                 </div>
               )}
 
-              {/* Notes or Rejection Reason input */}
+              {/* Catatan Pembeli / Tamu (Read-only reference) */}
+              {statusModal.booking.notes && (
+                <div className="p-3 rounded-2xl bg-amber-50/80 border border-amber-200/70 text-xs">
+                  <span className="font-bold text-amber-900 flex items-center gap-1.5 mb-1">
+                    <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                    Catatan dari Pembeli / Tamu:
+                  </span>
+                  <p className="text-amber-800 italic leading-relaxed">
+                    &ldquo;{statusModal.booking.notes}&rdquo;
+                  </p>
+                </div>
+              )}
+
+              {/* Rejection Reason input when CANCELLED */}
+              {statusModal.targetStatus === "CANCELLED" && (
+                <div>
+                  <label className="block text-xs font-bold text-rose-700 mb-1">
+                    Alasan Pembatalan / Penolakan * (Akan ditampilkan ke Tamu)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Contoh: Bukti transfer buram / nominal tidak sesuai / salah rekening tujuan..."
+                    value={statusModal.rejectionReason}
+                    onChange={(e) =>
+                      setStatusModal((prev) => ({ ...prev, rejectionReason: e.target.value }))
+                    }
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-rose-300 focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/20 text-xs"
+                  />
+                </div>
+              )}
+
+              {/* Catatan Internal Admin / Manajer */}
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  {statusModal.targetStatus === "CANCELLED" ? (
-                    <span className="text-rose-700 font-bold">
-                      Alasan Pembatalan / Penolakan * (Akan ditampilkan ke Tamu)
-                    </span>
-                  ) : (
-                    "Catatan Internal Manajer (opsional)"
-                  )}
+                <label className="block text-xs font-semibold text-indigo-900 mb-1 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Catatan Internal Admin / Manajer (opsional)</span>
                 </label>
                 <textarea
                   rows={2}
-                  placeholder={
-                    statusModal.targetStatus === "CANCELLED"
-                      ? "Contoh: Bukti transfer buram / nominal tidak sesuai / salah rekening tujuan..."
-                      : "Contoh: Bukti transfer BCA telah dicek mutasi rekening, sudah valid."
-                  }
-                  value={statusModal.notes}
+                  placeholder="Contoh: Bukti transfer BCA telah dicek mutasi rekening, sudah valid. (Hanya tampil di dashboard)"
+                  value={statusModal.adminNotes}
                   onChange={(e) =>
-                    setStatusModal((prev) => ({ ...prev, notes: e.target.value }))
+                    setStatusModal((prev) => ({ ...prev, adminNotes: e.target.value }))
                   }
-                  className={`w-full px-3.5 py-2.5 rounded-xl border text-xs focus:outline-none focus:ring-1 ${
-                    statusModal.targetStatus === "CANCELLED"
-                      ? "border-rose-300 focus:ring-rose-500 focus:border-rose-500 bg-rose-50/20"
-                      : "border-gray-200 focus:ring-accent"
-                  }`}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-indigo-200 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-indigo-50/15"
+                />
+              </div>
+
+              {/* Catatan Kustom Invoice PDF */}
+              <div>
+                <label className="block text-xs font-semibold text-emerald-900 mb-1 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>Catatan Kustom Invoice PDF (opsional)</span>
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Kosongkan untuk memakai catatan default (Catatan Pembeli). Jika diisi, teks ini akan tercetak pada bagian Catatan & Keterangan di Invoice PDF."
+                  value={statusModal.invoiceNotes}
+                  onChange={(e) =>
+                    setStatusModal((prev) => ({ ...prev, invoiceNotes: e.target.value }))
+                  }
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-emerald-200 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-emerald-50/15"
                 />
               </div>
 
@@ -2245,7 +2423,7 @@ Status: ${b.status}`;
                   type="button"
                   disabled={
                     updatingId === statusModal.booking.id ||
-                    (statusModal.targetStatus === "CANCELLED" && !statusModal.notes.trim())
+                    (statusModal.targetStatus === "CANCELLED" && !statusModal.rejectionReason.trim())
                   }
                   onClick={async () => {
                     const numDp =
@@ -2256,9 +2434,12 @@ Status: ${b.status}`;
                     await handleUpdateStatus(
                       statusModal.booking!.id,
                       statusModal.targetStatus,
-                      statusModal.targetStatus !== "CANCELLED" ? statusModal.notes.trim() || undefined : undefined,
-                      statusModal.targetStatus === "CANCELLED" ? statusModal.notes.trim() : undefined,
-                      numDp
+                      statusModal.adminNotes.trim() || null,
+                      statusModal.targetStatus === "CANCELLED"
+                        ? statusModal.rejectionReason.trim()
+                        : undefined,
+                      numDp,
+                      statusModal.invoiceNotes.trim() || null
                     );
                   }}
                   className={`px-5 py-2.5 rounded-xl text-white text-xs font-semibold transition-colors flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50 ${
@@ -2671,18 +2852,34 @@ Status: ${b.status}`;
                   </label>
                 </div>
 
-                {/* Notes */}
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">
-                    Catatan Internal Manajer
-                  </label>
-                  <textarea
-                    rows={2}
-                    placeholder="Contoh: Pesanan via WA Ibu Santi, pembayaran cash on check-in atau DP 50%."
-                    value={directNotes}
-                    onChange={(e) => setDirectNotes(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
-                  ></textarea>
+                {/* Notes (Separated Buyer vs Admin) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-amber-900 mb-1 flex items-center gap-1">
+                      <MessageSquare className="w-3.5 h-3.5 text-amber-700" />
+                      <span>Catatan Pembeli / Tamu (Opsional)</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Contoh: Request extra bed / datang sore jam 16.00."
+                      value={directGuestNotes}
+                      onChange={(e) => setDirectGuestNotes(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50/20 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    ></textarea>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-indigo-900 mb-1 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Catatan Internal Admin (Opsional)</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      placeholder="Contoh: Pesanan via WA Ibu Santi, pembayaran cash on check-in."
+                      value={directAdminNotes}
+                      onChange={(e) => setDirectAdminNotes(e.target.value)}
+                      className="w-full px-3.5 py-2 rounded-xl border border-indigo-200 bg-indigo-50/20 text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    ></textarea>
+                  </div>
                 </div>
 
                 {/* Submit */}
@@ -2982,6 +3179,208 @@ Status: ${b.status}`;
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Invoice Customization & Download Modal */}
+      {invoiceModal.isOpen && invoiceModal.booking && (
+        <div className="fixed inset-0 z-60 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full overflow-hidden shadow-2xl animate-fade-in border border-gray-100 flex flex-col max-h-[92vh]">
+            {/* Header */}
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between bg-cream/40 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#1a1a2e] text-[#C8A44E] flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold text-accent uppercase tracking-wider block">
+                    Dokumen Resmi PDF
+                  </span>
+                  <h3 className="font-bold text-base font-display text-primary">
+                    Kustomisasi & Unduh Invoice PDF
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    <span className="font-mono font-bold text-primary">
+                      {invoiceModal.booking.code}
+                    </span>{" "}
+                    &bull; {invoiceModal.booking.guestName}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setInvoiceModal((prev) => ({ ...prev, isOpen: false }))
+                }
+                className="p-1.5 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              {/* Issue Date Info */}
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs">
+                <span className="text-gray-500 font-medium flex items-center gap-1.5">
+                  <CalendarDays className="w-3.5 h-3.5 text-accent" />
+                  Tanggal Terbit Invoice (Tgl Booking):
+                </span>
+                <span className="font-bold text-primary">
+                  {new Date(invoiceModal.booking.createdAt).toLocaleDateString("id-ID", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                    timeZone: "Asia/Jakarta",
+                  })}
+                </span>
+              </div>
+
+              {/* Quick Copy from Buyer / Admin Notes if present */}
+              {(invoiceModal.booking.notes || invoiceModal.booking.adminNotes) && (
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Referensi Catatan Pesanan:
+                  </span>
+                  {invoiceModal.booking.notes && (
+                    <div className="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/70 text-[11px] flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-bold text-amber-900 block">
+                          Catatan Pembeli:
+                        </span>
+                        <p className="text-amber-800 italic mt-0.5 break-words">
+                          &ldquo;{invoiceModal.booking.notes}&rdquo;
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setInvoiceModal((prev) => ({
+                            ...prev,
+                            customNotes: `Catatan Tamu: ${prev.booking?.notes || ""}`,
+                          }))
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-white border border-amber-300 text-amber-900 font-semibold text-[10px] hover:bg-amber-100 transition-colors shrink-0 cursor-pointer"
+                      >
+                        Salin
+                      </button>
+                    </div>
+                  )}
+                  {invoiceModal.booking.adminNotes && (
+                    <div className="p-2.5 rounded-xl bg-indigo-50/80 border border-indigo-200/70 text-[11px] flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="font-bold text-indigo-900 block">
+                          Catatan Admin:
+                        </span>
+                        <p className="text-indigo-800 mt-0.5 break-words">
+                          {invoiceModal.booking.adminNotes}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setInvoiceModal((prev) => ({
+                            ...prev,
+                            customNotes: prev.booking?.adminNotes || "",
+                          }))
+                        }
+                        className="px-2.5 py-1 rounded-lg bg-white border border-indigo-300 text-indigo-900 font-semibold text-[10px] hover:bg-indigo-100 transition-colors shrink-0 cursor-pointer"
+                      >
+                        Salin
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Custom Invoice Notes Textarea */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-primary">
+                    Catatan & Keterangan di Invoice PDF
+                  </label>
+                  {invoiceModal.customNotes && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setInvoiceModal((prev) => ({ ...prev, customNotes: "" }))
+                      }
+                      className="text-[11px] text-rose-600 hover:underline font-medium cursor-pointer"
+                    >
+                      Reset ke Default
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  rows={4}
+                  value={invoiceModal.customNotes}
+                  onChange={(e) =>
+                    setInvoiceModal((prev) => ({
+                      ...prev,
+                      customNotes: e.target.value,
+                    }))
+                  }
+                  placeholder="Kosongkan untuk menggunakan catatan default (Catatan Pembeli jika ada). Tuliskan catatan kustom di sini untuk ditampilkan pada bagian Catatan & Keterangan di Invoice PDF..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  Catatan kustom ini menggantikan teks pada kotak &ldquo;Catatan &amp; Keterangan&rdquo; di hasil PDF.
+                </p>
+              </div>
+
+              {/* Save to DB toggle */}
+              <label className="flex items-start gap-2.5 p-3 rounded-xl bg-emerald-50/60 border border-emerald-200/70 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={invoiceModal.saveToBooking}
+                  onChange={(e) =>
+                    setInvoiceModal((prev) => ({
+                      ...prev,
+                      saveToBooking: e.target.checked,
+                    }))
+                  }
+                  className="mt-0.5 rounded border-emerald-400 text-emerald-600 focus:ring-emerald-500"
+                />
+                <span className="text-xs text-emerald-950 leading-snug">
+                  <strong className="block">Simpan catatan kustom ke data reservasi</strong>
+                  <span className="text-[11px] text-emerald-800">
+                    Agar catatan ini juga otomatis sinkron saat tamu mengunduh PDF atau saat kirim ulang email voucher.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            {/* Footer */}
+            <div className="p-5 border-t border-gray-100 flex items-center justify-end gap-2.5 bg-gray-50/50 shrink-0">
+              <button
+                type="button"
+                onClick={() =>
+                  setInvoiceModal((prev) => ({ ...prev, isOpen: false }))
+                }
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={invoiceModal.downloading}
+                onClick={handleConfirmDownloadInvoice}
+                className="px-5 py-2.5 rounded-xl bg-[#1a1a2e] text-white text-xs font-semibold hover:bg-[#252542] transition-colors flex items-center gap-2 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                {invoiceModal.downloading ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-[#C8A44E]" />
+                    <span>Menyiapkan PDF...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-3.5 h-3.5 text-[#C8A44E]" />
+                    <span>Unduh Invoice PDF</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -58,6 +58,7 @@ export interface GuestBookingItem {
   settlementProofUrl?: string | null;
   settlementProofUploadedAt?: string | Date | null;
   notes?: string | null;
+  invoiceNotes?: string | null;
   rejectionReason?: string | null;
   paymentMethod: string;
   paymentProofUrl?: string | null;
@@ -176,7 +177,11 @@ export function GuestDashboard({ currentUser, data }: GuestDashboardProps) {
         status: booking.status,
         paymentMethod: booking.paymentMethod,
         paymentProofUrl: booking.paymentProofUrl,
+        settlementProofUrl: booking.settlementProofUrl,
+        settlementProofUploadedAt: booking.settlementProofUploadedAt,
+        dpAmount: booking.dpAmount,
         notes: booking.notes,
+        invoiceNotes: booking.invoiceNotes,
         rejectionReason: booking.rejectionReason,
         createdAt: booking.createdAt,
         addons: booking.addons?.map((a) => ({
